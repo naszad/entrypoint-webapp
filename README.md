@@ -19,38 +19,21 @@ Install all necessary project dependencies:
 npm install
 ```
 
-## 3. Generate SQL Schema Scripts
-
-Generate the SQL schema definition scripts into the `/models` folder:
-
-```bash
-npm run generate-schema
-```
-
-This will generate migration scripts in `/migrations` folder
-
-## 4. Install Docker Desktop
+## 3. Install Docker Desktop
 
 Make sure you have Docker Desktop installed and running on your machine.  
 Download it here: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
 
-## 5. Initialize Supabase
+
+## 4. Initialize and Start Supabase
 
 Initialize the local Supabase environment:
 
 ```bash
-npm run supabase:init
+npm run supabase
 ```
 
-## 6. Start Supabase
-
-Start the Supabase local development environment:
-
-```bash
-npm run supabase:start
-```
-
-## 7. Set Up Environment Variables
+## 5. Set Up Environment Variables
 
 Create a `.env` file in the project root and add the following variables:
 
@@ -58,27 +41,22 @@ Create a `.env` file in the project root and add the following variables:
 NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
 NEXT_PUBLIC_SUPABASE_SERVICE_KEY=<your-supabase-service-key>
+DATABASE_URL=<postgres-db-url>
 ```
 
 Make sure these values are correctly fetched from your running Supabase instance or your Supabase project.
 
-## 8. Move SQL Scripts to Migrations Folder
+## 6. Generate and run Drizzle migration
 
-Move the generated SQL files into the Supabase migrations directory:
-
-```bash
-mv migrations/*.sql supabase/migrations/
-```
-
-## 9. Execute Database Migrations
-
-Apply the SQL migrations to your local Supabase database:
+Generate the migration scripts from schema definition in `/models` folder:
 
 ```bash
-npm run supabase:up
+npm run drizzle
 ```
 
-## 10. Seed Supabase with an Auth User
+This will generate migration scripts in `/migrations` folder and push migrations to supabase
+
+## 7. Seed Supabase with an Auth User
 
 Seed your local Supabase instance with an authentication user:
 
@@ -86,7 +64,7 @@ Seed your local Supabase instance with an authentication user:
 npm run seed
 ```
 
-## 11. Run the Project
+## 8. Run the Project
 
 Finally, start the development server:
 
