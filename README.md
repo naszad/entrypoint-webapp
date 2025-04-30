@@ -2,7 +2,8 @@
 
 Follow these steps carefully to clone and run the project locally.
 
-## 1. Clone the Repository
+## Initial setup (run these steps only once)
+### 1. Clone the Repository
 
 Clone the repository to your local machine:
 
@@ -11,7 +12,7 @@ git clone <your-repository-url>
 cd <project-folder>
 ```
 
-## 2. Install Dependencies
+### 2. Install Dependencies
 
 Install all necessary project dependencies:
 
@@ -19,34 +20,36 @@ Install all necessary project dependencies:
 npm install
 ```
 
-## 3. Install Docker Desktop
+### 3. Install Docker Desktop
 
 Make sure you have Docker Desktop installed and running on your machine.  
 Download it here: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
 
 
-## 4. Initialize and Start Supabase
+### 4. Initialize and Start Supabase
 
-Initialize the local Supabase environment:
+Run the local Supabase environment:
 
 ```bash
-npm run supabase
+npm supabase:start
 ```
 
-## 5. Set Up Environment Variables
+This will start Supabase locally and provide you with the values needed for the next step.
 
-Create a `.env` file in the project root and add the following variables:
+### 5. Set Up Environment Variables
+
+Create a `.env.local` file in the project root and add the following variables with the values provided by the `supabase start` command:
 
 ```dotenv
-NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
-NEXT_PUBLIC_SUPABASE_SERVICE_KEY=<your-supabase-service-key>
-DATABASE_URL=<postgres-db-url>
+NEXT_PUBLIC_SUPABASE_URL=<api-url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+NEXT_PUBLIC_SUPABASE_SERVICE_KEY=<service_role key>
+DATABASE_URL=<DB-url>
 ```
 
 Make sure these values are correctly fetched from your running Supabase instance or your Supabase project.
 
-## 6. Generate and run Drizzle migration
+### 6. Generate and run Drizzle migration
 
 Generate the migration scripts from schema definition in `/models` folder:
 
@@ -56,7 +59,7 @@ npm run drizzle
 
 This will generate migration scripts in `/migrations` folder and push migrations to supabase
 
-## 7. Seed Supabase with an Auth User
+### 7. Seed Supabase with an Auth User
 
 Seed your local Supabase instance with an authentication user:
 
@@ -64,9 +67,16 @@ Seed your local Supabase instance with an authentication user:
 npm run seed
 ```
 
-## 8. Run the Project
+## Running the project
+### Apply any migrations
 
-Finally, start the development server:
+```bash
+npm run drizzle
+```
+
+### Run the Project
+
+Start the development server:
 
 ```bash
 npm run dev
