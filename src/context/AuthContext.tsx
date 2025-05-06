@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useTransition,
 } from 'react'
 import { supabase } from '@/libs/supabaseClient'
 import { useRouter } from 'next/navigation'
@@ -15,6 +16,7 @@ import { User } from '@/types/User';
 interface AuthContextType {
   user: User | null
   loading: boolean
+  isPending: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -24,6 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isPending, startTransition] = useTransition()
   const router = useRouter();
 
   useEffect(() => {
@@ -80,19 +83,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const logout = async () => {
-    setLoading(true)
-    await supabase.auth.signOut()
-    setUser(null)
-    setLoading(false)
-    router.push('/login')
+    startTransition(async () => {
+      try {
+        const { error } = await supabase.auth.signOut()
+        if (!error) {
+          router.push('/login')
+          setUser(null)
+        } else {
+          console.error('Error during logout:', error)
+        }
+      } catch (error) {
+        console.error('Error during logout:', error)
+      }
+    })
   }
 
-  return loading ? (
+  const isLoading = loading || isPending
+
+  return isLoading && !isPending ? (
     <div className="w-full h-screen flex items-center justify-center">
       <p className="text-xl text-gray-600">Loading...</p>
     </div>
   ) : (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading: isLoading, isPending, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

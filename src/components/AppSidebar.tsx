@@ -28,29 +28,42 @@ export const AppSidebar = () => {
     { name: "Preferences", href: "/preferences", icon: Settings },
   ];
   const { menu } = useMenu();
-  const { user, logout } = useAuth();
+  const { user, logout, isPending } = useAuth();
   const pathname = usePathname();
+  
   return (
     <Sidebar collapsible="none">
       {/* <SidebarTrigger /> */}
       <SidebarHeader>
         <div className="flex">
           <div>
-            {user?.image_url && (
+            {user?.image_url && !isPending && (
               <Image
-                src={user?.image_url}
+                src={user.image_url}
                 width="10"
                 height="10"
-                alt={user?.first_name + ' ' + user?.last_name}
+                alt={user.first_name + ' ' + user.last_name}
                 className="h-10 w-10 rounded-full"
               />
             )}
+            {isPending && (
+              <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
+            )}
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight ml-3">
-            <span className="truncate font-medium">{user?.first_name + ' ' + user?.last_name}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {user?.school.name}
-            </span>
+            {!isPending ? (
+              <>
+                <span className="truncate font-medium">{user?.first_name || ''} {user?.last_name || ''}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {user?.school?.name || ''}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="h-4 w-24 bg-gray-200 rounded animate-pulse"></span>
+                <span className="h-3 w-20 bg-gray-200 rounded animate-pulse mt-1"></span>
+              </>
+            )}
           </div>
         </div>
         <SidebarSeparator />

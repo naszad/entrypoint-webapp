@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from '@/context/AuthContext'
 import { MenuProvider } from "@/context/MenuContext";
+import { NavigationEvents } from "@/components/navigation-events";
+import { TransitionIndicator } from "@/components/ui/transition-indicator";
 import "../styles/globals.css";
 
 const geistSans = Geist({
@@ -31,7 +33,9 @@ export default function RootLayout({
       >
         <AuthProvider>
           <MenuProvider>
+            <TransitionIndicator isLoading={false} />
             {children}
+            <NavigationEvents />
           </MenuProvider>
         </AuthProvider>
       </body>
