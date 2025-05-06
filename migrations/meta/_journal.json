@@ -8,6 +8,13 @@
       "when": 1746189360064,
       "tag": "0000_superb_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1746530951363,
+      "tag": "0001_rich_kate_bishop",
+      "breakpoints": true
     }
   ]
 }
