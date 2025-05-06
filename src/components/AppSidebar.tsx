@@ -20,7 +20,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavigationItem } from "@/context/MenuContext";
-import Image from "next/image";
+import { UserProfile } from "@/components/UserProfile";
 
 export const AppSidebar = () => {
   const secondaryMenu = [
@@ -35,37 +35,7 @@ export const AppSidebar = () => {
     <Sidebar collapsible="none">
       {/* <SidebarTrigger /> */}
       <SidebarHeader>
-        <div className="flex">
-          <div>
-            {user?.image_url && !isPending && (
-              <Image
-                src={user.image_url}
-                width="10"
-                height="10"
-                alt={user.first_name + ' ' + user.last_name}
-                className="h-10 w-10 rounded-full"
-              />
-            )}
-            {isPending && (
-              <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
-            )}
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight ml-3">
-            {!isPending ? (
-              <>
-                <span className="truncate font-medium">{user?.first_name || ''} {user?.last_name || ''}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {user?.school?.name || ''}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="h-4 w-24 bg-gray-200 rounded animate-pulse"></span>
-                <span className="h-3 w-20 bg-gray-200 rounded animate-pulse mt-1"></span>
-              </>
-            )}
-          </div>
-        </div>
+        <UserProfile user={user} isPending={isPending} />
         <SidebarSeparator />
       </SidebarHeader>
       <SidebarContent>
