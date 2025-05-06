@@ -13,7 +13,6 @@ async function createUser() {
     email: 'yasir@conversotech.com',
     password: '123456',
     email_confirm: true,
-    role: 'Counselor',
   })
   console.log({ data, error })
 }
