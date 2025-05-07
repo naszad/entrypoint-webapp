@@ -11,10 +11,10 @@ import {
 import { supabase } from '@/libs/supabaseClient'
 import { useRouter } from 'next/navigation'
 import { getUserByAuthId } from '@/libs/userService';
-import { User } from '@/types/User';
+import { UserInfo } from '@/types/UserInfo';
 
 interface AuthContextType {
-  user: User | null
+  user: UserInfo | null
   loading: boolean
   isPending: boolean
   login: (email: string, password: string) => Promise<void>
@@ -24,7 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
   const router = useRouter();

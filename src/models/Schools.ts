@@ -5,4 +5,4 @@ export const schools = pgTable('schools', {
   name: text('name').notNull(),
 });
 
-export type School = typeof schools;
+export type School = typeof schools.$inferSelect;

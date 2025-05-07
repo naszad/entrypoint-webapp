@@ -12,4 +12,4 @@ export const users = pgTable('users', {
   imageUrl: text('image_url'),
 });
 
-export type User = typeof users;
+export type User = typeof users.$inferSelect;

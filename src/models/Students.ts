@@ -15,4 +15,4 @@ export const students = pgTable('students', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export type Student = typeof students;
+export type Student = typeof students.$inferSelect;

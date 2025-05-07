@@ -1,24 +1,25 @@
+
+import { UserInfo } from "@/types/UserInfo";
 import Image from "next/image";
-import { User } from "@/types/User";
 
 interface UserProfileProps {
-  user: User | null;
+  user: UserInfo | null;
   isPending: boolean;
 }
 
 // Helper function to get user's full name
-const getUserFullName = (user: User | null): string => {
+const getUserFullName = (user: UserInfo | null): string => {
   if (!user) return '';
-  return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  return `${user.firstName || ''} ${user.lastName || ''}`.trim();
 };
 
 export const UserProfile = ({ user, isPending }: UserProfileProps) => {
   return (
     <div className="flex">
       <div>
-        {user?.image_url && !isPending && (
+        {user?.imageUrl && !isPending && (
           <Image
-            src={user.image_url}
+            src={user.imageUrl}
             width="10"
             height="10"
             alt={getUserFullName(user)}
