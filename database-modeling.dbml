@@ -1,0 +1,105 @@
+
+
+// ====== Core Entities ======
+
+Table districts {
+  district_id uuid [pk]
+  external_id varchar
+  name varchar
+  state varchar
+  configuration jsonb
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table schools {
+  school_id uuid [pk]
+  external_id varchar
+  name varchar
+  district_id uuid [ref: > districts.district_id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table terms {
+  term_id uuid [pk]
+  name varchar // e.g. "Fall 2024"
+  start_date date
+  end_date date
+  district_id uuid [ref: > districts.district_id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table courses {
+  course_id uuid [pk]
+  name varchar
+  local_course_code varchar
+  state_course_code varchar
+  school_id uuid [ref: > schools.school_id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table teachers {
+  teacher_id uuid [pk]
+  first_name varchar
+  last_name varchar
+  email varchar
+  school_id uuid [ref: > schools.school_id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table students {
+  student_id uuid [pk]
+  first_name varchar
+  last_name varchar
+  email varchar
+  student_number varchar
+  grade_level int
+  school_id uuid [ref: > schools.school_id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+// ====== Relationship Entities ======
+
+Table enrollments {
+  enrollment_id uuid [pk]
+  student_id uuid [ref: > students.student_id]
+  course_id uuid [ref: > courses.course_id]
+  term_id uuid [ref: > terms.term_id]
+  teacher_id uuid [ref: > teachers.teacher_id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table grades {
+  grade_id uuid [pk]
+  enrollment_id uuid [ref: > enrollments.enrollment_id]
+  grade_type varchar // e.g. final, midterm
+  grade_value decimal // e.g. 85.5
+  recorded_at timestamp
+}
+
+// ====== App Users ======
+
+Table users {
+  user_id uuid [pk]
+  email varchar
+  first_name varchar
+  last_name varchar
+  role varchar // e.g. admin, counselor
+  created_at timestamp
+  updated_at timestamp
+}
+
+// A user may belong to one or more schools or districts
+Table user_school_memberships {
+  user_id uuid [ref: > users.user_id]
+  school_id uuid [ref: > schools.school_id]
+  role varchar // e.g. admin, teacher, student
+  created_at timestamp
+  updated_at timestamp
+}
