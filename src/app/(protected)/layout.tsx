@@ -5,11 +5,17 @@ import { Suspense } from "react"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <Suspense>
-        <main className="p-6">{children}</main>
-      </Suspense>
-    </SidebarProvider>
+    <div className="flex min-h-screen h-screen">
+      <SidebarProvider>
+        <div className="fixed inset-y-0 left-0 z-40">
+          <AppSidebar />
+        </div>
+        <div className="w-full h-full pl-[240px]">
+          <Suspense>
+            <main className="p-6 w-full h-full">{children}</main>
+          </Suspense>
+        </div>
+      </SidebarProvider>
+    </div>
   );
 }
