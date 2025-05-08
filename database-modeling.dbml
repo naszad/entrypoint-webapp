@@ -58,7 +58,15 @@ Table students {
   email varchar
   student_number varchar
   grade_level int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table student_school_memberships {
+  student_id uuid [ref: > students.student_id]
   school_id uuid [ref: > schools.school_id]
+  start_date date
+  end_date date
   created_at timestamp
   updated_at timestamp
 }
