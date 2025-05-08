@@ -1,96 +1,71 @@
 'use client'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/libs/supabaseClient'
-import { ChevronDownIcon } from '@heroicons/react/24/outline'
-import RoleSelection from '@/components/RoleSelection'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/context/AuthContext'
 import LoginHeader from '@/components/LoginHeader'
+import Input from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default function Login() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+export default function LoginPage() {
+  // const router = useRouter()
+  const [email, setEmail] = useState('yasir@conversotech.com')
+  const [password, setPassword] = useState('123456')
   const [message, setMessage] = useState('')
-  const [selectedRole, setSelectedRole] = useState('student')
-  
-
-  useEffect(() => {
-    localStorage.removeItem('lastScenarioTrigger')
-  }, [])
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setMessage(error.message)
-    else { 
-      setMessage(`Logged in as ${data.user.email}`);
-      router.push('/dashboard')
+    try {
+      await login(email, password);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setMessage(e.message);
+      }
     }
-    // const routes = {
-    //   student: '/student/emma-johnson',
-    //   parent: '/parent',
-    //   counselor: '/counselor'
-    // }
   }
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage('')
+      }, 5000)
+  
+      // Cleanup the timer when the component unmounts or error changes
+      return () => clearTimeout(timer)
+    }
+  }, [message])
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
-        <LoginHeader/>
+        <LoginHeader />
         {/* Login Form */}
         <form className="mt-8 space-y-6">
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium">
-                Email address
-              </label>
-              <input
+              <Input
                 id="email"
                 name="email"
                 type="email"
-                value={email} onChange={e => setEmail(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 placeholder="student@example.k12.in.us"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                label="Email"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium">
-                Password
-              </label>
-              <input
+              <Input
                 id="password"
                 name="password"
                 type="password"
-                value={password} onChange={e => setPassword(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 placeholder="********"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                label="Password"
               />
-            </div>
-          </div>
-
-          {/* Role Selection Dropdown */}
-          <div className="relative">
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-              I am a:
-            </label>
-            <div className="relative">
-              <select
-                id="role"
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="appearance-none w-full bg-white border border-gray-300 rounded-lg py-2 px-4 pr-8 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-              >
-                <option value="student">Student</option>
-                <option value="parent">Parent</option>
-                <option value="counselor">Counselor</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <ChevronDownIcon className="h-4 w-4" />
-              </div>
             </div>
           </div>
 
@@ -102,13 +77,19 @@ export default function Login() {
                 type="checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
+              <label
+                htmlFor="remember-me"
+                className="ml-2 block text-sm text-gray-600"
+              >
                 Remember me
               </label>
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+              <a
+                href="#"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Forgot your password?
               </a>
             </div>
@@ -123,14 +104,14 @@ export default function Login() {
               Log In
             </button>
           </div>
-          <div>
-          <p>{message}</p>
-          </div>
-        </form>
 
-        {/* Role Selection */}
-        <RoleSelection/>
+          {message && (
+            <Alert variant="destructive">
+              <AlertDescription>{message}</AlertDescription>
+            </Alert>
+          )}
+        </form>
       </div>
     </main>
-  )
+  );
 } 
