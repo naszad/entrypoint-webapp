@@ -5,7 +5,6 @@ import {
   getCoreRowModel,
   useReactTable,
   VisibilityState,
-  Updater,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -17,15 +16,15 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/utils/utils";
 import { useState } from "react";
-import { 
-  Settings, 
-  MoreVertical, 
+import {
+  Settings,
+  MoreVertical,
   Check,
   LockKeyhole,
-  X
+  X,
 } from "lucide-react";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 
-// Action button interface
 export interface ActionItem {
   id: string;
   icon?: React.ReactNode;
@@ -39,8 +38,7 @@ interface DataTableProps<TData, TValue> {
   className?: string;
   actions?: ActionItem[];
   onActionItemClicked?: (actionId: string) => void;
-  visibility?: VisibilityState;
-  onVisibilityChange?: (visibility: VisibilityState) => void;
+  defaultVisibility?: VisibilityState;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,27 +47,17 @@ export function DataTable<TData, TValue>({
   className,
   actions = [],
   onActionItemClicked,
-  visibility = {},
-  onVisibilityChange,
+  defaultVisibility = {},
 }: DataTableProps<TData, TValue>) {
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(visibility);
-  const [showColumnSettings, setShowColumnSettings] = useState(false);
 
-  const handleColumnVisibilityChange = (updaterOrValue: Updater<VisibilityState>) => {
-    const newVisibility =
-      typeof updaterOrValue === "function"
-        ? updaterOrValue(columnVisibility)
-        : updaterOrValue;
-  
-    setColumnVisibility(newVisibility);
-    onVisibilityChange?.(newVisibility);
-  };
+  const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onColumnVisibilityChange: handleColumnVisibilityChange,
+    onColumnVisibilityChange: setColumnVisibility,
     state: {
       columnVisibility,
     },
@@ -82,26 +70,26 @@ export function DataTable<TData, TValue>({
         className
       )}
     >
-      {/* Action Toolbar */}
+      {/* Toolbar */}
       <div className="h-10 min-h-10 border-b px-4 flex items-center justify-end bg-gray-50">
         <div className="flex items-center space-x-1">
-          {/* Action items */}
-          {onActionItemClicked && actions.map((action) => (
-            <div key={action.id} className="border-r border-gray-200">
-              <button
-                key={action.id}
-                onClick={() => {
-                  onActionItemClicked(action.id);
-                }}
-                className={`p-1.5 rounded hover:bg-gray-200 text-gray-600 focus:outline-none flex items-center gap-1 ${action.label ? 'px-2' : 'rounded-full'}`}
-                title={action.title}
+          {onActionItemClicked &&
+            actions.map((action) => (
+              <div key={action.id} className="border-r border-gray-200">
+                <button
+                  onClick={() => onActionItemClicked(action.id)}
+                  className={`p-1.5 rounded hover:bg-gray-200 text-gray-600 focus:outline-none flex items-center gap-1 ${
+                    action.label ? "px-2" : "rounded-full"
+                  }`}
+                  title={action.title}
                 >
-                {action.icon || <MoreVertical className="h-4 w-4" />}
-                {action.label && <span className="text-sm">{action.label}</span>}
-              </button>
+                  {action.icon || <MoreVertical className="h-4 w-4" />}
+                  {action.label && (
+                    <span className="text-sm">{action.label}</span>
+                  )}
+                </button>
               </div>
-          ))}
-          {/* Column visibility dropdown */}
+            ))}
           <div className="relative">
             <button
               onClick={() => setShowColumnSettings(!showColumnSettings)}
@@ -116,45 +104,44 @@ export function DataTable<TData, TValue>({
                 <div className="px-3 py-2 text-sm font-semibold border-b">
                   Toggle Columns
                 </div>
-                {table
-                  .getAllColumns()
-                  .map((column) => {
-                    return (
-                      <div
-                        key={column.id}
-                        className={`px-3 py-1.5 flex items-center ${!column.getCanHide() ? '' : 'cursor-pointer hover:bg-gray-100'}`}
-                        onClick={() =>
-                          column.toggleVisibility(!column.getIsVisible())
-                        }
-                      >
-                        <div className="mr-2">
-                          {!column.getCanHide() ? (
-                            <LockKeyhole className="h-4 w-4 text-gray-400" />
-                          ) : column.getIsVisible() ? (
-                            <Check className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <X className="h-4 w-4 text-gray-400" />
-                          )}
-                        </div>
-                        <span className="text-sm">
-                          {column.id.charAt(0).toUpperCase() +
-                            column.id.slice(1)}
-                        </span>
-                      </div>
-                    );
-                  })}
+                {table.getAllColumns().map((column) => (
+                  <div
+                    key={column.id}
+                    className={`px-3 py-1.5 flex items-center ${
+                      !column.getCanHide()
+                        ? ""
+                        : "cursor-pointer hover:bg-gray-100"
+                    }`}
+                    onClick={() =>
+                      column.toggleVisibility(!column.getIsVisible())
+                    }
+                  >
+                    <div className="mr-2">
+                      {!column.getCanHide() ? (
+                        <LockKeyhole className="h-4 w-4 text-gray-400" />
+                      ) : column.getIsVisible() ? (
+                        <Check className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <X className="h-4 w-4 text-gray-400" />
+                      )}
+                    </div>
+                    <span className="text-sm">
+                      {column.id.charAt(0).toUpperCase() + column.id.slice(1)}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Table with fixed header */}
+      {/* Table */}
       <div className="overflow-auto flex-1">
         <Table>
           <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-b border-gray-200">
+              <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
