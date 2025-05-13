@@ -6,7 +6,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
 }
 
-export default function Input({ id, label, ...props }: InputProps) {
+function Input({ id, label, ...props }: InputProps) {
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium">
@@ -20,3 +20,5 @@ export default function Input({ id, label, ...props }: InputProps) {
     </div>
   )
 }
+
+export { Input }
