@@ -18,13 +18,14 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}  # lowercase and matches Vercel dashboard slug
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           echo "Waiting for Vercel to deploy commit $GITHUB_SHA..."
 
           for i in {1..30}; do
             RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?project=${VERCEL_PROJECT_ID}&limit=5")
+              "https://api.vercel.com/v6/deployments?teamId=${VERCEL_TEAM_ID}&projectId=${VERCEL_PROJECT_ID}&limit=5")
 
             MATCHING=$(echo "$RESPONSE" | jq -r \
               '.deployments[] | select(.meta.githubCommitSha == "'"$GITHUB_SHA"'") | select(.target == "production") | select(.readyState == "READY") | .url')
