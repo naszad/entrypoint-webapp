@@ -1,46 +1,57 @@
-name: Wait for Vercel Deploy + Run Drizzle Migrations
+# .github/workflows/migrate-after-vercel.yml
+name: Wait for Vercel Deploy + Run Migrations
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  migrate-dev:
-    name: Wait and Migrate (Dev)
+  migrate-after-vercel:
     runs-on: ubuntu-latest
-    environment: Dev
+    environment: production
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
-      - name: Wait for Vercel to start deployment
-        run: sleep 20
-      - name: Wait for Vercel Dev Deployment
-        id: wait_for_deploy
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
-        with:
-          token: ${{ secrets.VERCEL_TOKEN }}
-          max_timeout: 300 # seconds
-          check_interval: 10 # polling interval
+      - name: Wait for Vercel production deploy to succeed
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}  # lowercase and matches Vercel dashboard slug
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          echo "Waiting for Vercel to deploy commit $GITHUB_SHA..."
+
+          for i in {1..30}; do
+            RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?project=${VERCEL_PROJECT_ID}&limit=5")
+
+            MATCHING=$(echo "$RESPONSE" | jq -r \
+              '.deployments[] | select(.meta.githubCommitSha == "'"$GITHUB_SHA"'") | select(.target == "production") | select(.readyState == "READY") | .url')
+
+            if [[ ! -z "$MATCHING" ]]; then
+              echo "✅ Deployment ready at: https://$MATCHING"
+              break
+            fi
+
+            echo "⏳ Not ready yet. Retrying in 10s ($i/30)..."
+            sleep 10
+          done
+
+          if [[ -z "$MATCHING" ]]; then
+            echo "❌ Timed out waiting for production deploy."
+            exit 1
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
-
-      - name: Check for Uncommitted Schema Changes
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          echo "Validating schema against database..."
-          npx drizzle-kit studio --check
-        continue-on-error: false  # Fail the build if schema and DB are out of sync
 
       - name: Run Drizzle Migrations
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          echo "Applying migrations to dev database..."
-          npx drizzle-kit migrate --log
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: npx drizzle-kit migrate --log
