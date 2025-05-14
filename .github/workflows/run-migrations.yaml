@@ -24,7 +24,7 @@ jobs:
           echo "Waiting for Vercel to deploy commit $GITHUB_SHA..."
 
           for i in {1..30}; do
-            RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+            RESPONSE=$(curl -s -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               "https://api.vercel.com/v6/deployments?teamId=${VERCEL_TEAM_ID}&projectId=${VERCEL_PROJECT_ID}&limit=5")
 
             MATCHING=$(echo "$RESPONSE" | jq -r \
