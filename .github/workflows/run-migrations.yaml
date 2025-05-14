@@ -24,25 +24,33 @@ jobs:
           echo "Waiting for Vercel to deploy commit $GITHUB_SHA..."
 
           for i in {1..30}; do
-            RESPONSE=$(curl -s -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
               "https://api.vercel.com/v6/deployments?teamId=${VERCEL_TEAM_ID}&projectId=${VERCEL_PROJECT_ID}&limit=5")
 
-            MATCHING=$(echo "$RESPONSE" | jq -r \
-              '.deployments[] | select(.meta.githubCommitSha == "'"$GITHUB_SHA"'") | select(.target == "production") | select(.readyState == "READY") | .url')
+            # Optional: uncomment to debug API response
+            # echo "Raw Vercel API response:"
+            # echo "$RESPONSE" | jq .
 
-            if [[ ! -z "$MATCHING" ]]; then
-              echo "✅ Deployment ready at: https://$MATCHING"
-              break
+            # Only try to match if deployments array exists
+            if echo "$RESPONSE" | jq -e '.deployments' >/dev/null; then
+              MATCHING=$(echo "$RESPONSE" | jq -r \
+                '.deployments[] | select(.meta.githubCommitSha == "'"$GITHUB_SHA"'") | select(.target == "production") | select(.readyState == "READY") | .url')
+
+              if [[ ! -z "$MATCHING" ]]; then
+                echo "✅ Deployment ready at: https://$MATCHING"
+                exit 0
+              fi
+            else
+              echo "⚠️ Vercel API response did not contain 'deployments'. Response was:"
+              echo "$RESPONSE"
             fi
 
             echo "⏳ Not ready yet. Retrying in 10s ($i/30)..."
             sleep 10
           done
 
-          if [[ -z "$MATCHING" ]]; then
-            echo "❌ Timed out waiting for production deploy."
-            exit 1
-          fi
+          echo "❌ Timed out waiting for production deploy."
+          exit 1
 
       - name: Setup Node
         uses: actions/setup-node@v3
