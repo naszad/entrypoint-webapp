@@ -19,11 +19,8 @@ jobs:
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
         with:
           token: ${{ secrets.VERCEL_TOKEN }}
-          projectId: ${{ secrets.VERCEL_PROJECT_ID }}
-          teamId: "team_B7vd0ICaagCbb8IBdwSECnnA" # Optional if not in a Vercel team
-          timeout: 300 # seconds
-          interval: 10 # polling interval
-
+          max_timeout: 300 # seconds
+          check_interval: 10 # polling interval
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
