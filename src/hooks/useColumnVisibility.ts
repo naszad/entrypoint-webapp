@@ -39,8 +39,21 @@ export function useColumnVisibility(defaultVisibility: VisibilityState = {}) {
       .map(([key]) => key)
       .join(",");
 
-    const query = visibleColumns ? `?columns=${visibleColumns}` : "";
-    router.replace(`${pathname}${query.toString()}`);
+    // Create a new URLSearchParams object with all existing params
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    
+    // Update or remove the columns parameter
+    if (visibleColumns) {
+      newSearchParams.set("columns", visibleColumns);
+    } else {
+      newSearchParams.delete("columns");
+    }
+
+    // Construct the new URL with all parameters
+    const query = newSearchParams.toString();
+    const newUrl = query ? `${pathname}?${query}` : pathname;
+    
+    router.replace(newUrl);
   };
 
   return {
