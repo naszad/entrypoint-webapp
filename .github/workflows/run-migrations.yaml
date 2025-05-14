@@ -13,7 +13,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-
+      - name: Wait for Vercel to start deployment
+        run: sleep 20
       - name: Wait for Vercel Dev Deployment
         id: wait_for_deploy
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
