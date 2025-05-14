@@ -9,7 +9,7 @@ on:
 jobs:
   migrate-after-vercel:
     runs-on: ubuntu-latest
-    environment: production
+    environment: Dev
 
     steps:
       - name: Checkout code
