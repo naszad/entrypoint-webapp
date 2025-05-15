@@ -1,0 +1,66 @@
+# .github/workflows/migrate-after-vercel.yml
+name: Wait for Vercel Deploy + Run Migrations
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  migrate-after-vercel:
+    runs-on: ubuntu-latest
+    environment: Dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Wait for Vercel production deploy to succeed
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}  # lowercase and matches Vercel dashboard slug
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          echo "Waiting for Vercel to deploy commit ${{ github.sha }}..."
+
+          for i in {1..30}; do
+            RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?teamId=${VERCEL_TEAM_ID}&projectId=${VERCEL_PROJECT_ID}&limit=5")
+
+            # Optional: uncomment to debug API response
+            # echo "Raw Vercel API response:"
+            # echo "$RESPONSE" | jq .
+
+            # Only try to match if deployments array exists
+            if echo "$RESPONSE" | jq -e '.deployments' >/dev/null; then
+              MATCHING=$(echo "$RESPONSE" | jq -r \
+                '.deployments[] | select(.meta.githubCommitSha == "'"$GITHUB_SHA"'") | select(.target == "production") | select(.readyState == "READY") | .url')
+
+              if [[ ! -z "$MATCHING" ]]; then
+                echo "✅ Deployment ready at: https://$MATCHING"
+                exit 0
+              fi
+            else
+              echo "⚠️ Vercel API response did not contain 'deployments'. Response was:"
+              echo "$RESPONSE"
+            fi
+
+            echo "⏳ Not ready yet. Retrying in 10s ($i/30)..."
+            sleep 10
+          done
+
+          echo "❌ Timed out waiting for production deploy."
+          exit 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Drizzle Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx drizzle-kit migrate
