@@ -14,7 +14,7 @@ interface FilterDropdownProps {
   onSort: (columnId: string, direction: 'asc' | 'desc') => void;
   currentSortDirection?: 'asc' | 'desc' | null;
   isLastColumn?: boolean;
-  filterInputRef?: (el: HTMLInputElement | HTMLSelectElement | null) => void;
+  filterInputRef?: (el: HTMLInputElement | HTMLSelectElement | null, key?: string) => void;
   filterConditionRef?: (el: HTMLSelectElement | null) => void;
 }
 
@@ -38,8 +38,6 @@ export function FilterDropdown({
         return ['Contains', 'Equals', 'Starts with', 'Ends with'];
       case 'number':
         return ['Equals', 'Greater than', 'Less than'];
-      case 'date':
-        return ['Equals', 'Before', 'After'];
       default:
         return ['Equals'];
     }
@@ -108,7 +106,7 @@ export function FilterDropdown({
           </div>
         )}
         <div className="text-xs font-medium text-gray-800 px-1">Filter by {headerText}</div>
-        {meta.filterType !== 'dropdown' && (
+        {meta.filterType !== 'dropdown' && meta.filterType !== 'date' && (
           <div className="space-y-1">
             <div className="text-xs font-medium text-gray-500 px-1">Condition</div>
             <select
@@ -126,7 +124,6 @@ export function FilterDropdown({
             </select>
           </div>
         )}
-        <div className="text-xs font-medium text-gray-500 px-1">Value</div>
         {meta.filterType === 'dropdown' && meta.filterOptions ? (
           <select
             className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -141,20 +138,58 @@ export function FilterDropdown({
             ))}
           </select>
         ) : meta.filterType === 'date' ? (
-          <input
-            type="date"
-            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            ref={filterInputRef}
-            autoFocus
-          />
+          <>
+            <div className="text-xs font-medium text-gray-500 px-1">{`${headerText} From`}</div>
+            <input
+              id={`${columnId}From`}
+              type="date"
+              className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              ref={(el) => {
+                if (filterInputRef) {
+                  filterInputRef(el, `${columnId}From`);
+                }
+              }}
+              autoFocus
+              value={filterConditions[`${columnId}From`] || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFilterConditions({ 
+                  ...filterConditions, 
+                  [`${columnId}From`]: value 
+                });
+              }}
+            />
+            <div className="text-xs font-medium text-gray-500 px-1">{`${headerText} To`}</div>
+            <input
+              id={`${columnId}To`}
+              type="date"
+              className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              ref={(el) => {
+                if (filterInputRef) {
+                  filterInputRef(el, `${columnId}To`);
+                }
+              }}
+              value={filterConditions[`${columnId}To`] || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFilterConditions({ 
+                  ...filterConditions, 
+                  [`${columnId}To`]: value 
+                });
+              }}
+            />
+          </>
         ) : (
-          <input
-            type={meta.filterType === 'number' ? 'number' : 'text'}
-            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder={`Filter ${headerText}`}
-            ref={filterInputRef}
-            autoFocus
-          />
+          <>
+            <div className="text-xs font-medium text-gray-500 px-1">Value</div>
+            <input
+              type={meta.filterType === 'number' ? 'number' : 'text'}
+              className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={`Filter ${headerText}`}
+              ref={filterInputRef}
+              autoFocus
+            />
+          </>
         )}
         <div className="flex justify-between gap-2 pt-2">
           <Button
@@ -167,7 +202,17 @@ export function FilterDropdown({
           </Button>
           <Button
             size='xsm'
-            onClick={() => onApply(columnId)}
+            onClick={() => {
+              if (meta.filterType === 'date') {
+                const fromValue = filterConditions[`${columnId}From`];
+                const toValue = filterConditions[`${columnId}To`];
+                if (fromValue || toValue) {
+                  onApply(columnId);
+                }
+              } else {
+                onApply(columnId);
+              }
+            }}
             className="px-2 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600 rounded"
           >
             Apply
