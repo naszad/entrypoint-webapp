@@ -151,7 +151,7 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
           newFilters.push({
             key: `${columnId}From`,
             value: fromValue,
-            condition: 'Greater than or equal to'
+            condition: 'gte'
           });
         }
         
@@ -159,14 +159,14 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
           newFilters.push({
             key: `${columnId}To`,
             value: toValue,
-            condition: 'Less than or equal to'
+            condition: 'lte'
           });
         }
         
         return newFilters;
       });
     } else if (input && input.value) {
-      const condition = conditionSelect?.value || 'Equals';
+      const condition = conditionSelect?.value || 'eq';
       setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
       setFilterValues(prev => {
         const existingFilterIndex = prev.findIndex(f => f.key === columnId);

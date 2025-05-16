@@ -2,6 +2,7 @@ import { useRef, MouseEvent } from "react";
 import { X } from "lucide-react";
 import { FilterPill } from "./FilterPill";
 import { FilterValue } from "./DataTable";
+import { getDisplayValueById } from '@/utils/filterConditions';
 
 interface ToolbarFiltersProps {
   filterValues: FilterValue[];
@@ -71,7 +72,7 @@ export function ToolbarFilters({
             columnId={filter.key}
             label={getColumnHeader(filter.key) ?? filter.key}
             value={filter.value}
-            condition={filter.condition}
+            condition={getDisplayValueById(filter.condition)}
             onRemove={onRemoveFilter}
           />
         ))}

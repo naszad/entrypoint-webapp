@@ -2,6 +2,7 @@ import { ColumnMeta } from './DataTable';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
+import { getFilterConditionsByType } from '@/utils/filterConditions';
 
 interface FilterDropdownProps {
   columnId: string;
@@ -33,14 +34,7 @@ export function FilterDropdown({
   filterConditionRef,
 }: FilterDropdownProps) {
   const getFilterConditionOptions = (filterType: string) => {
-    switch (filterType) {
-      case 'text':
-        return ['Contains', 'Equals', 'Starts with', 'Ends with'];
-      case 'number':
-        return ['Equals', 'Greater than', 'Less than'];
-      default:
-        return ['Equals'];
-    }
+    return getFilterConditionsByType(filterType);
   };
 
   const getSortDirectionDESCPlaceHolder = (meta: ColumnMeta) => {
@@ -111,15 +105,15 @@ export function FilterDropdown({
             <div className="text-xs font-medium text-gray-500 px-1">Condition</div>
             <select
               className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={filterConditions[columnId] || 'Equals'}
+              value={filterConditions[columnId] || 'eq'}
               onChange={(e) => {
                 const value = e.target.value;
                 setFilterConditions({ ...filterConditions, [columnId]: value });
               }}
               ref={filterConditionRef}
             >
-              {getFilterConditionOptions(meta.filterType || '').map((option: string) => (
-                <option key={option} value={option}>{option}</option>
+              {getFilterConditionOptions(meta.filterType || '').map((option) => (
+                <option key={option.id} value={option.id}>{option.displayValue}</option>
               ))}
             </select>
           </div>
