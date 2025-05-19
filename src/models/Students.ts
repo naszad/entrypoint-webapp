@@ -1,18 +1,26 @@
-import { date, integer, pgTable, text, varchar, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, integer, timestamp, date } from "drizzle-orm/pg-core";
+import { schools } from "./schools"; // adjust import as needed
+import { relations } from "drizzle-orm";
 
-export const students = pgTable('students', {
-  studentId: uuid('student_id').primaryKey(),
-  schoolId: integer('school_id').notNull(),
-  firstName: text('first_name').notNull(),
-  middleName: text('middle_name'),
-  lastName: text('last_name').notNull(),
-  email: varchar('email', { length: 256 }).notNull(),
-  phone: varchar('phone', { length: 256 }),
-  gradeLevel: integer('grade_level').notNull(),
-  gender: varchar('gender', { length: 256 }).notNull(),
-  dateOfBirth: date('date_of_birth').notNull(), 
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+export const students = pgTable("students", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studentId: integer("student_id").notNull(),
+  schoolId: integer("school_id").notNull(),
+  firstName: varchar("first_name", { length: 100 }).notNull(),
+  middleName: varchar("middle_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
+  gradeLevel: integer("grade_level").notNull(),
+  gender: varchar("gender", { length: 20 }),
+  dateOfBirth: date("date_of_birth"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  externalSource: varchar("external_source", { length: 50 }),
+  externalKey: varchar("external_key", { length: 50 }),
+  externalId: varchar("external_id", { length: 50 }),
+  externalName: varchar("external_name", { length: 255 }),
 });
+
 
 export type Student = typeof students.$inferSelect;
