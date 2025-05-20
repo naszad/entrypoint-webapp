@@ -14,22 +14,26 @@ export const students = pgTable(
   'students',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    student_id: integer('student_id').notNull(),
-    school_id: integer('school_id').notNull(),
-    first_name: text('first_name').notNull(),
-    middle_name: text('middle_name'),            
-    last_name: text('last_name').notNull(),
+    studentId: integer('student_id').notNull(),
+    schoolId: integer('school_id').notNull(),
+    firstName: text('first_name').notNull(),
+    middleName: text('middle_name'),
+    lastName: text('last_name').notNull(),
     email: varchar('email', { length: 256 }).notNull(),
-    phone: varchar('phone', { length: 256 }),  
-    grade_level: integer('grade_level').notNull(),
-    gender: varchar('gender', { length: 256 }),  
-    date_of_birth: date('date_of_birth'),
-    created_at: timestamp('created_at').notNull().defaultNow(),
-    updated_at: timestamp('updated_at').notNull().defaultNow(),
-    external_source: text('external_source'),
-    external_key: text('external_key'),
-    external_id: text('external_id').notNull(),
-    external_name: text('external_name'),
+    phone: varchar('phone', { length: 256 }),
+    gradeLevel: integer('grade_level').notNull(),
+    gender: varchar('gender', { length: 256 }),
+    dateOfBirth: date('date_of_birth'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    externalSource: text('external_source'),
+    externalKey: text('external_key'),
+    externalId: text('external_id').notNull(),
+    externalName: text('external_name'),
+    graduationYear: integer('graduation_year'), 
+    enrollmentStatus: text('enrollment_status').notNull(), 
+    homeroomName: text('homeroom_name'), 
+    fullName : text('full_name').notNull()
   },
   (table) => [
 
@@ -43,7 +47,7 @@ export const students = pgTable(
           JOIN student_school_link       AS ssl
             ON usm.school_id = ssl.external_school_id
           WHERE usm.user_id = auth.uid()
-            AND ssl.external_student_id = ${table.external_id}
+            AND ssl.external_student_id = ${table.externalId}
         )
       `,
     }),
