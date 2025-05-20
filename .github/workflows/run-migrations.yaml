@@ -1,10 +1,10 @@
 # .github/workflows/migrate-after-vercel.yml
 name: Wait for Vercel Deploy + Run Migrations
 
-on:
-  push:
-    branches:
-      - main
+# on:
+#   push:
+#     branches:
+#       - main
 
 jobs:
   migrate-after-vercel:
