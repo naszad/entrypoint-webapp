@@ -65,9 +65,10 @@ export function DataTableToolbar<TData>({
     <div className="h-10 min-h-10 border-b px-4 flex items-center justify-between bg-gray-50">
       <ToolbarFilters
         filterValues={filterValues}
-        getColumnHeader={(columnId: string) =>
-          table.getAllColumns().find((col) => col.id === columnId)?.columnDef.header as string
-        }
+        getColumnHeader={(columnId: string) => {
+          const baseColumnId = columnId.endsWith('From') || columnId.endsWith('To') ? columnId.replace(/(?:From|To)$/, '') : columnId;          
+          return table.getAllColumns().find((col) => col.id === baseColumnId)?.columnDef.header as string;
+        }}
         onRemoveFilter={onRemoveFilter}
         onClearAllFilters={onClearAllFilters}
       />

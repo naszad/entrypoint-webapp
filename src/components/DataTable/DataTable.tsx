@@ -146,8 +146,12 @@ export function DataTable<TData, TValue>({
                       filterDropdownRef={(el) => {
                         filterDropdownRefs.current[column.id] = el;
                       }}
-                      filterInputRef={(el) => {
-                        filterInputRefs.current[column.id] = el;
+                      filterInputRef={(el, key) => {
+                        if (key) {
+                          filterInputRefs.current[key] = el;
+                        } else {
+                          filterInputRefs.current[column.id] = el;
+                        }
                       }}
                       filterConditionRef={(el) => {
                         filterConditionRefs.current[column.id] = el;
