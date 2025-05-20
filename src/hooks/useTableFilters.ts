@@ -52,16 +52,23 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
   // Set input and condition values when filter dropdown opens
   useEffect(() => {
     if (openFilterColumn) {
-      const filterValue = filterValues.find(f => f.key === openFilterColumn);
-      if (filterValue) {
-        const input = filterInputRefs.current[openFilterColumn];
+      const filterValuesForColumn = filterValues.filter(f => f.key.includes(openFilterColumn));    
+      
+      if (filterValuesForColumn.length > 0) {
+        filterValuesForColumn.forEach(filterValue => {
+          const input = filterInputRefs.current[filterValue.key];
+          if (input) {
+            input.value = filterValue.value;
+          }
+        });
+
+        // Set condition select value if it exists (for non-date filters)
         const conditionSelect = filterConditionRefs.current[openFilterColumn];
-        
-        if (input) {
-          input.value = filterValue.value;
-        }
         if (conditionSelect) {
-          conditionSelect.value = filterValue.condition;
+          const mainFilter = filterValuesForColumn.find(f => f.key === openFilterColumn);
+          if (mainFilter) {
+            conditionSelect.value = mainFilter.condition;
+          }
         }
       }
     }
@@ -97,7 +104,7 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
     if (JSON.stringify(prevFilterValuesRef.current) !== JSON.stringify(filterValues)) {
       onFilterApply?.(filterValues);
       prevFilterValuesRef.current = filterValues;
-
+      
       // Create a new URLSearchParams object
       const newSearchParams = new URLSearchParams();
       
@@ -132,8 +139,34 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
     const input = filterInputRefs.current[columnId];
     const conditionSelect = filterConditionRefs.current[columnId];
     
-    if (input && input.value) {
-      const condition = conditionSelect?.value || 'Equals';
+    // Check if this is a date filter by looking for From/To values in filterConditions
+    const fromValue = filterConditions[`${columnId}From`];
+    const toValue = filterConditions[`${columnId}To`];
+    
+    if (fromValue || toValue) {
+      setFilterValues(prev => {
+        const newFilters = prev.filter(f => f.key !== `${columnId}From` && f.key !== `${columnId}To`);
+        
+        if (fromValue) {
+          newFilters.push({
+            key: `${columnId}From`,
+            value: fromValue,
+            condition: 'gte'
+          });
+        }
+        
+        if (toValue) {
+          newFilters.push({
+            key: `${columnId}To`,
+            value: toValue,
+            condition: 'lte'
+          });
+        }
+        
+        return newFilters;
+      });
+    } else if (input && input.value) {
+      const condition = conditionSelect?.value || 'eq';
       setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
       setFilterValues(prev => {
         const existingFilterIndex = prev.findIndex(f => f.key === columnId);
@@ -154,22 +187,50 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
   };
 
   const handleClearFilter = (columnId: string) => {
-    setFilterValues(prev => prev.filter(f => f.key !== columnId));
-    setFilterConditions(prev => {
-      const newState = { ...prev };
-      delete newState[columnId];
-      return newState;
-    });
+    // Check if this is a date filter by looking for From/To values
+    const fromValue = filterConditions[`${columnId}From`];
+    const toValue = filterConditions[`${columnId}To`];
+    
+    if (fromValue || toValue) {
+      setFilterValues(prev => prev.filter(f => f.key !== `${columnId}From` && f.key !== `${columnId}To`));
+      setFilterConditions(prev => {
+        const newState = { ...prev };
+        delete newState[`${columnId}From`];
+        delete newState[`${columnId}To`];
+        return newState;
+      });
+    } else {
+      setFilterValues(prev => prev.filter(f => f.key !== columnId));
+      setFilterConditions(prev => {
+        const newState = { ...prev };
+        delete newState[columnId];
+        return newState;
+      });
+    }
     setOpenFilterColumn(null);
   };
 
   const handleRemoveFilter = (columnId: string) => {
-    setFilterValues(prev => prev.filter(f => f.key !== columnId));
-    setFilterConditions(prev => {
-      const newState = { ...prev };
-      delete newState[columnId];
-      return newState;
-    });
+    // Check if this is a date filter by looking for From/To values
+    const fromValue = filterConditions[`${columnId}From`];
+    const toValue = filterConditions[`${columnId}To`];
+    
+    if (fromValue || toValue) {
+      setFilterValues(prev => prev.filter(f => f.key !== `${columnId}From` && f.key !== `${columnId}To`));
+      setFilterConditions(prev => {
+        const newState = { ...prev };
+        delete newState[`${columnId}From`];
+        delete newState[`${columnId}To`];
+        return newState;
+      });
+    } else {
+      setFilterValues(prev => prev.filter(f => f.key !== columnId));
+      setFilterConditions(prev => {
+        const newState = { ...prev };
+        delete newState[columnId];
+        return newState;
+      });
+    }
   };
 
   const handleClearAllFilters = () => {

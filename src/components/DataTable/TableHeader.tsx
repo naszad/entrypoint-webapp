@@ -19,7 +19,7 @@ interface TableHeaderProps<TData> {
   isLastColumn?: boolean;
   filterButtonRef: (el: HTMLButtonElement | null) => void;
   filterDropdownRef: (el: HTMLDivElement | null) => void;
-  filterInputRef: (el: HTMLInputElement | HTMLSelectElement | null) => void;
+  filterInputRef?: (el: HTMLInputElement | HTMLSelectElement | null, key?: string) => void;
   filterConditionRef: (el: HTMLSelectElement | null) => void;
 }
 
