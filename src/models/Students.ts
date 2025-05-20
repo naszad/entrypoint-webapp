@@ -1,33 +1,53 @@
-import { pgTable, uuid, varchar, integer, timestamp, date } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { schools } from "./Schools";
+import { sql } from 'drizzle-orm';
+import {
+  pgTable,
+  uuid,
+  integer,
+  text,
+  varchar,
+  date,
+  timestamp,
+  pgPolicy,
+} from 'drizzle-orm/pg-core';
 
-export const students = pgTable("students", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  studentId: integer("student_id").notNull(),
-  schoolId: integer("school_id").notNull(),
-  firstName: varchar("first_name", { length: 100 }).notNull(),
-  middleName: varchar("middle_name", { length: 100 }),
-  lastName: varchar("last_name", { length: 100 }).notNull(),
-  email: varchar("email", { length: 255 }).notNull(),
-  phone: varchar("phone", { length: 20 }),
-  gradeLevel: integer("grade_level").notNull(),
-  gender: varchar("gender", { length: 20 }),
-  dateOfBirth: date("date_of_birth"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  externalSource: varchar("external_source", { length: 50 }),
-  externalKey: varchar("external_key", { length: 50 }),
-  externalId: varchar("external_id", { length: 50 }),
-  externalName: varchar("external_name", { length: 255 }),
-});
+export const students = pgTable(
+  'students',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    studentId: integer('student_id').notNull(),
+    schoolId: integer('school_id').notNull(),
+    firstName: text('first_name').notNull(),
+    middleName: text('middle_name'),            
+    lastName: text('last_name').notNull(),
+    email: varchar('email', { length: 256 }).notNull(),
+    phone: varchar('phone', { length: 256 }),  
+    gradeLevel: integer('grade_level').notNull(),
+    gender: varchar('gender', { length: 256 }),  
+    dateOfBirth: date('date_of_birth'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    externalSource: text('external_source'),
+    externalKey: text('external_key'),
+    externalId: text('external_id').notNull(),
+    externalName: text('external_name'),
+  },
+  (table) => [
 
-export const studentRelations = relations(students, ({ one }) => ({
-  school: one(() => schools, {
-    fields: [students.schoolId],
-    references: [schools.id],
-  }),
-}));
-
+    pgPolicy('Allow Reading of student', {
+      for: 'select',
+      to: 'authenticated',
+      using: sql`
+        EXISTS (
+          SELECT 1
+          FROM user_school_memberships AS usm
+          JOIN student_school_link       AS ssl
+            ON usm.school_id = ssl.external_school_id
+          WHERE usm.user_id = auth.uid()
+            AND ssl.external_student_id = ${table.externalId}
+        )
+      `,
+    }),
+  ]
+).enableRLS();
 
 export type Student = typeof students.$inferSelect;

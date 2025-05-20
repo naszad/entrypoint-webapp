@@ -4,19 +4,33 @@ import { UserInfo } from '@/types/UserInfo';
 export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   const { data, error } = await supabase
     .from('users')
-    .select(
-      `
-        user_id,
-        first_name,
-        middle_name,
-        last_name,
-        email,
-        image_url,
-        school:school_id (
-          name
-        )
-      `
-    )
+   .select(`
+      user_id,
+      first_name,
+      middle_name,
+      last_name,
+      email,
+      image_url,
+      school:school_id (
+        id,
+        name,
+        address,
+        state,
+        city,
+        country,
+        phone,
+        principal_name,
+        principal_email,
+        assistant_principal_name,
+        assistant_principal_email,
+        external_source,
+        external_key,
+        external_id,
+        external_name,
+        school_number,
+        school_id
+      )
+    `)
     .eq('auth_user_id', id)
     .single();
 
@@ -26,17 +40,33 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   }
   const school = Array.isArray(data.school) ? data.school[0] : data.school
 
-  const userProfile: UserInfo = {
-    userId: data.user_id,
-    firstName: data.first_name,
-    middleName: data.user_id.middle_name,
-    lastName: data.last_name,
-    email: data.email,
-    imageUrl: data.image_url,
-    school: {
-      name: school.name,
-    },
-  };
+ const userProfile: UserInfo = {
+  userId: data.user_id,
+  firstName: data.first_name,
+  middleName: data.middle_name,
+  lastName: data.last_name,
+  email: data.email,
+  imageUrl: data.image_url,
+  school: {
+    id: school.id,
+    name: school.name,
+    address: school.address,
+    state: school.state,
+    city: school.city,
+    country: school.country,
+    phone: school.phone,
+    schoolNumber: school.school_number,
+    principalName: school.principal_name,
+    principalEmail: school.principal_email,
+    assistantPrincipalName: school.assistant_principal_name,
+    assistantPrincipalEmail: school.assistant_principal_email,
+    externalSource: school.external_source,
+    externalKey: school.external_key,
+    externalId: school.external_id,
+    externalName: school.external_name,
+  },
+};
+
   
   return userProfile;
 }
