@@ -47,24 +47,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   lastName: data.last_name,
   email: data.email,
   imageUrl: data.image_url,
-  school: {
-    id: school.id,
-    name: school.name,
-    address: school.address,
-    state: school.state,
-    city: school.city,
-    country: school.country,
-    phone: school.phone,
-    schoolNumber: school.school_number,
-    principalName: school.principal_name,
-    principalEmail: school.principal_email,
-    assistantPrincipalName: school.assistant_principal_name,
-    assistantPrincipalEmail: school.assistant_principal_email,
-    externalSource: school.external_source,
-    externalKey: school.external_key,
-    externalId: school.external_id,
-    externalName: school.external_name,
-  },
+  school: {...school}
 };
 
   
