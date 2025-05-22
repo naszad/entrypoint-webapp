@@ -1,6 +1,6 @@
 import { pgTable, uuid, text, date } from 'drizzle-orm/pg-core';
 export const userSchoolMemberships = pgTable('user_school_memberships', {
-  userId: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').primaryKey(),
   schoolId: text('school_id').notNull(),
   role: text('name').notNull(),
   createdAt: date('created_at'),

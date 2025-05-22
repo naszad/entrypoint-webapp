@@ -1,5 +1,5 @@
-import { pgTable, uuid, text, integer, pgPolicy } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { pgTable, uuid, text, integer, pgPolicy } from 'drizzle-orm/pg-core';
 export const schools = pgTable('schools', {
   id: uuid('id').defaultRandom().primaryKey(),
   schoolId: integer('school_id').notNull(),
@@ -18,8 +18,9 @@ export const schools = pgTable('schools', {
   externalKey: text('external_key'),
   externalId: text('external_id').notNull(),
   externalName: text('external_name'),
-}, (table) => [
-  pgPolicy('Allow Reading of school', {
+}, 
+(table) => [
+  pgPolicy('Allow Reading of Schools', {
     for: 'select',
     to: 'authenticated',
     using: sql`
@@ -30,6 +31,7 @@ export const schools = pgTable('schools', {
       )
     `,
   }),
-]).enableRLS();
+]
+);
 
 export type School = typeof schools.$inferSelect;
