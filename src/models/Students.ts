@@ -6,9 +6,7 @@ import {
   varchar,
   date,
   timestamp,
-  pgPolicy,
 } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
 import { schools } from './Schools';
 
 export const students = pgTable(

@@ -1,5 +1,5 @@
-import { pgTable, uuid, text, integer, pgPolicy } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
+import { pgTable, uuid, text, integer } from 'drizzle-orm/pg-core';
+
 export const schools = pgTable('schools', {
   id: uuid('id').defaultRandom().primaryKey(),
   schoolId: integer('school_id').notNull(),

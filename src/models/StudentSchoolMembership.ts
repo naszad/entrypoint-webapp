@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, date } from 'drizzle-orm/pg-core';
+import { pgTable, text, date } from 'drizzle-orm/pg-core';
 export const studentSchoolMemberships = pgTable('student_school_memberships', {
   externalSchoolId: text('external_school_id').notNull(),
   externalStudentId: text('external_student_id').notNull(),
