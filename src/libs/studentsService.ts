@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+'use server';
+
 import { supabase } from '@/libs/supabaseClient'
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { StudentInfo } from '@/types/StudentInfo';
@@ -49,9 +50,9 @@ const getColumnName = (key: string) => {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function fetchStudentsByFilterCriter(request: StudentsRequest): Promise<StudentInfo[]> {
   try {
-    const { filters, sortInfo, pagingInfo }: StudentsRequest = await req.json();
+    const { filters, sortInfo, pagingInfo } = request;
     
     let query = supabase
       .from('students')
@@ -122,12 +123,9 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await query;
 
-    console.log('error', error);
-    
-
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+      throw new Error(error.message);
+    }    
 
     const studentInfos: StudentInfo[] = data.map((student) => ({
       id: student.student_id,
@@ -154,12 +152,9 @@ export async function POST(req: NextRequest) {
       school: {} as School
     }));
 
-    return NextResponse.json(studentInfos);
+    return studentInfos;
   } catch (err) {
-    console.error('Failed to process request', err);
-    return NextResponse.json(
-      { error: 'Failed to process request' },
-      { status: 400 }
-    );
+    console.error('Failed to fetch students', err);
+    throw new Error('Failed to fetch students');
   }
-}
+} 
