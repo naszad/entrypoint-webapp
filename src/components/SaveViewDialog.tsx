@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { getReportExistsByName } from '@/libs/reportsService';
 
 interface SaveViewDialogProps {
   onSave: (viewData: {
@@ -36,27 +37,13 @@ export const SaveViewDialog = ({ onSave }: SaveViewDialogProps) => {
     setIsDialogOpen(true);
   }
 
-  const checkReportExists = async (name: string) => {
-    try {
-      const response = await fetch(`/api/reports/${encodeURIComponent(name)}`);
-      if (!response.ok) {
-        return false;
-      }
-      const data = await response.json();
-      return data.exists;
-    } catch (error) {
-      console.error('Error checking report:', error);
-      return false;
-    }
-  };
-
   const handleSaveClick = async () => {
     if (!viewName.trim()) {
       setViewNameError('View name is required');
       return;
     }
 
-    const exists = await checkReportExists(viewName);
+    const exists = await getReportExistsByName(viewName);
     if (exists) {
       setShowConfirmation(true);
     } else {

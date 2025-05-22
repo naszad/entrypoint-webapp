@@ -7,6 +7,7 @@ import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
 import { fetchStudentsByFilterCriter } from '@/libs/studentsService';
+import { saveReport } from '@/libs/reportsService';
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -102,20 +103,17 @@ const StudentsPage = () => {
     params: string;
   }) => {
     try {
-      const res = await fetch('/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...viewData, pageName: 'students', userId: user?.userId }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to save view');
+      if (!user?.userId) {
+        throw new Error('User ID is required');
       }
 
-      const data = await res.json();
-      console.log('View saved successfully:', data);
+      const result = await saveReport({
+        ...viewData,
+        pageName: 'students',
+        userId: user.userId
+      });
+
+      console.log('View saved successfully:', result);
     } catch (err) {
       console.error('Failed to save view:', err);
     }
