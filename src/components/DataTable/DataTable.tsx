@@ -18,9 +18,8 @@ import { cn } from "@/utils/utils";
 import { useState } from "react";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { DataTableToolbar, ActionItem } from "./DataTableToolbar";
-import { useTableFilters } from "@/hooks/useTableFilters";
 import { TableHeader as NewTableHeader } from "./TableHeader";
-import { useSort } from "@/hooks/useSort";
+import { useTableParams } from "@/hooks/useTableParams";
 
 export type ColumnMeta = {
   enableFiltering?: boolean;
@@ -43,8 +42,7 @@ export interface DataTableProps<TData, TValue> {
   actions?: ActionItem[];
   onActionItemClicked?: (actionId: string) => void;
   defaultVisibility?: VisibilityState;
-  onFilterApply?: (filterValues: FilterValue[]) => void;
-  onSort?: (sorting: { id: string; desc: boolean }[]) => void;
+  onParamsChange?: (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[] }) => void;
   isLoading?: boolean;
 }
 
@@ -55,13 +53,11 @@ export function DataTable<TData, TValue>({
   actions = [],
   onActionItemClicked,
   defaultVisibility = {},
-  onFilterApply,
-  onSort,
+  onParamsChange,
   isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
-  const { sorting, setSorting, handleSort, getCurrentSortDirection } = useSort({ onSort });
 
   const {
     openFilterColumn,
@@ -71,14 +67,19 @@ export function DataTable<TData, TValue>({
     filterButtonRefs,
     filterInputRefs,
     filterConditionRefs,
-    setOpenFilterColumn,
     setFilterConditions,
     handleFilterClick,
     handleApplyFilter,
     handleClearFilter,
     handleRemoveFilter,
     handleClearAllFilters,
-  } = useTableFilters({ onFilterApply });
+    
+    // Sort state and handlers
+    sorting,
+    setSorting,
+    handleSort,
+    getCurrentSortDirection,
+  } = useTableParams({ onParamsChange });
 
   const table = useReactTable({
     data,
@@ -92,11 +93,6 @@ export function DataTable<TData, TValue>({
       sorting,
     },
   });
-
-  const handleSortWithFilter = (columnId: string, direction: 'asc' | 'desc') => {
-    handleSort(columnId, direction);
-    setOpenFilterColumn(null);
-  };
 
   return (
     <div
@@ -144,7 +140,7 @@ export function DataTable<TData, TValue>({
                       onFilterClick={handleFilterClick}
                       onApplyFilter={handleApplyFilter}
                       onClearFilter={handleClearFilter}
-                      onSort={handleSortWithFilter}
+                      onSort={handleSort}
                       currentSortDirection={getCurrentSortDirection(column.id)}
                       isLastColumn={isLastColumn}
                       filterButtonRef={(el) => {

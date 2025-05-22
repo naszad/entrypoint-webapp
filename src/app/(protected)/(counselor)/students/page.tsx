@@ -13,89 +13,35 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [students, setStudents] = useState<StudentInfo[]>([]);
-  const [filterValues, setFilterValues] = useState<FilterValue[]>([]);
-  const [sortField, setSortField] = useState<string>('');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const { user } = useAuth();
-  // const [pageNumber, setPageNumber] = useState<number>(1);
-  // const [pageSize, setPageSize] = useState<number>(10);
 
-  const handleFilterApply = async (newFilterValues: FilterValue[]) => {
-    let filteredStudents: StudentInfo[] = [];
+  const fetchStudents = async (filters: FilterValue[], sortField: string, sortDirection: 'asc' | 'desc') => {
     try {
       setIsLoading(true);
-      setFilterValues(newFilterValues);
-      filteredStudents = await fetchStudentsByFilterCriter({
-        filters: newFilterValues,
+      const result = await fetchStudentsByFilterCriter({
+        filters,
         sortInfo: { sortField, sortDirection },
         pagingInfo: { pageNumber: 1, pageSize: 10 }
       });
+      setStudents(result);
     } catch (err) {
-      console.error('Failed to fetch filtered students', err);
-    } finally {
-      setStudents(filteredStudents);
-      setIsLoading(false);
-    }
-  }
-
-  const handleSort = async (sorting: { id: string; desc: boolean }[]) => {
-    try {
-      setIsLoading(true);
-      const newSortField = sorting[0]?.id || '';
-      const newSortDirection = sorting[0]?.desc ? 'desc' : 'asc';
-      
-      setSortField(newSortField);
-      setSortDirection(newSortDirection);
-
-      const sortedStudents = await fetchStudentsByFilterCriter({
-        filters: filterValues,
-        sortInfo: { sortField: newSortField, sortDirection: newSortDirection },
-        pagingInfo: { pageNumber: 1, pageSize: 10 }
+      console.error('Failed to fetch students:', err);
+      setAlertMessage({ 
+        type: 'destructive', 
+        message: 'Failed to fetch students'
       });
-      
-      setStudents(sortedStudents);
-    } catch (err) {
-      console.error('Failed to sort students', err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFilterApply = async (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[] }) => {
+    const filters = params.filters || [];
+    const sortId = params.sorting?.[0]?.id || '';
+    const sortDirection = params.sorting?.[0]?.desc ? 'desc' : 'asc';
+    await fetchStudents(filters, sortId, sortDirection);
   }
-
-  // const handlePageChange = async (newPageNumber: number) => {
-  //   try {
-  //     setIsLoading(true);
-  //     setPageNumber(newPageNumber);
-  //     const newStudents = await fetchFilteredStudents(
-  //       filterValues,
-  //       { sortField, sortDirection },
-  //       { pageNumber: newPageNumber, pageSize }
-  //     );
-  //     setStudents(newStudents);
-  //   } catch (err) {
-  //     console.error('Failed to fetch page', err);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // }
-
-  // const handlePageSizeChange = async (newPageSize: number) => {
-  //   try {
-  //     setIsLoading(true);
-  //     setPageSize(newPageSize);
-  //     setPageNumber(1); // Reset to first page when changing page size
-  //     const newStudents = await fetchFilteredStudents(
-  //       filterValues,
-  //       { sortField, sortDirection },
-  //       { pageNumber: 1, pageSize: newPageSize }
-  //     );
-  //     setStudents(newStudents);
-  //   } catch (err) {
-  //     console.error('Failed to change page size', err);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // }
 
   const action: ActionItem[] = [];
 
@@ -123,28 +69,6 @@ const StudentsPage = () => {
       });
     }
   };
-
-  // Fetch initial students data
-  useEffect(() => {
-    const fetchInitialStudents = async () => {
-      let initialStudents: StudentInfo[] = [];
-      try {
-        setIsLoading(true);
-        initialStudents = await fetchStudentsByFilterCriter({
-          filters: [],
-          sortInfo: { sortField: '', sortDirection: 'asc' },
-          pagingInfo: { pageNumber: 1, pageSize: 10 }
-        });
-      } catch (err) {
-        console.error('Failed to fetch initial students', err);
-      } finally {
-        setStudents(initialStudents);
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialStudents();
-  }, []);
 
   // Clear alert message after 5 seconds
   useEffect(() => {
@@ -176,8 +100,7 @@ const StudentsPage = () => {
           className="w-full"
           actions={action}
           defaultVisibility={initialVisibility}
-          onFilterApply={handleFilterApply}
-          onSort={handleSort}
+          onParamsChange={handleFilterApply}
           isLoading={isLoading}
         />
       </div>
