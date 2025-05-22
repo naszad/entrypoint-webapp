@@ -9,13 +9,14 @@ import {
   pgPolicy,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { schools } from './Schools';
 
 export const students = pgTable(
   'students',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     studentId: integer('student_id').notNull(),
-    schoolId: integer('school_id').notNull(),
+    schoolId: uuid('school_id').notNull().references(() => schools.id),
     firstName: text('first_name').notNull(),
     middleName: text('middle_name'),
     lastName: text('last_name').notNull(),
@@ -34,24 +35,6 @@ export const students = pgTable(
     enrollmentStatus: text('enrollment_status').notNull(), 
     homeroomName: text('homeroom_name'), 
     fullName : text('full_name').notNull()
-  },
-  (table) => [
-
-    pgPolicy('Allow Reading of student', {
-      for: 'select',
-      to: 'authenticated',
-      using: sql`
-        EXISTS (
-          SELECT 1
-          FROM user_school_memberships AS usm
-          JOIN student_school_link       AS ssl
-            ON usm.school_id = ssl.external_school_id
-          WHERE usm.user_id = auth.uid()
-            AND ssl.external_student_id = ${table.externalId}
-        )
-      `,
-    }),
-  ]
-).enableRLS();
+  });
 
 export type Student = typeof students.$inferSelect;

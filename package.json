@@ -15,7 +15,8 @@
     "drizzle:generate": "npx drizzle-kit generate",
     "drizzle:push": "npx drizzle-kit push",
     "drizzle": "npm run drizzle:generate && npm run drizzle:push",
-    "seed": "npx tsx supabase/seed-user.ts"
+    "seed": "npx tsx supabase/seed-user.ts",
+    "apply:rls": "tsx migrations/supabase/enable_rls.ts"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.7",
@@ -63,6 +64,7 @@
     "playwright": "^1.52.0",
     "storybook": "^8.6.12",
     "tailwindcss": "^4",
+    "tsx": "^4.19.4",
     "tw-animate-css": "^1.2.8",
     "typescript": "^5",
     "vitest": "^3.1.2"

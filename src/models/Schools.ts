@@ -18,18 +18,6 @@ export const schools = pgTable('schools', {
   externalKey: text('external_key'),
   externalId: text('external_id').notNull(),
   externalName: text('external_name'),
-}, (table) => [
-  pgPolicy('Allow Reading of school', {
-    for: 'select',
-    to: 'authenticated',
-    using: sql`
-      EXISTS (
-        SELECT 1 FROM user_school_memberships usm
-        WHERE usm.user_id = auth.uid()
-        AND usm.school_id = ${table.externalId}
-      )
-    `,
-  }),
-]).enableRLS();
+});
 
 export type School = typeof schools.$inferSelect;
