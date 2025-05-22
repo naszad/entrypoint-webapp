@@ -58,7 +58,7 @@ export async function saveReport(params: SaveReportParams): Promise<{ message: s
       }
 
       return { 
-        message: 'Report updated successfully',
+        message: 'View saved successfully.',
         reportId: data[0].report_id
       };
     } else {
@@ -79,12 +79,12 @@ export async function saveReport(params: SaveReportParams): Promise<{ message: s
       }
 
       return { 
-        message: 'Report created successfully',
+        message: 'View saved successfully.',
         reportId: data[0].report_id
       };
     }
   } catch (error) {
     console.error('Error saving report:', error);
-    throw new Error('Failed to save report');
+    throw new Error('Something went wrong, please try again later.');
   }
 } 

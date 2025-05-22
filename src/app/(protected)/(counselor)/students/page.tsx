@@ -8,6 +8,7 @@ import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
 import { fetchStudentsByFilterCriter } from '@/libs/studentsService';
 import { saveReport } from '@/libs/reportsService';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,6 +16,7 @@ const StudentsPage = () => {
   const [filterValues, setFilterValues] = useState<FilterValue[]>([]);
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const { user } = useAuth();
   // const [pageNumber, setPageNumber] = useState<number>(1);
   // const [pageSize, setPageSize] = useState<number>(10);
@@ -113,9 +115,12 @@ const StudentsPage = () => {
         userId: user.userId
       });
 
-      console.log('View saved successfully:', result);
+      setAlertMessage({ type: 'success', message: result.message });
     } catch (err) {
-      console.error('Failed to save view:', err);
+      setAlertMessage({ 
+        type: 'destructive', 
+        message: err instanceof Error ? err.message : 'Failed to save view'
+      });
     }
   };
 
@@ -141,6 +146,16 @@ const StudentsPage = () => {
     fetchInitialStudents();
   }, []);
 
+  // Clear alert message after 5 seconds
+  useEffect(() => {
+    if (alertMessage) {
+      const timer = setTimeout(() => {
+        setAlertMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alertMessage]);
+
   return (
     <div className="flex flex-col w-full h-full">
       <div className="flex justify-between items-center mb-4">
@@ -149,6 +164,11 @@ const StudentsPage = () => {
       <div className="flex gap-2 mb-4 justify-end">
         <SaveViewDialog onSave={handleSaveView} />
       </div>
+      {alertMessage && (
+        <Alert variant={alertMessage.type} className="mb-4">
+          <AlertDescription>{alertMessage.message}</AlertDescription>
+        </Alert>
+      )}
       <div className="flex-1 w-full h-50">
         <DataTable 
           columns={columns} 
