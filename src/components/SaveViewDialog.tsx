@@ -116,7 +116,6 @@ export const SaveViewDialog = ({ onSave }: SaveViewDialogProps) => {
               <div className="flex items-center space-x-2">
                 <div className="grid flex-1 gap-2">
                   <Input
-                    required
                     id="description"
                     placeholder="Description"
                     value={description}
