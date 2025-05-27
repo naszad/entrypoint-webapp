@@ -15,6 +15,13 @@
       "when": 1746530951363,
       "tag": "0001_rich_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748351357693,
+      "tag": "0002_dark_cardiac",
+      "breakpoints": true
     }
   ]
 }
