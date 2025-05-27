@@ -1,8 +1,7 @@
-import { pgTable, uuid, text, integer, pgPolicy } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { pgTable, uuid, text, integer, pgPolicy } from 'drizzle-orm/pg-core';
 export const schools = pgTable('schools', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  schoolId: integer('school_id').notNull(),
+  schoolId: uuid('school_id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   schoolNumber: integer('school_number'),
   city: text('city'),
@@ -16,20 +15,23 @@ export const schools = pgTable('schools', {
   assistantPrincipalEmail: text('assistant_principal_email'),
   externalSource: text('external_source'),
   externalKey: text('external_key'),
-  externalId: text('external_id').notNull(),
+  externalId: integer('external_id'),
+  externalKeyHash: text('external_key_hash').notNull(),
   externalName: text('external_name'),
-}, (table) => [
-  pgPolicy('Allow Reading of school', {
+}, 
+(table) => [
+  pgPolicy('Allow Reading of Schools', {
     for: 'select',
     to: 'authenticated',
     using: sql`
       EXISTS (
         SELECT 1 FROM user_school_memberships usm
         WHERE usm.user_id = auth.uid()
-        AND usm.school_id = ${table.externalId}
+        AND usm.school_key_hash = ${table.externalKeyHash}
       )
     `,
   }),
-]).enableRLS();
+]
+);
 
 export type School = typeof schools.$inferSelect;

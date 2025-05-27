@@ -6,16 +6,16 @@ import {
   varchar,
   date,
   timestamp,
-  pgPolicy,
+  pgPolicy
 } from 'drizzle-orm/pg-core';
+// import { schools } from './Schools';
 import { sql } from 'drizzle-orm';
 
 export const students = pgTable(
   'students',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    studentId: integer('student_id').notNull(),
-    schoolId: integer('school_id').notNull(),
+    studentId: uuid('student_id').defaultRandom().primaryKey(),
+    schoolId: integer('school_id'),
     firstName: text('first_name').notNull(),
     middleName: text('middle_name'),
     lastName: text('last_name').notNull(),
@@ -28,30 +28,30 @@ export const students = pgTable(
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
     externalSource: text('external_source'),
     externalKey: text('external_key'),
-    externalId: text('external_id').notNull(),
+    externalId: integer('external_id'),
+    externalKeyHash: text('external_key_hash').notNull(),
     externalName: text('external_name'),
     graduationYear: integer('graduation_year'), 
     enrollmentStatus: text('enrollment_status').notNull(), 
     homeroomName: text('homeroom_name'), 
     fullName : text('full_name').notNull()
-  },
-  (table) => [
-
-    pgPolicy('Allow Reading of student', {
+  }, 
+(table) => [
+    pgPolicy('Allow Reading of Students', {
       for: 'select',
       to: 'authenticated',
       using: sql`
         EXISTS (
           SELECT 1
           FROM user_school_memberships AS usm
-          JOIN student_school_link       AS ssl
-            ON usm.school_id = ssl.external_school_id
+          JOIN school_student_link       AS ssl
+            ON usm.school_key_hash = ssl.external_school_key_hash
           WHERE usm.user_id = auth.uid()
-            AND ssl.external_student_id = ${table.externalId}
+            AND ssl.external_student_key_hash = ${table.externalKeyHash}
         )
       `,
     }),
   ]
-).enableRLS();
+);
 
 export type Student = typeof students.$inferSelect;
