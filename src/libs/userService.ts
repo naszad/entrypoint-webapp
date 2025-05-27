@@ -28,6 +28,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
         external_key,
         external_id,
         external_name,
+        external_key_hash,
         school_number,
         school_id
       )
@@ -42,7 +43,6 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   const school = Array.isArray(data.school) ? data.school[0] : data.school
 
   const parsedSchool : School = {
-      id: school.id,
       schoolId: school.school_id,
       name: school.name,
       schoolNumber: school.school_number,
@@ -58,6 +58,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
       externalSource: school.external_source,
       externalKey: school.external_key,
       externalId: school.external_id,
+      externalKeyHash: school.external_key_hash,
       externalName: school.external_name,
   }
 
@@ -71,6 +72,5 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   school: parsedSchool,
 };
 
-  
   return userProfile;
 }
