@@ -14,7 +14,6 @@ export const students = pgTable(
   'students',
   {
     studentId: uuid('student_id').defaultRandom().primaryKey(),
-    schoolId: integer('school_id'),
     firstName: text('first_name').notNull(),
     middleName: text('middle_name'),
     lastName: text('last_name').notNull(),
@@ -44,9 +43,9 @@ export const students = pgTable(
           SELECT 1
           FROM user_school_memberships AS usm
           JOIN school_student_link       AS ssl
-            ON usm.school_key_hash = ssl.external_school_key_hash
+            ON usm.school_id = ssl.school_id
           WHERE usm.user_id = auth.uid()
-            AND ssl.external_student_key_hash = ${table.externalKeyHash}
+            AND ssl.student_id = ${table.studentId}
         )
       `,
     }),

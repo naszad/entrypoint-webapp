@@ -1,14 +1,16 @@
 import {
   pgTable,
-  text,
   date,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 export const schoolStudentLinks = pgTable(
   'school_student_link',
   {
-    externalStudentKeyHash: text('external_student_key_hash').notNull(),
-    externalSchoolKeyHash: text('external_school_key_hash').notNull(),
+    studentId: uuid('student_id').notNull(),
+    schoolId: uuid('school_id').notNull(),
+    startDate: date('start_date'),
+    endDate: date('end_date'),
     createdAt: date('created_at'),
     updatedAt: date('updated_at'),
   });

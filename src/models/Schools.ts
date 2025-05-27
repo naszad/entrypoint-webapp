@@ -27,7 +27,7 @@ export const schools = pgTable('schools', {
       EXISTS (
         SELECT 1 FROM user_school_memberships usm
         WHERE usm.user_id = auth.uid()
-        AND usm.school_key_hash = ${table.externalKeyHash}
+        AND usm.school_id = ${table.schoolId}
       )
     `,
   }),

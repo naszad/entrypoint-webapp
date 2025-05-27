@@ -1,6 +1,5 @@
 CREATE TABLE "schools" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"school_id" integer NOT NULL,
+	"school_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"school_number" integer,
 	"city" text,
@@ -14,15 +13,14 @@ CREATE TABLE "schools" (
 	"assistant_principal_email" text,
 	"external_source" text,
 	"external_key" text,
-	"external_id" text NOT NULL,
+	"external_id" integer,
+	"external_key_hash" text NOT NULL,
 	"external_name" text
 );
 --> statement-breakpoint
 ALTER TABLE "schools" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "students" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"student_id" integer NOT NULL,
-	"school_id" uuid NOT NULL,
+	"student_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"first_name" text NOT NULL,
 	"middle_name" text,
 	"last_name" text NOT NULL,
@@ -35,7 +33,8 @@ CREATE TABLE "students" (
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	"external_source" text,
 	"external_key" text,
-	"external_id" text NOT NULL,
+	"external_id" integer,
+	"external_key_hash" text NOT NULL,
 	"external_name" text,
 	"graduation_year" integer,
 	"enrollment_status" text NOT NULL,
@@ -45,8 +44,10 @@ CREATE TABLE "students" (
 --> statement-breakpoint
 ALTER TABLE "students" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "school_student_link" (
-	"external_student_id" text NOT NULL,
-	"external_school_id" text NOT NULL,
+	"student_id" uuid NOT NULL,
+	"school_id" uuid NOT NULL,
+	"start_date" date,
+	"end_date" date,
 	"created_at" date,
 	"updated_at" date
 );
@@ -64,19 +65,18 @@ CREATE TABLE "users" (
 --> statement-breakpoint
 CREATE TABLE "user_school_memberships" (
 	"user_id" uuid PRIMARY KEY NOT NULL,
-	"school_id" text NOT NULL,
+	"school_id" uuid NOT NULL,
 	"name" text NOT NULL,
 	"created_at" date,
 	"updated_at" date
 );
 --> statement-breakpoint
-ALTER TABLE "students" ADD CONSTRAINT "students_school_id_schools_id_fk" FOREIGN KEY ("school_id") REFERENCES "public"."schools"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "users" ADD CONSTRAINT "users_school_id_schools_id_fk" FOREIGN KEY ("school_id") REFERENCES "public"."schools"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_school_id_schools_school_id_fk" FOREIGN KEY ("school_id") REFERENCES "public"."schools"("school_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE POLICY "Allow Reading of Schools" ON "schools" AS PERMISSIVE FOR SELECT TO "authenticated" USING (
       EXISTS (
         SELECT 1 FROM user_school_memberships usm
         WHERE usm.user_id = auth.uid()
-        AND usm.school_id = "schools"."external_id"
+        AND usm.school_id = "schools"."school_id"
       )
     );--> statement-breakpoint
 CREATE POLICY "Allow Reading of Students" ON "students" AS PERMISSIVE FOR SELECT TO "authenticated" USING (
@@ -84,8 +84,8 @@ CREATE POLICY "Allow Reading of Students" ON "students" AS PERMISSIVE FOR SELECT
           SELECT 1
           FROM user_school_memberships AS usm
           JOIN school_student_link       AS ssl
-            ON usm.school_id = ssl.external_school_id
+            ON usm.school_id = ssl.school_id
           WHERE usm.user_id = auth.uid()
-            AND ssl.external_student_id = "students"."external_id"
+            AND ssl.student_id = "students"."student_id"
         )
       );

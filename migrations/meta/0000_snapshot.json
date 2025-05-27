@@ -1,5 +1,5 @@
 {
-  "id": "302b2c2b-85ac-4df7-b7ed-bbd7a35cd09e",
+  "id": "58c0ee8e-d8bb-4319-87ea-476612b790fe",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -8,18 +8,12 @@
       "name": "schools",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "school_id": {
+          "name": "school_id",
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
-        },
-        "school_id": {
-          "name": "school_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
         },
         "name": {
           "name": "name",
@@ -101,6 +95,12 @@
         },
         "external_id": {
           "name": "external_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -124,7 +124,7 @@
           "to": [
             "authenticated"
           ],
-          "using": "\n      EXISTS (\n        SELECT 1 FROM user_school_memberships usm\n        WHERE usm.user_id = auth.uid()\n        AND usm.school_id = \"schools\".\"external_id\"\n      )\n    "
+          "using": "\n      EXISTS (\n        SELECT 1 FROM user_school_memberships usm\n        WHERE usm.user_id = auth.uid()\n        AND usm.school_id = \"schools\".\"school_id\"\n      )\n    "
         }
       },
       "checkConstraints": {},
@@ -134,24 +134,12 @@
       "name": "students",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "student_id": {
+          "name": "student_id",
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
-        },
-        "student_id": {
-          "name": "student_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "school_id": {
-          "name": "school_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
         },
         "first_name": {
           "name": "first_name",
@@ -229,6 +217,12 @@
         },
         "external_id": {
           "name": "external_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -265,21 +259,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "students_school_id_schools_id_fk": {
-          "name": "students_school_id_schools_id_fk",
-          "tableFrom": "students",
-          "tableTo": "schools",
-          "columnsFrom": [
-            "school_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
@@ -290,7 +270,7 @@
           "to": [
             "authenticated"
           ],
-          "using": "\n        EXISTS (\n          SELECT 1\n          FROM user_school_memberships AS usm\n          JOIN school_student_link       AS ssl\n            ON usm.school_id = ssl.external_school_id\n          WHERE usm.user_id = auth.uid()\n            AND ssl.external_student_id = \"students\".\"external_id\"\n        )\n      "
+          "using": "\n        EXISTS (\n          SELECT 1\n          FROM user_school_memberships AS usm\n          JOIN school_student_link       AS ssl\n            ON usm.school_id = ssl.school_id\n          WHERE usm.user_id = auth.uid()\n            AND ssl.student_id = \"students\".\"student_id\"\n        )\n      "
         }
       },
       "checkConstraints": {},
@@ -300,17 +280,29 @@
       "name": "school_student_link",
       "schema": "",
       "columns": {
-        "external_student_id": {
-          "name": "external_student_id",
-          "type": "text",
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "external_school_id": {
-          "name": "external_school_id",
-          "type": "text",
+        "school_id": {
+          "name": "school_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -388,15 +380,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "users_school_id_schools_id_fk": {
-          "name": "users_school_id_schools_id_fk",
+        "users_school_id_schools_school_id_fk": {
+          "name": "users_school_id_schools_school_id_fk",
           "tableFrom": "users",
           "tableTo": "schools",
           "columnsFrom": [
             "school_id"
           ],
           "columnsTo": [
-            "id"
+            "school_id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -420,7 +412,7 @@
         },
         "school_id": {
           "name": "school_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
