@@ -8,7 +8,6 @@ import {
   timestamp,
   pgPolicy
 } from 'drizzle-orm/pg-core';
-// import { schools } from './Schools';
 import { sql } from 'drizzle-orm';
 
 export const students = pgTable(
