@@ -8,13 +8,6 @@
       "when": 1748371766585,
       "tag": "0000_minor_the_enforcers",
       "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1748351357693,
-      "tag": "0002_dark_cardiac",
-      "breakpoints": true
     }
   ]
 }

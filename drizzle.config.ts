@@ -8,7 +8,7 @@ const { hostname, port, username, password, pathname } = new URL(databaseUrl);
 
 export default defineConfig({
   schema: './src/models/**/*.ts',
-  out: './migrations',
+  out: './supabase/migrations',
   dialect: "postgresql",
   dbCredentials: {
     host: hostname,

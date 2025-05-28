@@ -11,6 +11,7 @@
     "build-storybook": "storybook build",
     "supabase:init": "npx supabase init",
     "supabase:start": "npx supabase start",
+    "supabase:reset": "npx supabase db reset",
     "supabase": "npm run supabase:init && npm run supabase:start",
     "drizzle:generate": "npx drizzle-kit generate",
     "drizzle:push": "npx drizzle-kit push",

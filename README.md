@@ -1,8 +1,27 @@
-# Project Setup Instructions
+# EntryPoint SRM
+
+This is the web application for [EntryPoint SRM](https://entrypointsrm.com). This README contains basic information necessary to get the project running locally and manage database migrations. Further technical documentation can be found in our [Confluence](https://entrypointsrm.atlassian.net/wiki/spaces/Tech/overview?homepageId=10256515)
+
+## Technical Stack
+
+### Core Technologies
+- [Next.js](https://nextjs.org/docs) - React framework for production
+- [TypeScript](https://www.typescriptlang.org/docs/) - Type-safe JavaScript
+- [Supabase](https://supabase.com/docs) - Open source Firebase alternative which runs [PostgreSQL](https://www.postgresql.org/docs/)
+- [Drizzle ORM](https://orm.drizzle.team/docs/overview) - TypeScript ORM
+- [ShadCN](https://ui.shadcn.com/) - UI component framework
+
+
+### Key Features
+- Supabase database/user auth
+- Row Level Security (RLS) for data access control
+- Type-safe database operations with Drizzle
+- Server-side rendering with Next.js
+
+
+## Project Setup Instructions
 
 Follow these steps carefully to clone and run the project locally.
-
-## Initial setup (run these steps only once)
 ### 1. Clone the Repository
 
 Clone the repository to your local machine:
@@ -31,14 +50,14 @@ Download it here: [https://www.docker.com/products/docker-desktop/](https://www.
 Run the local Supabase environment:
 
 ```bash
-npm supabase:start
+npm run supabase:start
 ```
 
 This will start Supabase locally and provide you with the values needed for the next step.
 
 ### 5. Set Up Environment Variables
 
-Create a `.env.local` file in the project root and add the following variables with the values provided by the `supabase start` command:
+Create a `.env.local` file in the project root and add the following variables with the values provided by the `supabase:start` command:
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=<api-url>
@@ -49,29 +68,24 @@ DATABASE_URL=<DB-url>
 
 Make sure these values are correctly fetched from your running Supabase instance or your Supabase project.
 
-### 6. Generate and run Drizzle migration
-
-Generate the migration scripts from schema definition in `/models` folder:
-
-```bash
-npm run drizzle
-```
-
-This will generate migration scripts in `/migrations` folder and push migrations to supabase
-
-### 7. Seed Supabase with an Auth User
-
-Seed your local Supabase instance with an authentication user:
+### 6. Get a local database
+Execute a reset on the local database, which will apply migrations and seed data located in `supabase/seed/`.
 
 ```bash
-npm run seed
+npm run supabase:reset
 ```
+
+You can safely run this command anytime you want to wipe and reset your local database. 
+
+The initial seeded user is `test@email.com` with a password of `password`.
+
 
 ## Running the project
-### Apply any migrations
+### Apply any pending migrations
+If you pulled down any migrations, make sure they are applied.
 
 ```bash
-npm run drizzle
+npm run drizzle:migrate
 ```
 
 ### Run the Project
@@ -84,9 +98,26 @@ npm run dev
 
 The application will be available at [http://localhost:3000](http://localhost:3000).
 
-# ✅ Your local environment should now be ready!
+### ✅ Your local environment should now be ready!
 
 If you encounter any issues:
 - Ensure Docker Desktop is installed and running.
 - Confirm all environment variables are set correctly.
 - Verify Supabase services are up and operational.
+
+
+## Developing
+See https://entrypointsrm.atlassian.net/wiki/spaces/Tech/pages/14024707/Coding+Practices and subpages for guidelines.
+
+### Database changes
+We use [Drizzle](https://orm.drizzle.team/docs/overview) to manage the application's database schema and derive Typescript types. You should only make any changes to the database via the Drizzle schema files located in `/models`.
+
+During development, it's best practice to use [Drizzle kit's push functionality](https://orm.drizzle.team/docs/drizzle-kit-push) to push these changes to your local database for testing without generating migration files for every little change. Only generate a migration file once you are satisfied with the finalized schema for your feature.
+
+An outline of the process is:
+
+1. Make changes to schema files in `/models` as appropriate for your feature
+2. Run `npm run drizzle:push` to directly push the changes onto your local database. (Reset the database as needed with `npm run supabase:reset`)
+3. Develop your feature, repeating steps 1 and 2 as needed.
+4. When ready, reset the database `npm run supabase:reset` and generate migrations `npm run drizzle:generate`
+5. Inspect the generated migration files for accuracy, push your code, and open a PR

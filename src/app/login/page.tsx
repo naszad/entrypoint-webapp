@@ -7,8 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function LoginPage() {
   // const router = useRouter()
-  const [email, setEmail] = useState('yasir@conversotech.com')
-  const [password, setPassword] = useState('123456')
+  const [email, setEmail] = useState('test@email.com')
+  const [password, setPassword] = useState('password')
   const [message, setMessage] = useState('')
   const { login } = useAuth();
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
-                placeholder="student@example.k12.in.us"
+                placeholder="counselor@example.k12.in.us"
                 label="Email"
               />
             </div>
