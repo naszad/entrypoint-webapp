@@ -49,7 +49,7 @@ const getColumnName = (key: string) => {
   }
 }
 
-export async function fetchStudentsByFilterCriter(request: StudentsRequest): Promise<Student[]> {
+export async function fetchStudentsByFilterCriteria(request: StudentsRequest): Promise<Student[]> {
   try {
     const { filters, sortInfo, pagingInfo } = request;
     

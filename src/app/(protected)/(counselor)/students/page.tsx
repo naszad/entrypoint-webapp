@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
-import { fetchStudentsByFilterCriter } from '@/libs/studentsService';
+import { fetchStudentsByFilterCriteria } from '@/libs/studentsService';
 import { saveReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -19,7 +19,7 @@ const StudentsPage = () => {
   const fetchStudents = async (filters: FilterValue[], sortField: string, sortDirection: 'asc' | 'desc') => {
     try {
       setIsLoading(true);
-      const result = await fetchStudentsByFilterCriter({
+      const result = await fetchStudentsByFilterCriteria({
         filters,
         sortInfo: { sortField, sortDirection },
         pagingInfo: { pageNumber: 1, pageSize: 10 }
