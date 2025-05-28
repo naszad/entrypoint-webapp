@@ -117,7 +117,13 @@ During development, it's best practice to use [Drizzle kit's push functionality]
 An outline of the process is:
 
 1. Make changes to schema files in `/models` as appropriate for your feature
-2. Run `npm run drizzle:push` to directly push the changes onto your local database. (Reset the database as needed with `npm run supabase:reset`)
+2. Run `npm run drizzle:push` to directly push the changes onto your local database without generating migration files. (Reset the database as needed with `npm run supabase:reset`)
 3. Develop your feature, repeating steps 1 and 2 as needed.
-4. When ready, reset the database `npm run supabase:reset` and generate migrations `npm run drizzle:generate`
-5. Inspect the generated migration files for accuracy, push your code, and open a PR
+4. When ready, reset the database `npm run reset` (this will wipe the database and re-seed it) and then generate migrations `npm run drizzle:generate`
+5. Inspect the generated migration files for accuracy, then apply it to your local instance with `npm run drizzle:migrate`
+6. Push your code, and open a PR
+
+### Pull requests
+Before opening a pull request, check:
+1. Does `npm run build` execute successfully?
+2. Have migrations been generated and have you tested them against a reset copy of your local database?

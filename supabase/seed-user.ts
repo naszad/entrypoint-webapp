@@ -8,48 +8,46 @@ const supabase = createClient(
   supabaseServiceKey
 )
 
+const seedUser = process.env.SEED_USER || 'test@email.com'
+const seedPassword = process.env.SEED_PASSWORD || 'password'
+
 async function seed() {
   // 1) Create the Auth user
   const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
-    email: 'yasir@conversotech.com',
-    password: '123456',
+    email: seedUser,
+    password: seedPassword,
     email_confirm: true,
   })
   if (authErr) throw authErr
   const authUser = authData.user!
 
-  // 2) Insert a School (you'll need at least a school to point at)
+  // 2) Insert into your app's users table
+  const { data: appUser, error: userErr } = await supabase
+  .from('users')
+  .insert([{
+    user_id: authUser.id,
+    auth_user_id: authUser.id,
+    first_name: 'Dev',
+    last_name: 'User',
+    email: authUser.email,
+  }])
+  .select()
+  .single()
+  if (userErr) throw userErr
+
+  // 3) Select a school, assumes the seed SQL scripts ran
   const { data: schoolData, error: schoolErr } = await supabase
     .from('schools')
-    .insert([{
-      name: 'Seed School',
-      external_key_hash: 'seed-hash',
-      school_number: 1,
-    }])
-    .select()
+    .select('school_id')
+    .eq('name', 'Lincoln High School')
     .single()
   if (schoolErr) throw schoolErr
-
-  // 3) Insert into your app's users table
-  const { data: appUser, error: userErr } = await supabase
-    .from('users')
-    .insert([{
-      user_id: authUser.id,
-      auth_user_id: authUser.id,
-      school_id: schoolData.school_id,
-      first_name: 'Yasir',
-      last_name: 'Conversotech',
-      email: authUser.email,
-    }])
-    .select()
-    .single()
-  if (userErr) throw userErr
 
   // 4) (Optional) insert the membership so your RLS policy will let you see that school
   await supabase.from('user_school_memberships').insert([{
     user_id: authUser.id,
     school_id: schoolData.school_id,
-    name: 'Yasir',
+    role: 'admin',
   }])
 
   console.log('Seed complete:', { authUser, schoolData, appUser })

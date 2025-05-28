@@ -124,7 +124,9 @@ export function FilterDropdown({
             ref={filterInputRef}
             autoFocus
           >
-            <option value="">All</option>
+            <option value="">
+              All
+            </option>
             {meta.filterOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -207,7 +209,7 @@ export function FilterDropdown({
                 onApply(columnId);
               }
             }}
-            className="px-2 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600 rounded"
+            variant="primary"
           >
             Apply
           </Button>

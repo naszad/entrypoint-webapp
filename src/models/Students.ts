@@ -17,6 +17,7 @@ export const students = pgTable(
     firstName: text('first_name').notNull(),
     middleName: text('middle_name'),
     lastName: text('last_name').notNull(),
+    fullName : text('full_name').notNull(),
     email: varchar('email', { length: 256 }).notNull(),
     phone: varchar('phone', { length: 256 }),
     gradeLevel: integer('grade_level').notNull(),
@@ -31,8 +32,7 @@ export const students = pgTable(
     externalName: text('external_name'),
     graduationYear: integer('graduation_year'), 
     enrollmentStatus: text('enrollment_status').notNull(), 
-    homeroomName: text('homeroom_name'), 
-    fullName : text('full_name').notNull()
+    homeroomName: text('homeroom_name'),
   }, 
 (table) => [
     pgPolicy('Allow Reading of Students', {
