@@ -34,9 +34,6 @@ export const UserProfile = ({ user, isPending }: UserProfileProps) => {
         {!isPending ? (
           <>
             <span className="truncate font-medium">{getUserFullName(user)}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {user?.school?.name || ''}
-            </span>
           </>
         ) : (
           <>
