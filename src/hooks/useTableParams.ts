@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
+import { SortingState } from '@tanstack/react-table';
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-interface UseTableFiltersProps {
-  onFilterApply?: (filterValues: FilterValue[]) => void;
+interface UseTableParamsProps {
+  onParamsChange?: (params: { filters: FilterValue[], sorting: SortingState }) => void;
 }
 
-export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
+export function useTableParams({ onParamsChange }: UseTableParamsProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Filter state
   const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
   const [filterValues, setFilterValues] = useState<FilterValue[]>(() => {
     const filtersParam = searchParams.get('filters');
@@ -43,11 +46,24 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
       return {};
     }
   });
+
+  // Sort state
+  const [sorting, setSorting] = useState<SortingState>(() => {
+    const sortParam = searchParams.get('sort');
+    if (sortParam) {
+      const [id, direction] = sortParam.split(':');
+      return [{ id, desc: direction === 'desc' }];
+    }
+    return [];
+  });
+
+  // Refs
   const filterDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const filterButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const filterInputRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | null>>({});
   const filterConditionRefs = useRef<Record<string, HTMLSelectElement | null>>({});
-  const prevFilterValuesRef = useRef<FilterValue[]>([]);
+  const prevParamsRef = useRef<{ filters: FilterValue[], sorting: SortingState }>({ filters: [], sorting: [] });
+  const initialLoadRef = useRef(true);
 
   // Set input and condition values when filter dropdown opens
   useEffect(() => {
@@ -62,7 +78,6 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
           }
         });
 
-        // Set condition select value if it exists (for non-date filters)
         const conditionSelect = filterConditionRefs.current[openFilterColumn];
         if (conditionSelect) {
           const mainFilter = filterValuesForColumn.find(f => f.key === openFilterColumn);
@@ -74,6 +89,7 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
     }
   }, [openFilterColumn, filterValues]);
 
+  // Handle click outside filter dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -100,22 +116,28 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
     };
   }, [openFilterColumn]);
 
+  // Update URL and notify parent when params change
   useEffect(() => {
-    if (JSON.stringify(prevFilterValuesRef.current) !== JSON.stringify(filterValues)) {
-      onFilterApply?.(filterValues);
-      prevFilterValuesRef.current = filterValues;
+    const currentParams = { filters: filterValues, sorting };
+    
+    if (initialLoadRef.current || JSON.stringify(prevParamsRef.current) !== JSON.stringify(currentParams)) {
+      prevParamsRef.current = currentParams;
+      onParamsChange?.(currentParams);
       
-      // Create a new URLSearchParams object
+      if (initialLoadRef.current) {
+        initialLoadRef.current = false;
+      }
+      
       const newSearchParams = new URLSearchParams();
       
-      // Copy all existing parameters except 'filters'
+      // Copy existing params except filters and sort
       searchParams.forEach((value, key) => {
-        if (key !== 'filters') {
+        if (key !== 'filters' && key !== 'sort') {
           newSearchParams.set(key, value);
         }
       });
       
-      // Add the new filters parameter if there are any filters
+      // Add filters
       if (filterValues.length > 0) {
         const filtersString = filterValues
           .map(filter => `${filter.key}:${filter.condition}:${filter.value}`)
@@ -123,13 +145,19 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
         newSearchParams.set('filters', filtersString);
       }
 
-      // Construct the new URL
+      // Add sort
+      if (sorting.length > 0) {
+        const { id, desc } = sorting[0];
+        newSearchParams.set('sort', `${id}:${desc ? 'desc' : 'asc'}`);
+      }
+
       const query = newSearchParams.toString();
       const newUrl = query ? `${pathname}?${query}` : pathname;
       router.replace(newUrl);
     }
-  }, [filterValues, onFilterApply, pathname, router, searchParams]);
+  }, [filterValues, sorting, onParamsChange, pathname, router, searchParams]);
 
+  // Filter handlers
   const handleFilterClick = (columnId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     setOpenFilterColumn(openFilterColumn === columnId ? null : columnId);
@@ -139,7 +167,6 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
     const input = filterInputRefs.current[columnId];
     const conditionSelect = filterConditionRefs.current[columnId];
     
-    // Check if this is a date filter by looking for From/To values in filterConditions
     const fromValue = filterConditions[`${columnId}From`];
     const toValue = filterConditions[`${columnId}To`];
     
@@ -187,7 +214,6 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
   };
 
   const handleClearFilter = (columnId: string) => {
-    // Check if this is a date filter by looking for From/To values
     const fromValue = filterConditions[`${columnId}From`];
     const toValue = filterConditions[`${columnId}To`];
     
@@ -211,7 +237,6 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
   };
 
   const handleRemoveFilter = (columnId: string) => {
-    // Check if this is a date filter by looking for From/To values
     const fromValue = filterConditions[`${columnId}From`];
     const toValue = filterConditions[`${columnId}To`];
     
@@ -239,7 +264,20 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
     setOpenFilterColumn(null);
   };
 
+  // Sort handlers
+  const handleSort = (columnId: string, direction: 'asc' | 'desc') => {
+    setSorting([{ id: columnId, desc: direction === 'desc' }]);
+    setOpenFilterColumn(null);
+  };
+
+  const getCurrentSortDirection = (columnId: string): 'asc' | 'desc' | null => {
+    const currentSort = sorting.find(sort => sort.id === columnId);
+    if (!currentSort) return null;
+    return currentSort.desc ? 'desc' : 'asc';
+  };
+
   return {
+    // Filter state and handlers
     openFilterColumn,
     filterValues,
     filterConditions,
@@ -254,5 +292,11 @@ export function useTableFilters({ onFilterApply }: UseTableFiltersProps) {
     handleClearFilter,
     handleRemoveFilter,
     handleClearAllFilters,
+    
+    // Sort state and handlers
+    sorting,
+    setSorting,
+    handleSort,
+    getCurrentSortDirection,
   };
 } 

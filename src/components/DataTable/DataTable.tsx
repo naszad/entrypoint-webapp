@@ -18,9 +18,8 @@ import { cn } from "@/utils/utils";
 import { useState } from "react";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { DataTableToolbar, ActionItem } from "./DataTableToolbar";
-import { useTableFilters } from "@/hooks/useTableFilters";
 import { TableHeader as NewTableHeader } from "./TableHeader";
-import { useSort } from "@/hooks/useSort";
+import { useTableParams } from "@/hooks/useTableParams";
 
 export type ColumnMeta = {
   enableFiltering?: boolean;
@@ -36,15 +35,15 @@ export interface FilterValue {
   condition: string;
 }
 
-interface DataTableProps<TData, TValue> {
+export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   className?: string;
   actions?: ActionItem[];
   onActionItemClicked?: (actionId: string) => void;
   defaultVisibility?: VisibilityState;
-  onFilterApply?: (filterValues: FilterValue[]) => void;
-  onSort?: (sorting: { id: string; desc: boolean }[]) => void;
+  onParamsChange?: (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[] }) => void;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -54,12 +53,11 @@ export function DataTable<TData, TValue>({
   actions = [],
   onActionItemClicked,
   defaultVisibility = {},
-  onFilterApply,
-  onSort,
+  onParamsChange,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
-  const { sorting, setSorting, handleSort, getCurrentSortDirection } = useSort({ onSort });
 
   const {
     openFilterColumn,
@@ -69,14 +67,19 @@ export function DataTable<TData, TValue>({
     filterButtonRefs,
     filterInputRefs,
     filterConditionRefs,
-    setOpenFilterColumn,
     setFilterConditions,
     handleFilterClick,
     handleApplyFilter,
     handleClearFilter,
     handleRemoveFilter,
     handleClearAllFilters,
-  } = useTableFilters({ onFilterApply });
+    
+    // Sort state and handlers
+    sorting,
+    setSorting,
+    handleSort,
+    getCurrentSortDirection,
+  } = useTableParams({ onParamsChange });
 
   const table = useReactTable({
     data,
@@ -91,11 +94,6 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const handleSortWithFilter = (columnId: string, direction: 'asc' | 'desc') => {
-    handleSort(columnId, direction);
-    setOpenFilterColumn(null);
-  };
-
   return (
     <div
       className={cn(
@@ -103,6 +101,11 @@ export function DataTable<TData, TValue>({
         className
       )}
     >
+      {isLoading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        )}
       <DataTableToolbar
         table={table}
         filterValues={filterValues}
@@ -114,7 +117,7 @@ export function DataTable<TData, TValue>({
         setShowColumnSettings={setShowColumnSettings}
       />
 
-      <div className="overflow-auto flex-1">
+      <div className="overflow-auto flex-1 relative">
         <Table>
           <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -137,7 +140,7 @@ export function DataTable<TData, TValue>({
                       onFilterClick={handleFilterClick}
                       onApplyFilter={handleApplyFilter}
                       onClearFilter={handleClearFilter}
-                      onSort={handleSortWithFilter}
+                      onSort={handleSort}
                       currentSortDirection={getCurrentSortDirection(column.id)}
                       isLastColumn={isLastColumn}
                       filterButtonRef={(el) => {
@@ -186,9 +189,9 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-32 text-center text-gray-500 italic"
+                  className="h-100 text-center text-gray-500 italic"
                 >
-                  No data available.
+                  {isLoading ? 'Loading...' : 'No data available.'}
                 </TableCell>
               </TableRow>
             )}
