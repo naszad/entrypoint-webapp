@@ -44,13 +44,17 @@ async function seed() {
   if (schoolErr) throw schoolErr
 
   // 4) (Optional) insert the membership so your RLS policy will let you see that school
-  await supabase.from('user_school_memberships').insert([{
+  const { data: membershipData, error: membershipErr } = await supabase
+    .from('user_school_memberships').insert([{
     user_id: authUser.id,
     school_id: schoolData.school_id,
     role: 'admin',
+    created_at: new Date(),
+    updated_at: new Date(),
   }])
+  if (membershipErr) throw membershipErr
 
-  console.log('Seed complete:', { authUser, schoolData, appUser })
+  console.log('Seed complete:', { authUser, schoolData, appUser, membershipData })
 }
 
 seed().catch(console.error)
