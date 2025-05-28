@@ -2,8 +2,7 @@
 
 import { supabase } from '@/libs/supabaseClient'
 import { FilterValue } from '@/components/DataTable/DataTable';
-import { StudentInfo } from '@/types/StudentInfo';
-import { School } from '@/models/Schools';
+import { Student } from '@/models/Students';
 
 type StudentsRequest = {
   filters: FilterValue[];
@@ -50,14 +49,13 @@ const getColumnName = (key: string) => {
   }
 }
 
-export async function fetchStudentsByFilterCriter(request: StudentsRequest): Promise<StudentInfo[]> {
+export async function fetchStudentsByFilterCriter(request: StudentsRequest): Promise<Student[]> {
   try {
     const { filters, sortInfo, pagingInfo } = request;
     
     let query = supabase
       .from('students')
       .select(`student_id,
-        school_id,
         first_name,
         middle_name,
         last_name,
@@ -72,6 +70,7 @@ export async function fetchStudentsByFilterCriter(request: StudentsRequest): Pro
         external_source,
         external_key,
         external_id,
+        external_key_hash,
         external_name,
         graduation_year,
         enrollment_status,
@@ -127,10 +126,8 @@ export async function fetchStudentsByFilterCriter(request: StudentsRequest): Pro
       throw new Error(error.message);
     }    
 
-    const studentInfos: StudentInfo[] = data.map((student) => ({
-      id: student.student_id,
+    const students: Student[] = data.map((student) => ({
       studentId: student.student_id,
-      schoolId: student.school_id,
       firstName: student.first_name,
       middleName: student.middle_name,
       lastName: student.last_name,
@@ -145,14 +142,14 @@ export async function fetchStudentsByFilterCriter(request: StudentsRequest): Pro
       externalSource: student.external_source,
       externalKey: student.external_key,
       externalId: student.external_id,
+      externalKeyHash: student.external_key_hash,
       externalName: student.external_name,
       graduationYear: student.graduation_year,
       enrollmentStatus: student.enrollment_status,
       homeroomName: student.homeroom_name,
-      school: {} as School
     }));
 
-    return studentInfos;
+    return students;
   } catch (err) {
     console.error('Failed to fetch students', err);
     throw new Error('Failed to fetch students');

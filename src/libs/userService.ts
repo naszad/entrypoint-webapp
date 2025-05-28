@@ -13,7 +13,6 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
       email,
       image_url,
       school:school_id (
-        id,
         name,
         address,
         state,
