@@ -13,7 +13,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
       email,
       image_url,
       school:school_id (
-        id,
+        school_id,
         name,
         address,
         state,
@@ -29,8 +29,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
         external_id,
         external_name,
         external_key_hash,
-        school_number,
-        school_id
+        school_number
       )
     `)
     .eq('auth_user_id', id)
