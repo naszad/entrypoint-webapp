@@ -69,10 +69,10 @@ DATABASE_URL=<DB-url>
 Make sure these values are correctly fetched from your running Supabase instance or your Supabase project.
 
 ### 6. Get a local database
-Execute a reset on the local database, which will apply migrations and seed data located in `supabase/seed/`.
+Execute a reset, which will apply migrations and seed data located in `supabase/seed/`.
 
 ```bash
-npm run supabase:reset
+npm run reset
 ```
 
 You can safely run this command anytime you want to wipe and reset your local database. 
@@ -82,7 +82,7 @@ The initial seeded user is `test@email.com` with a password of `password`.
 
 ## Running the project
 ### Apply any pending migrations
-If you pulled down any migrations, make sure they are applied.
+If you pulled down any unapplied migrations, make sure they are executed. This happens as part of `npm run reset`, but if you want to apply migrations as they would be in production (without erasing the whole database), you can run:
 
 ```bash
 npm run drizzle:migrate
