@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function LoginPage() {
-  // const router = useRouter()
   const [email, setEmail] = useState('yasir@conversotech.com')
   const [password, setPassword] = useState('123456')
   const [message, setMessage] = useState('')
