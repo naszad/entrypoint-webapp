@@ -122,7 +122,7 @@ export function DataTableToolbar<TData>({
                     )}
                   </div>
                   <span className="text-sm">
-                    {column.id.charAt(0).toUpperCase() + column.id.slice(1)}
+                    {typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id.charAt(0).toUpperCase() + column.id.slice(1)}
                   </span>
                 </div>
               ))}
