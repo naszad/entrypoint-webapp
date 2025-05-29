@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getReportExistsByName } from '@/libs/reportsService';
+import { useAuth } from "@/context/AuthContext";
+
 
 interface SaveViewDialogProps {
   onSave: (viewData: {
@@ -22,6 +24,7 @@ interface SaveViewDialogProps {
 }
 
 export const SaveViewDialog = ({ onSave }: SaveViewDialogProps) => {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const [viewName, setViewName] = useState('');
   const [description, setDescription] = useState('');
@@ -43,7 +46,7 @@ export const SaveViewDialog = ({ onSave }: SaveViewDialogProps) => {
       return;
     }
 
-    const exists = await getReportExistsByName(viewName);
+    const exists = await getReportExistsByName(viewName, user?.userId);
     if (exists) {
       setShowConfirmation(true);
     } else {
