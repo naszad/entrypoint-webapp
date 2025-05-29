@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, integer, pgPolicy } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, pgPolicy, timestamp } from 'drizzle-orm/pg-core';
 export const schools = pgTable('schools', {
   schoolId: uuid('school_id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
@@ -18,6 +18,8 @@ export const schools = pgTable('schools', {
   externalId: integer('external_id'),
   externalKeyHash: text('external_key_hash').notNull(),
   externalName: text('external_name'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 }, 
 (table) => [
   pgPolicy('Allow Reading of Schools', {

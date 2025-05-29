@@ -1,6 +1,5 @@
 import { supabase } from '@/libs/supabaseClient'
 import { UserInfo } from '@/types/UserInfo';
-import { School } from '@/models/Schools'; 
 
 export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   const { data, error } = await supabase
@@ -11,26 +10,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
       middle_name,
       last_name,
       email,
-      image_url,
-      school:school_id (
-        school_id,
-        name,
-        address,
-        state,
-        city,
-        country,
-        phone,
-        principal_name,
-        principal_email,
-        assistant_principal_name,
-        assistant_principal_email,
-        external_source,
-        external_key,
-        external_id,
-        external_name,
-        external_key_hash,
-        school_number
-      )
+      image_url
     `)
     .eq('auth_user_id', id)
     .single();
@@ -39,27 +19,6 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
     console.error('Error fetching user:', error.message);
     return null;
   }
-  const school = Array.isArray(data.school) ? data.school[0] : data.school
-
-  const parsedSchool : School = {
-      schoolId: school.school_id,
-      name: school.name,
-      schoolNumber: school.school_number,
-      city: school.city,
-      state: school.state,
-      country:school.country,
-      address: school.address,
-      phone: school.phone,
-      principalName: school.principal_name,
-      principalEmail: school.principal_email,
-      assistantPrincipalName: school.assistant_principal_name,
-      assistantPrincipalEmail:school.assistant_principal_email,
-      externalSource: school.external_source,
-      externalKey: school.external_key,
-      externalId: school.external_id,
-      externalKeyHash: school.external_key_hash,
-      externalName: school.external_name,
-  }
 
  const userProfile: UserInfo = {
   userId: data.user_id,
@@ -67,8 +26,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   middleName: data.middle_name,
   lastName: data.last_name,
   email: data.email,
-  imageUrl: data.image_url,
-  school: parsedSchool,
+  imageUrl: data.image_url
 };
 
   return userProfile;

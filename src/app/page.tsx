@@ -1,11 +1,22 @@
 'use client'
 import { useAuth } from '@/context/AuthContext';
-import { redirect } from 'next/navigation';
-const HomePage = () => {
-  const { user } = useAuth()
-  if (!user) redirect('/login')
-  redirect('/dashboard')
-}
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export default HomePage
+const HomePage = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user === null) {
+      router.push('/login');
+    } else if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  return null;
+};
+
+export default HomePage;
 
