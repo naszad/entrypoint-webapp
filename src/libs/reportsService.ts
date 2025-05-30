@@ -1,7 +1,7 @@
 'use server';
 
 import { FilterValue } from '@/components/DataTable/DataTable';
-import { supabase } from '@/libs/supabaseClient'
+import { createClient } from '@/utils/supabase/supabaseServer';
 import { Report } from '@/models/Reports';
 
 type SaveReportParams = {
@@ -49,6 +49,7 @@ const getColumnName = (key: string) => {
 
 export async function fetchReportsByCriteria(request: ReportsRequest): Promise<Report[]> {
   try {
+    const supabase = await createClient();
     const { userId, filters, sortInfo, pagingInfo } = request;
     let query = supabase
       .from('reports')
@@ -132,6 +133,7 @@ export async function fetchReportsByCriteria(request: ReportsRequest): Promise<R
 
 export async function getReportExistsByName(name: string, userId: string = '', reportId: string = ''): Promise<boolean> {
   try {
+    const supabase = await createClient();
     let query = supabase
       .from('reports')
       .select(`report_id,
@@ -155,6 +157,7 @@ export async function getReportExistsByName(name: string, userId: string = '', r
 
 export async function saveReport(params: SaveReportParams): Promise<{ message: string; reportId: string }> {
   try {
+    const supabase = await createClient();
     const { name, description, params: reportParams, pageName, userId } = params;
     
     // First check if report with this name exists
@@ -217,6 +220,7 @@ export async function saveReport(params: SaveReportParams): Promise<{ message: s
 
 export async function updateReport(params: UpdateReportParams): Promise<{ message: string; reportId: string }> {
   try {
+    const supabase = await createClient();
     const { reportId, name, description, userId } = params;
     
     const { data, error } = await supabase
@@ -247,7 +251,7 @@ export async function updateReport(params: UpdateReportParams): Promise<{ messag
 
 export async function deleteReport(reportId: string, userId: string): Promise<{ message: string; reportId: string }> {
   try {
-    
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from('reports')
         .delete()

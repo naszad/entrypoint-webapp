@@ -1,7 +1,9 @@
-import { supabase } from '@/libs/supabaseClient'
+'use server';
+import { createClient } from '@/utils/supabase/supabaseServer';
 import { UserInfo } from '@/types/UserInfo';
 
 export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('users')
    .select(`

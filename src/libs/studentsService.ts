@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '@/libs/supabaseClient'
+import { createClient } from '@/utils/supabase/supabaseServer'
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { Student } from '@/models/Students';
 
@@ -51,6 +51,7 @@ const getColumnName = (key: string) => {
 
 export async function fetchStudentsByFilterCriteria(request: StudentsRequest): Promise<Student[]> {
   try {
+    const supabase = await createClient()
     const { filters, sortInfo, pagingInfo } = request;
     
     let query = supabase

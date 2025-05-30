@@ -6,19 +6,17 @@ import {
   useState,
   useEffect,
   ReactNode,
-  useTransition,
-} from 'react'
-import { supabase } from '@/libs/supabaseClient'
-import { useRouter } from 'next/navigation'
+} from 'react';
+import { redirect, useRouter } from 'next/navigation'
 import { getUserByAuthId } from '@/libs/userService';
 import { UserInfo } from '@/types/UserInfo';
+import { createClient } from '@/utils/supabase/supabaseClient';
+import { loginWithCredentials } from '@/libs/authService';
 
 interface AuthContextType {
   user: UserInfo | null
   loading: boolean
-  isPending: boolean
   login: (email: string, password: string) => Promise<void>
-  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -26,11 +24,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isPending, startTransition] = useTransition()
   const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
+      const supabase = await createClient()
       const { data, error } = await supabase.auth.getUser()
 
       if (!error && data?.user) {
@@ -39,18 +37,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const user = await getUserByAuthId(id);
 
         if (user) {
-
           console.log('user found: ', user);
-          
           setUser({ ...user, role: "Counselor" });
         } else {
           setLoading(false)
-          router.push("/login");
+          redirect('/login')
         }
 
       } else {
         setLoading(false)
-        router.push('/login')
+        redirect('/login')
       }
 
       setLoading(false)
@@ -61,11 +57,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, router])
 
-  const login = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+const login = async (email: string, password: string) => {
+    const { data, error } = await loginWithCredentials(email, password)
 
     if (error || !data.user) {
       throw new Error('Invalid credentials')
@@ -82,30 +75,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const logout = async () => {
-    startTransition(async () => {
-      try {
-        const { error } = await supabase.auth.signOut()
-        if (!error) {
-          router.push('/login')
-          setUser(null)
-        } else {
-          console.error('Error during logout:', error)
-        }
-      } catch (error) {
-        console.error('Error during logout:', error)
-      }
-    })
-  }
-
-  const isLoading = loading || isPending
-
-  return isLoading && !isPending ? (
+  return loading ? (
     <div className="w-full h-screen flex items-center justify-center">
       <p className="text-xl text-gray-600">Loading...</p>
     </div>
   ) : (
-    <AuthContext.Provider value={{ user, loading: isLoading, isPending, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login }}>
       {children}
     </AuthContext.Provider>
   )

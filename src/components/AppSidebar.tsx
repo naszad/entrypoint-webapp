@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { NavigationItem } from "@/context/MenuContext";
 import { UserProfile } from "@/components/UserProfile";
+import { logout } from "@/libs/authService";
 
 export const AppSidebar = () => {
   const secondaryMenu = [
@@ -28,14 +29,14 @@ export const AppSidebar = () => {
     { name: "Preferences", href: "/preferences", icon: Settings },
   ];
   const { menu } = useMenu();
-  const { user, logout, isPending } = useAuth();
+  const { user } = useAuth();
   const pathname = usePathname();
   
   return (
     <Sidebar collapsible="none">
       {/* <SidebarTrigger /> */}
       <SidebarHeader>
-        <UserProfile user={user} isPending={isPending} />
+        <UserProfile user={user} />
         <SidebarSeparator />
       </SidebarHeader>
       <SidebarContent>
@@ -81,9 +82,7 @@ export const AppSidebar = () => {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  onClick={() => {
-                    logout();
-                  }}
+                  onClick={logout}
                 >
                   <Link href="/login">
                     <LogOut />
