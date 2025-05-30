@@ -7,7 +7,7 @@ import {
   useEffect,
   ReactNode,
 } from 'react';
-import { redirect, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { getUserByAuthId } from '@/libs/userService';
 import { UserInfo } from '@/types/UserInfo';
 import { createClient } from '@/utils/supabase/supabaseClient';
@@ -39,17 +39,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (user) {
           console.log('user found: ', user);
           setUser({ ...user, role: "Counselor" });
+          router.push('/dashboard')
+          setLoading(false);
+          return;
         } else {
           setLoading(false)
-          redirect('/login')
+          router.push('/login')
+          return
         }
 
       } else {
         setLoading(false)
-        redirect('/login')
+        router.push('/login')
+        return
       }
-
-      setLoading(false)
     }
 
     if (!user) {
