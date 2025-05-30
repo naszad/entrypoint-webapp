@@ -1,17 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import LoginHeader from '@/components/LoginHeader'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
-  // const router = useRouter()
+  const { login } = useAuth();
   const [email, setEmail] = useState('test@email.com')
   const [password, setPassword] = useState('password')
 
   const [message, setMessage] = useState('')
-  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
