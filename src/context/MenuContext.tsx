@@ -13,7 +13,8 @@ import {
   UsersIcon,
   BookOpen,
   FileDigit,
-  Notebook
+  Notebook,
+  File
 } from "lucide-react"
 
 import { useAuth } from "./AuthContext";
@@ -34,6 +35,7 @@ const navigations: Record<string, NavigationItem[]> = {
   'Counselor': [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Students", href: "/students", icon: UsersIcon },
+    { name: "Reports", href: "/reports", icon: File },
     { name: "Courses", href: "/courses", icon: BookOpen },
     { name: "Grades", href: "/grades", icon: FileDigit },
     { name: "Meeting Notes", href: "/notes", icon: Notebook },

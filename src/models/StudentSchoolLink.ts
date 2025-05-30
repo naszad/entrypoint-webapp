@@ -1,7 +1,8 @@
 import {
   pgTable,
-  date,
   uuid,
+  timestamp,
+  date,
 } from 'drizzle-orm/pg-core';
 
 export const schoolStudentLinks = pgTable(
@@ -11,8 +12,8 @@ export const schoolStudentLinks = pgTable(
     schoolId: uuid('school_id').notNull(),
     startDate: date('start_date'),
     endDate: date('end_date'),
-    createdAt: date('created_at'),
-    updatedAt: date('updated_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
   });
 
 export type SchoolStudentLink = typeof schoolStudentLinks.$inferSelect;
