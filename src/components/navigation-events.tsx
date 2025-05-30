@@ -2,13 +2,11 @@
 
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import { TransitionIndicator } from '@/components/ui/transition-indicator'
 
 export function NavigationEvents() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { isPending } = useAuth()
   const [isNavigating, setIsNavigating] = useState(false)
 
   useEffect(() => {
@@ -36,5 +34,5 @@ export function NavigationEvents() {
   }, [pathname, searchParams])
 
   // Either show transition for navigation or auth operations
-  return <TransitionIndicator isLoading={isNavigating || isPending} variant="loading" />
+  return <TransitionIndicator isLoading={isNavigating} variant="loading" />
 } 
