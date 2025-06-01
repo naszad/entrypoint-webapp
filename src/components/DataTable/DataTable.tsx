@@ -41,6 +41,7 @@ export interface DataTableProps<TData, TValue> {
   className?: string;
   actions?: ActionItem[];
   onActionItemClicked?: (actionId: string) => void;
+  onRowClick?: (row: TData) => void;
   defaultVisibility?: VisibilityState;
   onParamsChange?: (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[] }) => void;
   isLoading?: boolean;
@@ -52,6 +53,7 @@ export function DataTable<TData, TValue>({
   className,
   actions = [],
   onActionItemClicked,
+  onRowClick,
   defaultVisibility = {},
   onParamsChange,
   isLoading = false,
@@ -170,8 +172,9 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row, i) => (
                 <TableRow
                   key={row.id}
+                  onClick={() => onRowClick?.(row.original)}
                   className={cn(
-                    "hover:bg-gray-50 transition-colors",
+                    "hover:bg-gray-50 transition-colors cursor-pointer",
                     i % 2 === 0 ? "bg-white" : "bg-gray-50/50"
                   )}
                 >

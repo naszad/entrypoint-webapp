@@ -52,7 +52,7 @@ const ReportsPage = () => {
       }
       router.push(url.toString());
     } else {
-      console.log('Report not found'); // report corrupted do nothing
+      // report corrupted do nothing
     }
   };
 

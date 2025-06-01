@@ -37,7 +37,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const user = await getUserByAuthId(id);
 
         if (user) {
-          console.log('user found: ', user);
           setUser({ ...user, role: "Counselor" });
           router.push('/dashboard')
           setLoading(false);

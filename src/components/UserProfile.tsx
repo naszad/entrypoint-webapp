@@ -41,6 +41,9 @@ export const UserProfile = ({ user }: UserProfileProps) => {
         {(
           <>
             <span className="truncate font-medium">{getUserFullName(user)}</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {user?.school?.name || ''}
+            </span>
           </>
         )}
       </div>
