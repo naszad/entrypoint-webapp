@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
-import { fetchStudentsByFilterCriteria } from '@/libs/studentsService';
 import { saveReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter } from 'next/navigation';
@@ -21,16 +20,22 @@ const StudentsPage = () => {
   const fetchStudents = async (filters: FilterValue[], sortField: string, sortDirection: 'asc' | 'desc') => {
     try {
       setIsLoading(true);
-      const result = await fetchStudentsByFilterCriteria({
-        filters,
-        sortInfo: { sortField, sortDirection },
-        pagingInfo: { pageNumber: 1, pageSize: 10 }
-      });
+      const filtersParam = filters.length > 0 ? filters.map(f => `${f.key}:${f.condition}:${f.value}`).join(',') : '';
+      const url = `/api/students?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=1&pageSize=10`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json();
+        setAlertMessage({ 
+          type: 'destructive', 
+          message: errorData.error || 'Failed to fetch students'
+        });
+      }
+      const result = await response.json();
       setStudents(result);
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
-        message: `Failed to fetch students ${err}`
+        message: `Failed to fetch students ${err instanceof Error ? err.message : ''}`
       });
     } finally {
       setIsLoading(false);

@@ -3,7 +3,7 @@ import { createColumns, defaultVisibility as initialVisibility } from "@/compone
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { useState, useEffect } from "react";
 import { useAuth } from '@/context/AuthContext'
-import { fetchReportsByCriteria, updateReport, deleteReport } from '@/libs/reportsService';
+import { updateReport, deleteReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Report } from "@/models/Reports";
 import { useRouter } from 'next/navigation';
@@ -109,18 +109,22 @@ const ReportsPage = () => {
   const fetchReports = async (filters: FilterValue[], sortField: string, sortDirection: 'asc' | 'desc') => {
     try {
       setIsLoading(true);
-      const result = await fetchReportsByCriteria({
-        userId: user?.userId || '',
-        filters,
-        sortInfo: { sortField, sortDirection },
-        pagingInfo: { pageNumber: 1, pageSize: 10 }
-      });
+      const filtersParam = filters.length > 0 ? filters.map(f => `${f.key}:${f.condition}:${f.value}`).join(',') : '';
+      const url = `/api/reports?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=1&pageSize=10&userId=${encodeURIComponent(user?.userId || '')}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json();
+        setAlertMessage({ 
+          type: 'destructive', 
+          message: errorData.error || 'Failed to fetch reports.'
+        });
+      }
+      const result = await response.json();
       setReports(result);
     } catch (err) {
-      console.error('Failed to fetch students:', err);
       setAlertMessage({ 
         type: 'destructive', 
-        message: 'Failed to fetch students'
+        message: `Failed to fetch reports ${err instanceof Error ? err.message : ''}`
       });
     } finally {
       setIsLoading(false);

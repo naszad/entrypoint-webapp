@@ -50,7 +50,7 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
         <div className="text-2xl font-bold">{fullName}</div>
         <div className="text-gray-600 font-medium">
           Grade {gradeLevel} • Class of {graduationYear}
-          {studentId ? `• ID: ${studentId}` : ''}
+          {studentId ? ` • ID: ${studentId}` : ''}
         </div>
       </div>
     </div>

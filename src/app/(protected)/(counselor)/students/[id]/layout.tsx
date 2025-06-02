@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { StudentInfo } from '@/types/StudentInfo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { fetchStudentById } from '@/libs/studentsService';
 
 export default function StudentProfileLayout({ children }: { children: React.ReactNode }) {
     const params = useParams();
@@ -15,21 +14,28 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
     useEffect(() => {
       const fetchStudent = async () => {
         try {
-          const data = await fetchStudentById(params.id as string);
-          setStudent(data);
+          const { id } = params
+          const response = await fetch(`/api/students/${id}`);
+          if (!response.ok) {
+            setError('An error occurred while fetching the student, please try again later');
+          }
+          const studentData = await response.json();
+          setStudent(studentData);
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'An error occurred');
+          setError(err instanceof Error ? err.message : 'An error occurred while fetching the student');
         } finally {
           setIsLoading(false);
         }
       };
   
       fetchStudent();
-    }, [params.id]);
+    }, [params]);
 
     if (isLoading) {
-        return <div>Loading...</div>;
-    }
+        return (<div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              </div>);
+        }
     
     if (error) {
         return (
