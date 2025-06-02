@@ -37,20 +37,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const user = await getUserByAuthId(id);
 
         if (user) {
-          console.log('user found: ', user);
           setUser({ ...user, role: "Counselor" });
-          router.push('/dashboard')
           setLoading(false);
           return;
         } else {
           setLoading(false)
-          router.push('/login')
           return
         }
 
       } else {
         setLoading(false)
-        router.push('/login')
         return
       }
     }
@@ -58,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) {
       fetchUser()
     }
-  }, [user, router])
+  }, [user])
 
 const login = async (email: string, password: string) => {
     const { data, error } = await loginWithCredentials(email, password)

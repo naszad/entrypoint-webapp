@@ -122,7 +122,6 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     query = query.range(from, to);
 
     const { data, error } = await query;
-
     if (error) {
       throw new Error(error.message);
     }    
@@ -152,7 +151,71 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
 
     return students;
   } catch (err) {
-    console.error('Failed to fetch students', err);
-    throw new Error('Failed to fetch students');
+    throw new Error(`Failed to fetch students ${err}`);
+  }
+} 
+
+export async function fetchStudentById(studentId: string): Promise<Student> {
+  try {
+    const supabase = await createClient()
+    const query = supabase
+    .from('students')
+    .select(`
+      student_id,
+      first_name,
+      middle_name,
+      last_name,
+      full_name,
+      email,
+      phone,
+      grade_level,
+      gender,
+      date_of_birth,
+      created_at,
+      updated_at,
+      external_source,
+      external_key,
+      external_id,
+      external_key_hash,
+      external_name,
+      graduation_year,
+      enrollment_status,
+      homeroom_name
+    `)
+    .eq('student_id', studentId)
+    .single();
+
+    const { data: student, error } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }    
+
+    const parsedStudent: Student = {
+      studentId: student.student_id,
+      firstName: student.first_name,
+      middleName: student.middle_name,
+      lastName: student.last_name,
+      fullName: student.full_name,
+      email: student.email,
+      phone: student.phone,
+      gradeLevel: student.grade_level,
+      gender: student.gender,
+      dateOfBirth: student.date_of_birth,
+      createdAt: student.created_at,
+      updatedAt: student.updated_at,
+      externalSource: student.external_source,
+      externalKey: student.external_key,
+      externalId: student.external_id,
+      externalKeyHash: student.external_key_hash,
+      externalName: student.external_name,
+      graduationYear: student.graduation_year,
+      enrollmentStatus: student.enrollment_status,
+      homeroomName: student.homeroom_name,
+    }
+
+    return parsedStudent;
+  } catch (err) { 
+    throw new Error(`Failed to fetch student ${err}`);
   }
 } 

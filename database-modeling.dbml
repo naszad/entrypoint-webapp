@@ -26,19 +26,30 @@ Table terms {
   name varchar // e.g. "Fall 2024"
   start_date date
   end_date date
-  district_id uuid [ref: > districts.district_id]
+  school_id uuid [ref: > schools.school_id]
   created_at timestamp
   updated_at timestamp
 }
 
 Table courses {
   course_id uuid [pk]
-  name varchar
-  local_course_code varchar
-  state_course_code varchar
-  school_id uuid [ref: > schools.school_id]
-  created_at timestamp
-  updated_at timestamp
+  name varchar [not null]
+  course_number varchar [not null]
+  state_course_number varchar
+  credit_hours int [not null]
+  school_id uuid [ref: > schools.school_id, not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table course_sections {
+  section_id uuid [pk]
+  course_id uuid [ref: > courses.course_id, not null]
+  grade_level string
+  section_number string
+  teacher_id uuid [ref: > teachers.teacher_id]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
 }
 
 Table teachers {
@@ -73,19 +84,18 @@ Table student_school_memberships {
 
 // ====== Relationship Entities ======
 
-Table enrollments {
-  enrollment_id uuid [pk]
+Table section_enrollments {
+  section_enrollment_id uuid [pk]
   student_id uuid [ref: > students.student_id]
-  course_id uuid [ref: > courses.course_id]
+  section_id uuid [ref: > course_sections.section_id]
   term_id uuid [ref: > terms.term_id]
-  teacher_id uuid [ref: > teachers.teacher_id]
   created_at timestamp
   updated_at timestamp
 }
 
 Table grades {
   grade_id uuid [pk]
-  enrollment_id uuid [ref: > enrollments.enrollment_id]
+  section_enrollment_id uuid [ref: > section_enrollments.section_enrollment_id]
   grade_type varchar // e.g. final, midterm
   grade_value decimal // e.g. 85.5
   recorded_at timestamp

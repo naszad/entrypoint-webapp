@@ -6,30 +6,36 @@ import { useState, useEffect } from "react";
 import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
-import { fetchStudentsByFilterCriteria } from '@/libs/studentsService';
 import { saveReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useRouter } from 'next/navigation';
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [students, setStudents] = useState<StudentInfo[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const { user } = useAuth();
+  const router = useRouter();
 
   const fetchStudents = async (filters: FilterValue[], sortField: string, sortDirection: 'asc' | 'desc') => {
     try {
       setIsLoading(true);
-      const result = await fetchStudentsByFilterCriteria({
-        filters,
-        sortInfo: { sortField, sortDirection },
-        pagingInfo: { pageNumber: 1, pageSize: 10 }
-      });
+      const filtersParam = filters.length > 0 ? filters.map(f => `${f.key}:${f.condition}:${f.value}`).join(',') : '';
+      const url = `/api/students?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=1&pageSize=10`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json();
+        setAlertMessage({ 
+          type: 'destructive', 
+          message: errorData.error || 'Failed to fetch students'
+        });
+      }
+      const result = await response.json();
       setStudents(result);
     } catch (err) {
-      console.error('Failed to fetch students:', err);
       setAlertMessage({ 
         type: 'destructive', 
-        message: 'Failed to fetch students'
+        message: `Failed to fetch students ${err instanceof Error ? err.message : ''}`
       });
     } finally {
       setIsLoading(false);
@@ -70,6 +76,10 @@ const StudentsPage = () => {
     }
   };
 
+  const handleRowClick = (student: StudentInfo) => {
+    router.push(`/students/${student.studentId}`);
+  };
+
   // Clear alert message after 5 seconds
   useEffect(() => {
     if (alertMessage) {
@@ -102,6 +112,7 @@ const StudentsPage = () => {
           defaultVisibility={initialVisibility}
           onParamsChange={handleFilterApply}
           isLoading={isLoading}
+          onRowClick={handleRowClick}
         />
       </div>
     </div>
