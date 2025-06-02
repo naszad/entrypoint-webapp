@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { MessagesSquare, Send, X, MoveDown } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
@@ -9,11 +10,34 @@ import { Input } from './ui/input'
 import { TypingAnimation } from './TypingAnimation/TypingAnimation';
 
 export function ChatAssistant() {
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false)
   const [showJumpToBottom, setShowJumpToBottom] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+
+  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
+    onToolCall: ({ toolCall }) => {
+      if (toolCall.toolName === 'navigate') {
+        const { url, description } = toolCall.args as {
+          url: string,
+          description: string
+        };
+
+        if (typeof url === 'string' && typeof description === 'string') {
+          console.log(`Executing navigation tool to URL: ${url} (Description: "${description}")`);
+          
+          // Use router.push for client-side navigation
+          router.push(url);
+          
+          return; 
+        } else {
+          console.error('Invalid url or description argument for navigate tool:', toolCall.args);
+          return;
+        }
+      }
+    }
+  });
 
   // Load saved state from localStorage
   useEffect(() => {
@@ -89,21 +113,59 @@ export function ChatAssistant() {
             className="flex-1 overflow-y-auto relative"
           >
             {messages.map(message => (
-              <div 
-                key={message.id} 
+              <div
+                key={message.id}
                 className={cn(
                   "whitespace-pre-wrap p-2 rounded-lg mb-2 max-w-[85%]",
-                  message.role === 'user' 
-                    ? "ml-auto bg-blue-100" 
+                  message.role === 'user'
+                    ? "ml-auto bg-blue-100"
                     : "mr-auto bg-gray-100"
                 )}
               >
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case 'text':
-                      return <div key={`${message.id}-${i}`}>{part.text}</div>;
-                  }
-                })}
+                {/* Display streamed parts if available, otherwise fallback to content */}
+                {message.parts && message.parts.length > 0 ? (
+                  message.parts.map((part, i) => {
+                    switch (part.type) {
+                      case 'text':
+                        return <div key={`${message.id}-${i}`}>{part.text}</div>
+                      case 'tool-invocation': {
+                        const invocation = part.toolInvocation
+                        if (invocation.state === 'call' || invocation.state === 'partial-call') {
+                          return (
+                            <div key={`${message.id}-${i}`} className="text-sm text-gray-600 italic">
+                              {`Calling tool "${invocation.toolName}" with args:`}
+                              <pre className="whitespace-pre-wrap">{JSON.stringify(invocation.args, null, 2)}</pre>
+                            </div>
+                          )
+                        }
+                        if (invocation.state === 'result') {
+                          // Special handling for navigation tool results
+                          if (invocation.toolName === 'navigate') {
+                            const result = invocation.result as { url: string; description: string };
+                            return (
+                              <div key={`${message.id}-${i}`} className="text-sm text-blue-600 font-medium">
+                                ✅ Navigated to {result.description}
+                              </div>
+                            );
+                          }
+                          
+                          // Default tool result display
+                          return (
+                            <div key={`${message.id}-${i}`} className="text-sm text-gray-600 italic">
+                              {`Tool result from "${invocation.toolName}":`}
+                              <pre className="whitespace-pre-wrap">{JSON.stringify(invocation.result, null, 2)}</pre>
+                            </div>
+                          )
+                        }
+                        return null
+                      }
+                      default:
+                        return null
+                    }
+                  })
+                ) : (
+                  <div>{message.content}</div>
+                )}
               </div>
             ))}
             <div ref={messagesEndRef} />
