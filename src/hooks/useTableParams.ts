@@ -16,6 +16,7 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
   const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
   const [filterValues, setFilterValues] = useState<FilterValue[]>(() => {
     const filtersParam = searchParams.get('filters');
+    
     if (!filtersParam) return [];
 
     try {
@@ -64,6 +65,37 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
   const filterConditionRefs = useRef<Record<string, HTMLSelectElement | null>>({});
   const prevParamsRef = useRef<{ filters: FilterValue[], sorting: SortingState }>({ filters: [], sorting: [] });
   const initialLoadRef = useRef(true);
+
+  // Sync filterValues and sorting with URL params when they change
+  useEffect(() => {
+    // Parse filters from URL
+    const filtersParam = searchParams.get('filters');
+    let newFilterValues: FilterValue[] = [];
+    if (filtersParam) {
+      try {
+        newFilterValues = filtersParam.split(',').map(filter => {
+          const parts = filter.split(':');
+          if (parts.length !== 3) return null;
+          const [key, condition, value] = parts;
+          return { key, condition, value };
+        }).filter((filter): filter is FilterValue => filter !== null);
+      } catch (error) {
+        console.error('Error parsing filters from URL:', error);
+      }
+    }
+
+    // Parse sorting from URL
+    const sortParam = searchParams.get('sort');
+    let newSorting: SortingState = [];
+    if (sortParam) {
+      const [id, direction] = sortParam.split(':');
+      newSorting = [{ id, desc: direction === 'desc' }];
+    }
+
+    // Only update if different to avoid unnecessary renders
+    setFilterValues(prev => JSON.stringify(prev) !== JSON.stringify(newFilterValues) ? newFilterValues : prev);
+    setSorting(prev => JSON.stringify(prev) !== JSON.stringify(newSorting) ? newSorting : prev);
+  }, [searchParams]);
 
   // Set input and condition values when filter dropdown opens
   useEffect(() => {
@@ -120,6 +152,7 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
   useEffect(() => {
     const currentParams = { filters: filterValues, sorting };
     
+    // Always call onParamsChange when params change (including initial load)
     if (initialLoadRef.current || JSON.stringify(prevParamsRef.current) !== JSON.stringify(currentParams)) {
       prevParamsRef.current = currentParams;
       onParamsChange?.(currentParams);
@@ -128,6 +161,7 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
         initialLoadRef.current = false;
       }
       
+      // Build the URL we want
       const newSearchParams = new URLSearchParams();
       
       // Copy existing params except filters and sort
@@ -136,7 +170,7 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
           newSearchParams.set(key, value);
         }
       });
-      
+
       // Add filters
       if (filterValues.length > 0) {
         const filtersString = filterValues
@@ -151,9 +185,14 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
         newSearchParams.set('sort', `${id}:${desc ? 'desc' : 'asc'}`);
       }
 
-      const query = newSearchParams.toString();
-      const newUrl = query ? `${pathname}?${query}` : pathname;
-      router.replace(newUrl);
+      const newQuery = newSearchParams.toString();
+      const currentQuery = searchParams.toString();
+      
+      // Only update URL if it's actually different
+      if (currentQuery !== newQuery) {
+        const newUrl = newQuery ? `${pathname}?${newQuery}` : pathname;
+        router.replace(newUrl);
+      }
     }
   }, [filterValues, sorting, onParamsChange, pathname, router, searchParams]);
 

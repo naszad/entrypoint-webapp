@@ -25,7 +25,6 @@ export function ChatAssistant() {
         };
 
         if (typeof url === 'string' && typeof description === 'string') {
-          console.log(`Executing navigation tool to URL: ${url} (Description: "${description}")`);
           
           // Use router.push for client-side navigation
           router.push(url);

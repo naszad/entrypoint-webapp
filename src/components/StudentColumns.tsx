@@ -57,7 +57,7 @@ export const columns: ColumnDef<Student>[] = [
     meta: {
       enableFiltering: true,
       filterType: "dropdown",
-      filterOptions: ["Male", "Female"],
+      filterOptions: [{id: "male", displayValue: "Male"}, {id: "female", displayValue: "Female"}],
     },
   },
   {
@@ -66,7 +66,7 @@ export const columns: ColumnDef<Student>[] = [
     meta: {
       enableFiltering: true,
       filterType: "dropdown",
-      filterOptions: ["Active", "Inactive"],
+      filterOptions: [{id: 'active', displayValue: 'Active'}, {id: 'inactive', displayValue: 'Inactive'}],
     },
   },
   {
