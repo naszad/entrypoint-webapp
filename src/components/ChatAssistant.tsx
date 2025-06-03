@@ -141,10 +141,12 @@ export function ChatAssistant() {
                         if (invocation.state === 'result') {
                           // Special handling for navigation tool results
                           if (invocation.toolName === 'navigate') {
-                            const result = invocation.result as { url: string; description: string };
+                            const { url, description } = invocation.result as { url: string; description: string };
                             return (
-                              <div key={`${message.id}-${i}`} className="text-sm text-blue-600 font-medium">
-                                ✅ Navigated to {result.description}
+                              <div key={`${message.id}-${i}`} className="flex flex-col">
+                                <a href={url} className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-md border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition-colors duration-150 mt-1">
+                                  {description}
+                                </a>
                               </div>
                             );
                           }
