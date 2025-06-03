@@ -16,7 +16,24 @@ export function ChatAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
+  // Load initial messages from localStorage for persistence
+  const [initialMessages] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('chatAssistantMessages');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (err) {
+          console.error('Failed to parse stored chat messages', err);
+        }
+      }
+    }
+    return [];
+  });
+
   const { messages, input, handleInputChange, handleSubmit, status } = useChat({
+    id: 'chat-assistant',
+    initialMessages,
     onToolCall: ({ toolCall }) => {
       if (toolCall.toolName === 'navigate') {
         const { url, description } = toolCall.args as {
@@ -38,6 +55,15 @@ export function ChatAssistant() {
       }
     }
   });
+
+  // Persist chat messages to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem('chatAssistantMessages', JSON.stringify(messages));
+    } catch (err) {
+      console.error('Failed to store chat messages', err);
+    }
+  }, [messages]);
 
   // Load saved state from localStorage
   useEffect(() => {

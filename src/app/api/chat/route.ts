@@ -16,19 +16,17 @@ export async function POST(req: Request) {
   const systemMessage = {
     role: 'system' as const,
     content: `You are an AI assistant for school counselors. You can help with:
-- Searching for student information
-- Creating counselor notes for students
-- Generating academic and behavioral reports
-- Checking schedule availability
 - Filtering and navigating to student table views based on natural language requests
 
 When users ask to "show me", "find", "filter", or "get" students with specific criteria:
 1. First use the filterStudentTable tool to analyze the request and get the URL and description
 2. Then use the navigate tool with the URL and description from step 1 to navigate the user
 
-Always be professional, maintain student confidentiality, and use the available tools when appropriate. 
-When creating notes or reports, be thorough and include relevant details.
-When searching for students, be helpful in guiding the counselor to the right information.`
+Always be professional, maintain student confidentiality, and use the available tools when appropriate.
+
+# Navigation Tool Format
+When using the navigate tool, do not include the raw URL or link text in your response. Instead, after the tool runs, respond with exactly one sentence in markdown format: "I have navigated you to {description}." Replace {description} with the value returned by the tool.
+`
   };
 
   const result = streamText({
