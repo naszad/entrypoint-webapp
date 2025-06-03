@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { MessagesSquare, Send, X, MoveDown } from 'lucide-react'
+import { MessagesSquare, Send, X, MoveDown, Trash2 } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
 import { Button } from './ui/button'
@@ -31,7 +31,7 @@ export function ChatAssistant() {
     return [];
   });
 
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, status, setMessages, setInput } = useChat({
     id: 'chat-assistant',
     initialMessages,
     onToolCall: ({ toolCall }) => {
@@ -54,6 +54,13 @@ export function ChatAssistant() {
       }
     }
   });
+
+  // Handler to clear chat history
+  const clearChat = () => {
+    setMessages([]);
+    setInput('');
+    localStorage.removeItem('chatAssistantMessages');
+  };
 
   // Persist chat messages to localStorage on change
   useEffect(() => {
@@ -111,15 +118,20 @@ export function ChatAssistant() {
     window.dispatchEvent(new Event('storage'))
   }
 
+  // Track the ID of the current assistant message being streamed
+  const activeMessageId = messages[messages.length - 1]?.id;
+
   return (
     <>
-      <Button
-        onClick={handleToggle}
-        className="fixed top-4 right-6 z-50 gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-        aria-label={isOpen ? 'Close Assistant' : 'Open Assistant'}
-      >
-        {isOpen ? <X size={20} /> : (<><MessagesSquare size={20}  /> Assistant</>)}
-      </Button>
+      {!isOpen && (
+        <Button
+          onClick={handleToggle}
+          className="fixed top-4 right-6 z-50 gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          aria-label="Open Assistant"
+        >
+          <MessagesSquare size={20} /> Assistant
+        </Button>
+      )}
 
       <div
         className={cn(
@@ -128,9 +140,19 @@ export function ChatAssistant() {
         )}
       >
         <div className="p-4 h-full flex flex-col">
-          <div className="flex items-center gap-2 mb-4 border-b pb-4">
-            <MessagesSquare size={20} />
-            <h2 className="text-lg font-semibold">Assistant</h2>
+          <div className="flex items-center justify-between mb-4 border-b pb-4">
+            <div className="flex items-center gap-2 flex-1">
+              <MessagesSquare size={20} />
+              <h2 className="text-lg font-semibold">Assistant</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button onClick={clearChat} variant="ghost" size="icon" aria-label="Clear chat history">
+                <Trash2 size={20} />
+              </Button>
+              <Button onClick={handleToggle} variant="ghost" size="icon" aria-label="Close Assistant">
+                <X size={20} />
+              </Button>
+            </div>
           </div>
           
           <div 
@@ -154,37 +176,46 @@ export function ChatAssistant() {
                       case 'text':
                         return <div key={`${message.id}-${i}`}>{part.text}</div>
                       case 'tool-invocation': {
-                        const invocation = part.toolInvocation
-                        if (invocation.state === 'call' || invocation.state === 'partial-call') {
-                          return (
-                            <div key={`${message.id}-${i}`} className="text-sm text-gray-600 italic">
-                              {`Calling tool "${invocation.toolName}" with args:`}
-                              <pre className="whitespace-pre-wrap">{JSON.stringify(invocation.args, null, 2)}</pre>
+                        const invocation = part.toolInvocation;
+                        // Replace tool invocation and result render with collapsible details
+                        // Collapsible call details; expanded until result arrives
+                        const callComponent = (
+                          <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-call`} className="mb-2">
+                            <summary className="cursor-pointer font-small text-gray-600">Tool Called: {invocation.toolName}</summary>
+                            <div>
+                              <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.args, null, 2)}</pre>
                             </div>
-                          )
-                        }
+                          </details>
+                        );
                         if (invocation.state === 'result') {
-                          // Special handling for navigation tool results
+                          // Collapsible result details; default collapsed
+                          let resultComponent;
                           if (invocation.toolName === 'navigate') {
                             const { url, description } = invocation.result as { url: string; description: string };
-                            return (
-                              <div key={`${message.id}-${i}`} className="flex flex-col">
-                                <a href={url} className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-md border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition-colors duration-150 mt-1">
+                            resultComponent = (
+                              <div key={`${message.id}-${i}-result`} className="flex flex-col mb-2">
+                                <button 
+                                  onClick={() => router.push(url)}
+                                  className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-md border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition-colors duration-150 cursor-pointer text-left"
+                                >
                                   {description}
-                                </a>
+                                </button>
                               </div>
                             );
+                          } else {
+                            resultComponent = (
+                              <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-result`} className="mb-2">
+                                <summary className="cursor-pointer font-small text-gray-600">Response from {invocation.toolName}</summary>
+                                <div>
+                                  <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.result, null, 2)}</pre>
+                                </div>
+                              </details>
+                            );
                           }
-                          
-                          // Default tool result display
-                          return (
-                            <div key={`${message.id}-${i}`} className="text-sm text-gray-600 italic">
-                              {`Tool result from "${invocation.toolName}":`}
-                              <pre className="whitespace-pre-wrap">{JSON.stringify(invocation.result, null, 2)}</pre>
-                            </div>
-                          )
+                          return [callComponent, resultComponent];
                         }
-                        return null
+                        // Show only call details while invocation in progress
+                        return callComponent;
                       }
                       default:
                         return null
