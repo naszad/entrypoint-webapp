@@ -8,7 +8,7 @@ import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
 import { saveReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +16,6 @@ const StudentsPage = () => {
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const { user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const fetchStudents = async (filters: FilterValue[], sortField: string, sortDirection: 'asc' | 'desc') => {
     try {
@@ -49,49 +48,6 @@ const StudentsPage = () => {
     const sortDirection = params.sorting?.[0]?.desc ? 'desc' : 'asc';
     await fetchStudents(filters, sortId, sortDirection);
   }
-
-  // Parse URL parameters and fetch initial data
-  useEffect(() => {
-    const parseUrlParams = () => {
-      const filters: FilterValue[] = [];
-      const sorting: { id: string; desc: boolean }[] = [];
-
-      // Parse filters from URL
-      const filtersParam = searchParams.get('filters');
-      if (filtersParam) {
-        try {
-          const filterStrings = filtersParam.split(',');
-          filterStrings.forEach(filterString => {
-            const parts = filterString.split(':');
-            if (parts.length === 3) {
-              const [key, condition, value] = parts;
-              filters.push({ key, condition, value });
-            }
-          });
-        } catch (error) {
-          console.error('Error parsing filters from URL:', error);
-        }
-      }
-
-      // Parse sorting from URL
-      const sortParam = searchParams.get('sort');
-      if (sortParam) {
-        const [id, direction] = sortParam.split(':');
-        if (id) {
-          sorting.push({ id, desc: direction === 'desc' });
-        }
-      }
-
-      return { filters, sorting };
-    };
-
-    const { filters, sorting } = parseUrlParams();
-    const sortId = sorting[0]?.id || '';
-    const sortDirection = sorting[0]?.desc ? 'desc' : 'asc';
-    
-    // Fetch data with parsed parameters
-    fetchStudents(filters, sortId, sortDirection);
-  }, [searchParams]); // Re-run when URL search parameters change
 
   const action: ActionItem[] = [];
 
