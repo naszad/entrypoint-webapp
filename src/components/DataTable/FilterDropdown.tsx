@@ -127,9 +127,9 @@ export function FilterDropdown({
             <option value="">
               All
             </option>
-            {meta.filterOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            {((meta.filterOptions as unknown) as { id: string; displayValue: string }[]).map(option => (
+              <option key={option.id} value={option.id}>
+                {option.displayValue}
               </option>
             ))}
           </select>
