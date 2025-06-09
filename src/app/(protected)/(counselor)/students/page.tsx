@@ -8,20 +8,45 @@ import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
 import { saveReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [students, setStudents] = useState<StudentInfo[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const fetchStudents = async (filters: FilterValue[], sortField: string, sortDirection: 'asc' | 'desc') => {
+  const initialPageSize = (() => {
+    const sizeParam = searchParams.get('pageSize');
+    const parsed = sizeParam ? parseInt(sizeParam, 10) : undefined;
+    if (parsed && !isNaN(parsed) && parsed > 0) return parsed;
+    if (typeof window !== 'undefined') {
+      const savedPageSize = localStorage.getItem('pagination-pageSize');
+      if (savedPageSize) {
+        const parsedLocal = parseInt(savedPageSize, 10);
+        if (!isNaN(parsedLocal) && parsedLocal > 0) return parsedLocal;
+      }
+    }
+    return 50;
+  })();
+
+  // Store current filters and sorting for pagination changes
+  const [currentPageSize, setCurrentPageSize] = useState(initialPageSize);
+
+  const fetchStudents = async (
+    filters: FilterValue[], 
+    sortField: string, 
+    sortDirection: 'asc' | 'desc',
+    pageNumber: number = 1,
+    pageSize: number = 50
+  ) => {
     try {
       setIsLoading(true);
       const filtersParam = filters.length > 0 ? filters.map(f => `${f.key}:${f.condition}:${f.value}`).join(',') : '';
-      const url = `/api/students?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=1&pageSize=10`;
+      const url = `/api/students?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true`;
       const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json();
@@ -30,8 +55,9 @@ const StudentsPage = () => {
           message: errorData.error || 'Failed to fetch students'
         });
       }
-      const result = await response.json();
-      setStudents(result);
+      const studentsResponse = await response.json();
+      setStudents(studentsResponse.data);
+      setTotalCount(studentsResponse.count);
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
@@ -42,12 +68,15 @@ const StudentsPage = () => {
     }
   };
 
-  const handleFilterApply = async (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[] }) => {
+  // Unified handler for DataTable param changes
+  const handleParamsChange = async (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[], pageNumber: number, pageSize: number }) => {
     const filters = params.filters || [];
-    const sortId = params.sorting?.[0]?.id || '';
-    const sortDirection = params.sorting?.[0]?.desc ? 'desc' : 'asc';
-    await fetchStudents(filters, sortId, sortDirection);
-  }
+    const sorting = params.sorting || [];
+    const sortId = sorting[0]?.id || '';
+    const sortDirection = sorting[0]?.desc ? 'desc' : 'asc';
+    setCurrentPageSize(params.pageSize);
+    await fetchStudents(filters, sortId, sortDirection, params.pageNumber, params.pageSize);
+  };
 
   const action: ActionItem[] = [];
 
@@ -105,14 +134,17 @@ const StudentsPage = () => {
       )}
       <div className="flex-1 w-full h-50">
         <DataTable 
+          enablePagination={true}
+          total={totalCount}
           columns={columns} 
           data={students} 
           className="w-full"
           actions={action}
           defaultVisibility={initialVisibility}
-          onParamsChange={handleFilterApply}
+          onParamsChange={handleParamsChange}
           isLoading={isLoading}
           onRowClick={handleRowClick}
+          pageSize={currentPageSize}
         />
       </div>
     </div>

@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const sortDirection = (url.searchParams.get('sortDirection') || 'asc') as 'asc' | 'desc';
     const pageNumber = parseInt(url.searchParams.get('pageNumber') || '1', 10);
     const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+    const fetchWithCount = url.searchParams.get('fetchWithCount') === 'true';
 
     let filters: FilterValue[] = [];
     if (filtersParam) {
@@ -19,12 +20,13 @@ export async function GET(req: Request) {
       });
     }
 
-    const students = await fetchStudentsByFilterCriteria({
+    const studentsResponse = await fetchStudentsByFilterCriteria({
+      fetchWithCount,
       filters,
       sortInfo: { sortField, sortDirection },
       pagingInfo: { pageNumber, pageSize }
     });
-    return NextResponse.json(students);
+    return NextResponse.json(studentsResponse);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

@@ -4,10 +4,11 @@ import { FilterValue } from '@/components/DataTable/DataTable';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 interface UseTableParamsProps {
-  onParamsChange?: (params: { filters: FilterValue[], sorting: SortingState }) => void;
+  onParamsChange?: (params: { filters: FilterValue[], sorting: SortingState, pageNumber: number, pageSize: number }) => void;
+  enablePagination?: boolean;
 }
 
-export function useTableParams({ onParamsChange }: UseTableParamsProps) {
+export function useTableParams({ onParamsChange, enablePagination = false }: UseTableParamsProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -91,12 +92,32 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
     return [];
   });
 
+  // Pagination state
+  const [pageNumber, setPageNumber] = useState(() => {
+    const pageParam = searchParams.get('pageNumber');
+    const parsed = pageParam ? parseInt(pageParam, 10) : 1;
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    const sizeParam = searchParams.get('pageSize');
+    const parsed = sizeParam ? parseInt(sizeParam, 10) : undefined;
+    if (parsed && !isNaN(parsed) && parsed > 0) return parsed;
+    if (typeof window !== 'undefined') {
+      const savedPageSize = localStorage.getItem('pagination-pageSize');
+      if (savedPageSize) {
+        const parsedLocal = parseInt(savedPageSize, 10);
+        if (!isNaN(parsedLocal) && parsedLocal > 0) return parsedLocal;
+      }
+    }
+    return 50;
+  });
+
   // Refs
   const filterDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const filterButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const filterInputRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | null>>({});
   const filterConditionRefs = useRef<Record<string, HTMLSelectElement | null>>({});
-  const prevParamsRef = useRef<{ filters: FilterValue[], sorting: SortingState }>({ filters: [], sorting: [] });
+  const prevParamsRef = useRef<{ filters: FilterValue[], sorting: SortingState, pageNumber: number, pageSize: number }>({ filters: [], sorting: [], pageNumber: 1, pageSize: 50 });
   const initialLoadRef = useRef(true);
 
   // Sync filterValues and sorting with URL params when they change
@@ -181,28 +202,63 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
     };
   }, [openFilterColumn]);
 
+  // Sync pageNumber and pageSize with URL params when they change
+  useEffect(() => {
+    // Get values from URL
+    const pageParam = searchParams.get('pageNumber');
+    const sizeParam = searchParams.get('pageSize');
+
+    // If pageNumber is missing, reset to 1
+    if (!pageParam) {
+      setPageNumber(1);
+    } else {
+      const parsed = parseInt(pageParam, 10);
+      if (!isNaN(parsed) && parsed > 0) setPageNumber(parsed);
+    }
+
+    // If pageSize is missing, reset to default/localStorage
+    if (!sizeParam) {
+      let defaultSize = 50;
+      if (typeof window !== 'undefined') {
+        const savedPageSize = localStorage.getItem('pagination-pageSize');
+        if (savedPageSize) {
+          const parsedLocal = parseInt(savedPageSize, 10);
+          if (!isNaN(parsedLocal) && parsedLocal > 0) defaultSize = parsedLocal;
+        }
+      }
+      setPageSize(defaultSize);
+    } else {
+      const parsed = parseInt(sizeParam, 10);
+      if (!isNaN(parsed) && parsed > 0) setPageSize(parsed);
+    }
+  }, [searchParams]);
+
   // Update URL and notify parent when params change
   useEffect(() => {
-    const currentParams = { filters: filterValues, sorting };
-    
-    if (initialLoadRef.current || !compareParams(prevParamsRef.current, currentParams)) {
+    const currentParams = { filters: filterValues, sorting, pageNumber, pageSize };
+    // Use deep compare for filters/sorting, but always check pageNumber/pageSize
+    const paramsChanged =
+      initialLoadRef.current ||
+      !compareParams(
+        { filters: prevParamsRef.current.filters, sorting: prevParamsRef.current.sorting },
+        { filters: currentParams.filters, sorting: currentParams.sorting }
+      ) ||
+      prevParamsRef.current.pageNumber !== currentParams.pageNumber ||
+      prevParamsRef.current.pageSize !== currentParams.pageSize;
+
+    if (paramsChanged) {
       prevParamsRef.current = currentParams;
       onParamsChange?.(currentParams);
-      
       if (initialLoadRef.current) {
         initialLoadRef.current = false;
       }
-      
-      // Build the URL we want
       const newSearchParams = new URLSearchParams();
-      
-      // Copy existing params except filters and sort
+      // Copy existing params except filters, sort, pageNumber, pageSize
       searchParams.forEach((value, key) => {
-        if (key !== 'filters' && key !== 'sort') {
+        if (key !== 'filters' && key !== 'sort' && key !== 'pageNumber' && key !== 'pageSize') {
           newSearchParams.set(key, value);
         }
       });
-
       // Add filters
       if (filterValues.length > 0) {
         const filtersString = filterValues
@@ -210,23 +266,25 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
           .join(',');
         newSearchParams.set('filters', filtersString);
       }
-
       // Add sort
       if (sorting.length > 0) {
         const { id, desc } = sorting[0];
         newSearchParams.set('sort', `${id}:${desc ? 'desc' : 'asc'}`);
       }
-
+      // Add pagination only if enabled
+      if (enablePagination) {
+        newSearchParams.set('pageNumber', String(pageNumber));
+        newSearchParams.set('pageSize', String(pageSize));
+      }
       const newQuery = newSearchParams.toString();
       const currentQuery = searchParams.toString();
-      
       // Only update URL if it's actually different
       if (currentQuery !== newQuery) {
         const newUrl = newQuery ? `${pathname}?${newQuery}` : pathname;
         router.replace(newUrl);
       }
     }
-  }, [filterValues, sorting, onParamsChange, pathname, router, searchParams]);
+  }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination]);
 
   // Filter handlers
   const handleFilterClick = (columnId: string, event: React.MouseEvent) => {
@@ -240,6 +298,8 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
     
     const fromValue = filterConditions[`${columnId}From`];
     const toValue = filterConditions[`${columnId}To`];
+
+    setPageNumber(1);
     
     if (fromValue || toValue) {
       setFilterValues(prev => {
@@ -347,6 +407,15 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
     return currentSort.desc ? 'desc' : 'asc';
   };
 
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    setPageNumber(newPage);
+  };
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPageNumber(1); // Reset to first page on size change
+  };
+
   return {
     // Filter state and handlers
     openFilterColumn,
@@ -369,5 +438,13 @@ export function useTableParams({ onParamsChange }: UseTableParamsProps) {
     setSorting,
     handleSort,
     getCurrentSortDirection,
+
+    // Pagination state and handlers
+    pageNumber,
+    pageSize,
+    setPageNumber,
+    setPageSize,
+    handlePageChange,
+    handlePageSizeChange,
   };
 } 

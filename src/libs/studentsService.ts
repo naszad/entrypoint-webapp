@@ -2,9 +2,10 @@
 
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { FilterValue } from '@/components/DataTable/DataTable';
-import { Student } from '@/models/Students';
+import { StudentInfo } from '@/types/StudentInfo';
 
 type StudentsRequest = {
+  fetchWithCount: boolean;
   filters: FilterValue[];
   sortInfo: {
     sortField: string;
@@ -14,6 +15,11 @@ type StudentsRequest = {
     pageNumber: number;
     pageSize: number;
   };
+};
+
+type StudentsResponse = {
+  data: StudentInfo[];
+  count?: number;
 };
 
 const getColumnName = (key: string) => {
@@ -49,10 +55,47 @@ const getColumnName = (key: string) => {
   }
 }
 
-export async function fetchStudentsByFilterCriteria(request: StudentsRequest): Promise<Student[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const applyFilters = (q: any, filters: FilterValue[]) => {
+  filters.forEach((filter) => {
+    const columnName = getColumnName(filter.key);
+    
+    switch (filter.condition) {
+      case 'contains':
+        q = q.ilike(columnName, `%${filter.value}%`);
+        break;
+      case 'starts':
+        q = q.ilike(columnName, `${filter.value}%`);
+        break;
+      case 'ends':
+        q = q.ilike(columnName, `%${filter.value}`);
+        break;
+      case 'not':
+        q = q.neq(columnName, filter.value);
+        break;
+      case 'gt':
+        q = q.gt(columnName, filter.value);
+        break;
+      case 'lt':
+        q = q.lt(columnName, filter.value);
+        break;
+      case 'gte':
+        q = q.gte(columnName, filter.value);
+        break;
+      case 'lte':
+        q = q.lte(columnName, filter.value);
+        break;
+      default:
+        q = q.eq(columnName, filter.value);
+    }
+  });
+  return q;
+};
+
+export async function fetchStudentsByFilterCriteria(request: StudentsRequest): Promise<StudentsResponse> {
   try {
     const supabase = await createClient()
-    const { filters, sortInfo, pagingInfo } = request;
+    const { filters, sortInfo, pagingInfo, fetchWithCount } = request;
     
     let query = supabase
       .from('students')
@@ -77,39 +120,10 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         enrollment_status,
         homeroom_name
       `);
+    
 
-    filters.forEach((filter) => {
-      const columnName = getColumnName(filter.key);
-      
-      switch (filter.condition) {
-        case 'contains':
-          query = query.ilike(columnName, `%${filter.value}%`);
-          break;
-        case 'starts':
-          query = query.ilike(columnName, `${filter.value}%`);
-          break;
-        case 'ends':
-          query = query.ilike(columnName, `%${filter.value}`);
-          break;
-        case 'not':
-          query = query.neq(columnName, filter.value);
-          break;
-        case 'gt':
-          query = query.gt(columnName, filter.value);
-          break;
-        case 'lt':
-          query = query.lt(columnName, filter.value);
-          break;
-        case 'gte':
-          query = query.gte(columnName, filter.value);
-          break;
-        case 'lte':
-          query = query.lte(columnName, filter.value);
-          break;
-        default:
-          query = query.eq(columnName, filter.value);
-      }
-    });    
+    // Apply filters to main query
+    query = applyFilters(query, filters);
 
     // Apply sorting
     if (sortInfo.sortField) {
@@ -121,12 +135,30 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const to = from + pagingInfo.pageSize - 1;
     query = query.range(from, to);
 
+    // Execute main query
     const { data, error } = await query;
     if (error) {
       throw new Error(error.message);
-    }    
+    }
 
-    const students: Student[] = data.map((student) => ({
+    // Execute count query if needed
+    let totalCount: number | undefined;
+    if (fetchWithCount) {
+      let countQuery = supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+      
+      // Apply the same filters to count query
+      countQuery = applyFilters(countQuery, filters);
+      
+      const { count, error: countError } = await countQuery;
+      if (countError) {
+        throw new Error(countError.message);
+      }
+      totalCount = count || 0;
+    }
+
+    const students: StudentInfo[] = data.map((student) => ({
       studentId: student.student_id,
       firstName: student.first_name,
       middleName: student.middle_name,
@@ -149,13 +181,16 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       homeroomName: student.homeroom_name,
     }));
 
-    return students;
+    return {
+      data: students,
+      count: totalCount
+    };
   } catch (err) {
     throw new Error(`Failed to fetch students ${err}`);
   }
 } 
 
-export async function fetchStudentById(studentId: string): Promise<Student> {
+export async function fetchStudentById(studentId: string): Promise<StudentInfo> {
   try {
     const supabase = await createClient()
     const query = supabase
@@ -191,7 +226,7 @@ export async function fetchStudentById(studentId: string): Promise<Student> {
       throw new Error(error.message);
     }    
 
-    const parsedStudent: Student = {
+    const parsedStudent: StudentInfo = {
       studentId: student.student_id,
       firstName: student.first_name,
       middleName: student.middle_name,

@@ -20,6 +20,7 @@ import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { DataTableToolbar, ActionItem } from "./DataTableToolbar";
 import { TableHeader as NewTableHeader } from "./TableHeader";
 import { useTableParams } from "@/hooks/useTableParams";
+import Pagination from "./Pagination";
 
 export type ColumnMeta = {
   enableFiltering?: boolean;
@@ -38,18 +39,24 @@ export interface FilterValue {
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  total?: number;
   className?: string;
   actions?: ActionItem[];
   onActionItemClicked?: (actionId: string) => void;
   onRowClick?: (row: TData) => void;
   defaultVisibility?: VisibilityState;
-  onParamsChange?: (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[] }) => void;
+  onParamsChange?: (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[], pageNumber: number, pageSize: number }) => void;
   isLoading?: boolean;
+  enablePagination?: boolean;
+  onPageChange?: (pageNumber: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSize?: number;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  total,
   className,
   actions = [],
   onActionItemClicked,
@@ -57,6 +64,10 @@ export function DataTable<TData, TValue>({
   defaultVisibility = {},
   onParamsChange,
   isLoading = false,
+  enablePagination = false,
+  onPageChange,
+  onPageSizeChange,
+  pageSize,
 }: DataTableProps<TData, TValue>) {
   const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -81,7 +92,14 @@ export function DataTable<TData, TValue>({
     setSorting,
     handleSort,
     getCurrentSortDirection,
-  } = useTableParams({ onParamsChange });
+    pageNumber,
+    pageSize: tablePageSize,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTableParams({
+    onParamsChange,
+    enablePagination,
+  });
 
   const table = useReactTable({
     data,
@@ -167,7 +185,7 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className="flex-1 overflow-auto">
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row, i) => (
                 <TableRow
@@ -201,6 +219,17 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
+
+      {enablePagination && total && total > 0 && (
+        <Pagination
+          total={total}
+          currentPage={pageNumber}
+          onPageChange={onPageChange || handlePageChange}
+          onPageSizeChange={onPageSizeChange || handlePageSizeChange}
+          pageSize={pageSize || tablePageSize}
+        />
+      )}
+
     </div>
   );
 }

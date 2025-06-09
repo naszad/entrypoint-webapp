@@ -1,5 +1,6 @@
 import { UserInfo } from "@/types/UserInfo";
 import Image from "next/image";
+import { stringToColor } from "@/utils/utils";
 
 interface UserProfileProps {
   user: UserInfo | null;
@@ -32,7 +33,7 @@ export const UserProfile = ({ user }: UserProfileProps) => {
             className="h-10 w-10 rounded-full"
           />
         ) : (
-          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium">
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-white ${stringToColor(getUserFullName(user))}`}>
             {getUserInitials(user)}
           </div>
         )}

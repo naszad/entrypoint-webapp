@@ -2,6 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
 import { Mail } from "lucide-react";
+import { stringToColor } from "@/utils/utils";
 
 interface StudentProfileHeaderProps {
   firstName: string;
@@ -42,7 +43,7 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
           height={64}
         />
       ) : (
-        <div className="w-18 h-18 rounded-full bg-gray-200 flex items-center justify-center text-xl font-semibold">
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-white text-2xl ${stringToColor(fullName)}`}>
           {getUserInitials(firstName, lastName)}
         </div>
       )}
