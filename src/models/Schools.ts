@@ -1,6 +1,9 @@
 import { sql } from 'drizzle-orm';
 import { pgTable, uuid, text, integer, pgPolicy, timestamp } from 'drizzle-orm/pg-core';
+import { customers } from '@/models/Customers';
+
 export const schools = pgTable('schools', {
+  customerId: uuid('customer_id').references(() => customers.customerId),
   schoolId: uuid('school_id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   schoolNumber: integer('school_number'),
@@ -16,7 +19,7 @@ export const schools = pgTable('schools', {
   externalSource: text('external_source'),
   externalKey: text('external_key'),
   externalId: integer('external_id'),
-  externalKeyHash: text('external_key_hash').notNull(),
+  externalKeyHash: text('external_key_hash').unique().notNull(),
   externalName: text('external_name'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

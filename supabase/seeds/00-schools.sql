@@ -2,9 +2,12 @@
 -- !!!            DO NOT EVER ACCIDENTALLY RUN THIS FILE IN YOUR PRODUCTION DATABASE             !!!
 -- !!!    this is meant for running locally to seed your database for contributing purposes      !!!
 
+-- create customers (using this specific id to match what's in Dagster)
+INSERT INTO customers (customer_id, name) VALUES ('48aac272-392f-4086-9dd3-4e4defaf3c18', 'Lincoln Township District');
 
 -- create schools
 INSERT INTO schools (
+  -- customer_id,
   name,
   school_number,
   city,
@@ -22,6 +25,7 @@ INSERT INTO schools (
   external_key_hash,
   external_name
 ) VALUES (
+  -- (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
   'Lincoln High School',
   12345,
   'Indianapolis',
