@@ -12,10 +12,9 @@ export const loginWithCredentials = async (email: string, password: string) => {
     });
 }
 
- export const logout = async () => {
-    const supabase = await createClient()
-    await supabase.auth.signOut()
-
-    revalidatePath('/', 'layout')
-    redirect('/login')
-  }
+export const logout = async () => {
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+  revalidatePath('/', 'layout')
+  redirect('/login')
+}
