@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' })
+dotenv.config({ path: `.env.${process.env.NODE_ENV || 'local'}` })
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!
 const supabase = createClient(
@@ -8,14 +8,67 @@ const supabase = createClient(
   supabaseServiceKey
 )
 
-const seedUser = process.env.SEED_USER || 'test@email.com'
-const seedPassword = process.env.SEED_PASSWORD || 'password'
+type SeedUser = {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+}
 
-async function seed() {
+let seedUsers: SeedUser[];
+if(process.env.SEED_USER) {
+  seedUsers = [{
+    email: process.env.SEED_USER,
+    password: process.env.SEED_PASSWORD || 'password',
+    first_name: "Seed",
+    last_name: "User",
+  }]
+} else {
+  seedUsers = [
+    {
+      email: 'test@email.com',
+      password: 'password',
+      first_name: 'Dev',
+      last_name: 'User',
+    },
+    {
+      email: 'yasir@conversotech.com',
+      password: 'password',
+      first_name: 'Yasir',
+      last_name: 'Ali',
+    },
+    {
+      email: 'juniad@conversotech.com',
+      password: 'password',
+      first_name: 'Juniad',
+      last_name: 'Khokhar',
+    },
+    {
+      email: 'mrogers@entrypointsrm.com',
+      password: 'password',
+      first_name: 'Matt',
+      last_name: 'Rogers',
+    },
+    {
+      email: 'sjwilson11822@gmail.com',
+      password: 'password',
+      first_name: 'Seth',
+      last_name: 'Wilson',
+    },
+    {
+      email: 'nszadowski@gmail.com',
+      password: 'password',
+      first_name: 'Nathan',
+      last_name: 'Szadowski',
+    }
+  ]
+}
+
+async function seed(seedUser: SeedUser) {
   // 1) Create the Auth user
   const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
-    email: seedUser,
-    password: seedPassword,
+    email: seedUser.email,
+    password: seedUser.password,
     email_confirm: true,
   })
   if (authErr) throw authErr
@@ -27,8 +80,8 @@ async function seed() {
   .insert([{
     user_id: authUser.id,
     auth_user_id: authUser.id,
-    first_name: 'Dev',
-    last_name: 'User',
+    first_name: seedUser.first_name,
+    last_name: seedUser.last_name,
     email: authUser.email,
   }])
   .select()
@@ -57,4 +110,10 @@ async function seed() {
   console.log('Seed complete:', { authUser, schoolData, appUser, membershipData })
 }
 
-seed().catch(console.error)
+async function seedAll(seedUsers: SeedUser[]) {
+  for (const seedUser of seedUsers) {
+    await seed(seedUser)
+  }
+}
+
+seedAll(seedUsers).catch(console.error)
