@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { navigate } from './navigate'
 import { openai } from '@ai-sdk/openai'
 import { generateObject } from 'ai'
+import { querySql } from '@/utils/db'
 
 // Define the filter schema for AI to understand
 const FilterSchema = z.object({
@@ -48,7 +49,8 @@ Examples:
 - "show me 11th grade students" → { gradeLevel: 11 }
 - "find students named Smith" → { fullName: "Smith" }
 - "active male students in grade 10" → { gradeLevel: 10, enrollmentStatus: "active", gender: "male" }
-- "students graduating in 2025" → { graduationYear: 2025 }`,
+- "students graduating in 2025" → { graduationYear: 2025 }
+- "students in homeroom 403" → { homeroomName: "Room 403" }`,
         schema: FilterSchema,
       });
 
@@ -178,7 +180,63 @@ Examples:
   },
 })
 
+export const listTables = tool({
+  description: 'Use this tool first to discover correct public table names (snake_case).',
+  parameters: z.object({}),
+  execute: async () => {
+    try {
+      const rows = await querySql(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+      )
+      const tableRows = rows as { table_name: string }[]
+      const tables = tableRows.map(r => r.table_name)
+      return { tables }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return { tables: [], error: message }
+    }
+  },
+})
+
+export const getTableSchema = tool({
+  description: 'Retrieve the schema (column names and data types) for a given table in the public schema. Call this after listTables.',
+  parameters: z.object({
+    table: z.string().describe('The name of the table (snake_case) to describe')
+  }),
+  execute: async ({ table }) => {
+    try {
+      const rows = await querySql(
+        `SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${table}';`
+      );
+      const columns = rows as { column_name: string; data_type: string }[];
+      return { columns };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { columns: [], error: message };
+    }
+  },
+});
+
+export const executeSql = tool({
+  description: 'Executes a raw SQL query against the database and returns the results.',
+  parameters: z.object({
+    sql: z.string().describe('The SQL query to execute')
+  }),
+  execute: async ({ sql }) => {
+    try {
+      const rows = await querySql(sql)
+      return { rows }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return { error: message }
+    }
+  },
+})
+
 export const tools = { 
   navigate,
-  filterStudentTable
+  filterStudentTable,
+  listTables,
+  getTableSchema,
+  executeSql
 }
