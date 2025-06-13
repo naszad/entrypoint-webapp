@@ -498,3 +498,24 @@ WHERE email LIKE '%@student.edu'
     'michael.chen@student.edu',
     'sophia.rodriguez@student.edu'
   );
+
+-- Insert two additional students for Roosevelt High School
+INSERT INTO students (
+  first_name, last_name, email, phone, grade_level, gender, date_of_birth,
+  external_source, external_key, external_id, external_key_hash, external_name,
+  graduation_year, enrollment_status, homeroom_name, full_name
+) VALUES
+  ('Derek','Lee','derek.lee@roosevelt.edu','555-0303',11,'male','2007-11-11','mock_source','STUDENT_R01',4001,encode(digest('STUDENT_R01','sha256'),'hex'),'Derek L',2025,'active','Room 601','Derek Lee'),
+  ('Eva','Martinez','eva.martinez@roosevelt.edu','555-0304',10,'female','2008-07-07','mock_source','STUDENT_R02',4002,encode(digest('STUDENT_R02','sha256'),'hex'),'Eva M',2026,'active','Room 602','Eva Martinez');
+
+-- Associate Roosevelt students with Roosevelt High School
+INSERT INTO school_student_link (
+  student_id, school_id, start_date, end_date, created_at, updated_at
+) SELECT
+  student_id, (SELECT school_id FROM schools WHERE name = 'Roosevelt High School'),
+  current_date, NULL, current_date, current_date
+FROM students
+WHERE email IN (
+  'derek.lee@roosevelt.edu',
+  'eva.martinez@roosevelt.edu'
+);
