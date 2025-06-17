@@ -5,13 +5,10 @@ import { FilterValue } from '@/components/DataTable/DataTable';
 import { StudentInfo } from '@/types/StudentInfo';
 
 type StudentsRequest = {
-  fetchWithCount: boolean;
+  fetchWithCount?: boolean;
   filters: FilterValue[];
-  sortInfo: {
-    sortField: string;
-    sortDirection: 'asc' | 'desc';
-  };
-  pagingInfo: {
+  sort?: string | null;
+  pagingInfo?: {
     pageNumber: number;
     pageSize: number;
   };
@@ -95,7 +92,9 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
 export async function fetchStudentsByFilterCriteria(request: StudentsRequest): Promise<StudentsResponse> {
   try {
     const supabase = await createClient()
-    const { filters, sortInfo, pagingInfo, fetchWithCount } = request;
+    const { filters, sort, pagingInfo, fetchWithCount } = request;
+
+    console.log('Fetching students with filters: ', filters);
     
     let query = supabase
       .from('students')
@@ -126,14 +125,17 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     query = applyFilters(query, filters);
 
     // Apply sorting
-    if (sortInfo.sortField) {
-      query = query.order(getColumnName(sortInfo.sortField), { ascending: sortInfo.sortDirection === 'asc' });
+    if (sort) {
+      const [sortField, sortDirection] = sort.split(':');
+      query = query.order(getColumnName(sortField), { ascending: sortDirection === 'asc' });
     }
 
     // Apply pagination
-    const from = (pagingInfo.pageNumber - 1) * pagingInfo.pageSize;
-    const to = from + pagingInfo.pageSize - 1;
-    query = query.range(from, to);
+    if (pagingInfo) {
+      const from = (pagingInfo.pageNumber - 1) * pagingInfo.pageSize;
+      const to = from + pagingInfo.pageSize - 1;
+      query = query.range(from, to);
+    }
 
     // Execute main query
     const { data, error } = await query;
@@ -189,6 +191,28 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     throw new Error(`Failed to fetch students ${err}`);
   }
 } 
+
+export async function countStudentsByFilterCriteria(request: StudentsRequest): Promise<number> {
+  try {
+    const supabase = await createClient()
+    const { filters } = request;
+
+    let countQuery = supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+      
+      // Apply the same filters to count query
+      countQuery = applyFilters(countQuery, filters);
+      
+      const { count, error: countError } = await countQuery;
+      if (countError) {
+        throw new Error(countError.message);
+      }
+      return count || 0;
+  } catch (err) {
+    throw new Error(`Failed to count students ${err}`);
+  }
+}
 
 export async function fetchStudentById(studentId: string): Promise<StudentInfo> {
   try {

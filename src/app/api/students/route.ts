@@ -6,8 +6,7 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const filtersParam = url.searchParams.get('filters');
-    const sortField = url.searchParams.get('sortField') || '';
-    const sortDirection = (url.searchParams.get('sortDirection') || 'asc') as 'asc' | 'desc';
+    const sort = url.searchParams.get('sort');
     const pageNumber = parseInt(url.searchParams.get('pageNumber') || '1', 10);
     const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
     const fetchWithCount = url.searchParams.get('fetchWithCount') === 'true';
@@ -23,7 +22,7 @@ export async function GET(req: Request) {
     const studentsResponse = await fetchStudentsByFilterCriteria({
       fetchWithCount,
       filters,
-      sortInfo: { sortField, sortDirection },
+      sort,
       pagingInfo: { pageNumber, pageSize }
     });
     return NextResponse.json(studentsResponse);

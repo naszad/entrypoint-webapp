@@ -81,10 +81,7 @@ export const SaveViewDialog = ({ onSave }: SaveViewDialogProps) => {
 
   return (
     <>
-      <Button 
-        className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-        onClick={openSaveViewDialog}
-      >
+      <Button variant="action" onClick={openSaveViewDialog}>
         <StarIcon className="w-4 h-4" />
         Save view
       </Button>

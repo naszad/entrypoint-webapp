@@ -9,6 +9,10 @@ import { useAuth } from '@/context/AuthContext'
 import { saveReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter, useSearchParams } from 'next/navigation';
+import { DownloadIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
+import { cn } from "@/utils/utils"
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +22,7 @@ const StudentsPage = () => {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isChatAssistantOpen } = useChatAssistantOpen();
 
   const initialPageSize = (() => {
     const sizeParam = searchParams.get('pageSize');
@@ -43,10 +48,14 @@ const StudentsPage = () => {
     pageNumber: number = 1,
     pageSize: number = 50
   ) => {
-    try {
+    try {      
       setIsLoading(true);
       const filtersParam = filters.length > 0 ? filters.map(f => `${f.key}:${f.condition}:${f.value}`).join(',') : '';
-      const url = `/api/students?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true`;
+      let queryParams = `?filters=${encodeURIComponent(filtersParam)}`;
+      if (sortField) {
+        queryParams += `&sort=${encodeURIComponent(sortField)}:${encodeURIComponent(sortDirection)}`;
+      }
+      const url = `/api/students${queryParams}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true`;
       const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json();
@@ -109,6 +118,36 @@ const StudentsPage = () => {
     router.push(`/students/${student.studentId}`);
   };
 
+  const handleDownloadClick = async () => {
+    const filters = searchParams.get('filters');
+    const sort = searchParams.get('sort');
+    const columns = searchParams.get('columns') || Object.keys(initialVisibility).filter(key => initialVisibility[key as keyof typeof initialVisibility] === true).join(',');
+    let url = `/api/students/download?columns=${columns}`;
+    if (filters) {
+      url += `&filters=${filters}`;
+    }
+    if (sort) {
+      url += `&sort=${sort}`;
+    }
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorData = await response.json();
+      setAlertMessage({ 
+        type: 'destructive', 
+        message: errorData.error || 'Failed to download students'
+      });
+    } else {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'students.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+  };
+
   // Clear alert message after 5 seconds
   useEffect(() => {
     if (alertMessage) {
@@ -120,13 +159,20 @@ const StudentsPage = () => {
   }, [alertMessage]);
 
   return (
+
+    
     <div className="flex flex-col w-full h-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-gray-700">Students</h3>
+        <div className={cn("flex gap-2 justify-end", isChatAssistantOpen ? "" : "mr-35")}>
+          <Button id="download-button" variant="action" onClick={handleDownloadClick}>
+            <DownloadIcon className="w-4 h-4" />
+            Download
+          </Button>
+          <SaveViewDialog onSave={handleSaveView} />
+        </div>
       </div>
-      <div className="flex gap-2 mb-4 justify-end">
-        <SaveViewDialog onSave={handleSaveView} />
-      </div>
+      
       {alertMessage && (
         <Alert variant={alertMessage.type} className="mb-4">
           <AlertDescription>{alertMessage.message}</AlertDescription>
