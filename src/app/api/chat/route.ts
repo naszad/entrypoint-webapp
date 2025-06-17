@@ -2,6 +2,8 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { tools } from './tools';
 import type { Message } from '@ai-sdk/ui-utils';
+import { createClient as createSupabaseClient } from '@/utils/supabase/supabaseServer'
+import { setCurrentUserId } from './mcpClient'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -40,6 +42,14 @@ Note: always invoke \`listTables\`, then \`getTableSchema\`, then \`executeSql\`
 - The \`homeroom_name\` column stores values formatted as "Room <number>" (e.g., "Room 403").
 `
   };
+
+  // Identify the current user for RLS enforcement
+  const supabase = await createSupabaseClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  // Set the current user id for RLS enforcement
+  setCurrentUserId(user?.id)
 
   const result = streamText({
     model: openai('gpt-4o-mini'),
