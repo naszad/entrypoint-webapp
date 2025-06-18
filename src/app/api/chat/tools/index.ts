@@ -63,7 +63,7 @@ Examples:
       }
 
       if (parsedFilters.fullName) {
-        filters.push(`fullName:contains:${encodeURIComponent(parsedFilters.fullName)}`);
+        filters.push(`fullName:contains:${parsedFilters.fullName}`);
       }
 
       if (parsedFilters.enrollmentStatus) {
@@ -75,7 +75,7 @@ Examples:
       }
 
       if (parsedFilters.homeroomName) {
-        filters.push(`homeroomName:contains:${encodeURIComponent(parsedFilters.homeroomName)}`);
+        filters.push(`homeroomName:contains:${parsedFilters.homeroomName}`);
       }
 
       if (parsedFilters.graduationYear) {
@@ -83,7 +83,7 @@ Examples:
       }
 
       if (parsedFilters.email) {
-        filters.push(`email:contains:${encodeURIComponent(parsedFilters.email)}`);
+        filters.push(`email:contains:${parsedFilters.email}`);
       }
 
       if (parsedFilters.ageFilter) {
@@ -108,7 +108,9 @@ Examples:
       let url = baseUrl;
       if (filters.length > 0) {
         const filterString = filters.join(',');
-        url += `?filters=${encodeURIComponent(filterString)}`;
+        // Use URLSearchParams to encode parameters (spaces as '+') without double-encoding
+        const params = new URLSearchParams({ filters: filterString });
+        url += `?${params.toString()}`;
       }
 
       // Generate human-readable description
