@@ -72,7 +72,7 @@ INSERT INTO students (
     'Sophia Rodriguez'
   );
 
--- Associate all students with Lincoln High School
+-- Associate all above students with Lincoln High School
 INSERT INTO school_student_link (
   student_id,
   school_id,
