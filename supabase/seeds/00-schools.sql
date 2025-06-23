@@ -7,7 +7,7 @@ INSERT INTO customers (customer_id, name) VALUES ('48aac272-392f-4086-9dd3-4e4de
 
 -- create schools
 INSERT INTO schools (
-  -- customer_id,
+  customer_id,
   name,
   school_number,
   city,
@@ -25,7 +25,7 @@ INSERT INTO schools (
   external_key_hash,
   external_name
 ) VALUES (
-  -- (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
+  (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
   'Lincoln High School',
   12345,
   'Indianapolis',
@@ -42,5 +42,43 @@ INSERT INTO schools (
   98765,
   encode(digest('MOCK_KEY_123', 'sha256'), 'hex'),
   'Lincoln HS'
+);
+
+INSERT INTO schools (
+  customer_id,
+  name,
+  school_number,
+  city,
+  state,
+  country,
+  address,
+  phone,
+  principal_name,
+  principal_email,
+  assistant_principal_name,
+  assistant_principal_email,
+  external_source,
+  external_key,
+  external_id,
+  external_key_hash,
+  external_name
+) VALUES (
+  (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
+  'Washington High School',
+  54321,
+  'Indianapolis',
+  'IN',
+  'USA',
+  '0987654321',
+  '555-3210',
+  'Mary Sue',
+  'mary.sue@test.com',
+  'Peter Pan',
+  'peter.pan@test.com',
+  'mock_source',
+  'MOCK_KEY_456',
+  56789,
+  encode(digest('MOCK_KEY_456', 'sha256'), 'hex'),
+  'Washington HS'
 );
 

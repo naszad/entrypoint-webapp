@@ -20,8 +20,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavigationItem } from "@/context/MenuContext";
-import { UserProfile } from "@/components/UserProfile";
-import { logout } from "@/libs/authService";
+import { UserProfile } from "@/components/UserProfile"; 
 
 export const AppSidebar = () => {
   const secondaryMenu = [
@@ -29,8 +28,9 @@ export const AppSidebar = () => {
     { name: "Preferences", href: "/preferences", icon: Settings },
   ];
   const { menu } = useMenu();
-  const { user } = useAuth();
+  const { user, handleLogout } = useAuth();
   const pathname = usePathname();
+
   
   return (
     <Sidebar collapsible="none" className="mt-5 px-2">
@@ -82,7 +82,7 @@ export const AppSidebar = () => {
               <SidebarMenuItem className="px-2 mr-2">
                 <SidebarMenuButton
                   asChild
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="py-5"
                 >
                   <Link href="/login">

@@ -64,7 +64,7 @@ if(process.env.SEED_USER) {
   ]
 }
 
-async function seed(seedUser: SeedUser) {
+async function seed(seedUser: SeedUser, schoolName: string = 'Lincoln High School') {
   // 1) Create the Auth user
   const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
     email: seedUser.email,
@@ -88,26 +88,9 @@ async function seed(seedUser: SeedUser) {
   .single()
   if (userErr) throw userErr
 
-  // 3) Select a school, assumes the seed SQL scripts ran
-  const { data: schoolData, error: schoolErr } = await supabase
-    .from('schools')
-    .select('school_id')
-    .eq('name', 'Lincoln High School')
-    .single()
-  if (schoolErr) throw schoolErr
+  await associateUserWithSchool(appUser.email, schoolName)
 
-  // 4) (Optional) insert the membership so your RLS policy will let you see that school
-  const { data: membershipData, error: membershipErr } = await supabase
-    .from('user_school_memberships').insert([{
-    user_id: authUser.id,
-    school_id: schoolData.school_id,
-    role: 'admin',
-    created_at: new Date(),
-    updated_at: new Date(),
-  }])
-  if (membershipErr) throw membershipErr
-
-  console.log('Seed complete:', { authUser, schoolData, appUser, membershipData })
+  console.log('Seed complete:', { authUser, appUser })
 }
 
 async function seedAll(seedUsers: SeedUser[]) {
@@ -116,4 +99,42 @@ async function seedAll(seedUsers: SeedUser[]) {
   }
 }
 
-seedAll(seedUsers).catch(console.error)
+async function associateUserWithSchool(user_email: string, schoolName: string) {
+  //Select the school
+  const { data: schoolData, error: schoolErr } = await supabase
+    .from('schools')
+    .select('school_id')
+    .eq('name', schoolName)
+    .single()
+  if (schoolErr) throw schoolErr
+  if (!schoolData) throw new Error(`School not found: ${schoolName}`)
+
+  //Select the user
+  const { data: userData, error: userErr } = await supabase
+    .from('users')
+    .select('user_id')
+    .eq('email', user_email)
+    .single()
+  if (userErr) throw userErr
+  if (!userData) throw new Error(`User not found: ${user_email}`)
+
+  //Associate the user with the school
+  const { error: membershipErr } = await supabase
+    .from('user_school_memberships').insert([{
+    user_id: userData.user_id,
+    school_id: schoolData.school_id,
+    role: 'admin',
+    created_at: new Date(),
+    updated_at: new Date(),
+  }])
+  if (membershipErr) throw membershipErr
+
+}
+
+async function main() {
+  await seedAll(seedUsers).catch(console.error)
+  await associateUserWithSchool(seedUsers[0].email, 'Washington High School').catch(console.error)
+}
+
+//Seed all users with the default school & associate test user
+main()

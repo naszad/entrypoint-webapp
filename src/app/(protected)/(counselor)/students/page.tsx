@@ -57,16 +57,18 @@ const StudentsPage = () => {
       }
       const url = `/api/students${queryParams}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true`;
       const response = await fetch(url);
+      const data = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
         setAlertMessage({ 
           type: 'destructive', 
-          message: errorData.error || 'Failed to fetch students'
+          message: data.error || 'Failed to fetch students'
         });
+        return;
       }
-      const studentsResponse = await response.json();
-      setStudents(studentsResponse.data);
-      setTotalCount(studentsResponse.count);
+
+      setStudents(data.data);
+      setTotalCount(data.count);
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
