@@ -5,6 +5,11 @@ type Environment = 'local' | 'development' | 'production' | 'test';
 const env = (process.env.NODE_ENV || 'local') as Environment;
 const envFile = `.env.${env}`;
 
+let ssl = true;
+if(env === 'local') {
+  ssl = false;
+}
+
 console.log('Using environment:', env);
 
 dotenv.config({ path: envFile });
@@ -22,6 +27,6 @@ export default defineConfig({
     user: username,
     password: password,
     database: pathname.slice(1),
-    ssl: 'require'
+    ssl: ssl
   },
 });

@@ -43,6 +43,55 @@
       "when": 1749243047895,
       "tag": "0005_shocking_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1749717038539,
+      "tag": "0006_loud_silverclaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1749719578190,
+      "tag": "0007_slippery_maximus",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1750074482163,
+      "tag": "0008_first_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1750250788251,
+      "tag": "0009_clumsy_the_twelve",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1750251224627,
+      "tag": "0010_motionless_guardian",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1750335066043,
+      "tag": "0011_skinny_layla_miller",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1750609804463,
+      "tag": "0012_absurd_senator_kelly",
+      "breakpoints": true
     }
   ]
 }
