@@ -24,7 +24,8 @@
     "test:coverage": "vitest --coverage",
     "db:seed": "npx supabase db reset && npx supabase db push",
     "db:seed-data": "npx tsx supabase/seed-data.ts",
-    "db:seed-user": "npx tsx supabase/seed-user.ts"
+    "db:seed-user": "npx tsx supabase/seed-user.ts",
+    "reset-linked": "NODE_ENV=development bash -c 'npx supabase db reset --linked && npx drizzle-kit migrate && npx tsx supabase/seed-data.ts && npx tsx supabase/seed-user.ts'"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",

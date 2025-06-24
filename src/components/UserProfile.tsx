@@ -1,6 +1,8 @@
 import { UserInfo } from "@/types/UserInfo";
 import Image from "next/image";
 import { stringToColor } from "@/utils/utils";
+import { ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface UserProfileProps {
   user: UserInfo | null;
@@ -20,7 +22,14 @@ const getUserInitials = (user: UserInfo | null): string => {
   return `${firstInitial}${lastInitial}`.toUpperCase();
 };
 
+const getUserSchool = (): string => {
+  const selectedSchool = sessionStorage.getItem('selectedSchool')
+  if (!selectedSchool) return '';
+  return JSON.parse(selectedSchool).name || '';
+};
+
 export const UserProfile = ({ user }: UserProfileProps) => {
+  const router = useRouter();
   return (
     <div className="flex">
       <div>
@@ -42,10 +51,22 @@ export const UserProfile = ({ user }: UserProfileProps) => {
         {(
           <>
             <span className="truncate font-medium">{getUserFullName(user)}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {user?.school?.name || ''}
-            </span>
-          </>
+            {user?.isMultiSchoolUser ? (
+              <div className="flex flex-row items-center cursor-pointer" onClick={() => {
+                router.push('/select-school');
+              }}>
+                <span className="truncate text-xs text-muted-foreground">
+                  {getUserSchool()}
+                </span>
+                <ChevronDown className="w-4 h-4 ml-1" />
+              </div>
+  
+            ) : (
+              <span className="truncate text-xs text-muted-foreground">
+                {getUserSchool()}
+              </span>
+            )}
+                      </>
         )}
       </div>
     </div>

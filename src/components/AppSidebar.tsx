@@ -20,8 +20,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavigationItem } from "@/context/MenuContext";
-import { UserProfile } from "@/components/UserProfile";
-import { logout } from "@/libs/authService";
+import { UserProfile } from "@/components/UserProfile"; 
 
 export const AppSidebar = () => {
   const secondaryMenu = [
@@ -29,11 +28,12 @@ export const AppSidebar = () => {
     { name: "Preferences", href: "/preferences", icon: Settings },
   ];
   const { menu } = useMenu();
-  const { user } = useAuth();
+  const { user, handleLogout } = useAuth();
   const pathname = usePathname();
+
   
   return (
-    <Sidebar collapsible="none">
+    <Sidebar collapsible="none" className="mt-5 px-2">
       {/* <SidebarTrigger /> */}
       <SidebarHeader>
         <UserProfile user={user} />
@@ -44,10 +44,10 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {menu.map((item: NavigationItem) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild isActive={item.href === pathname}>
-                    <Link href={item.href}>
-                      <item.icon />
+                <SidebarMenuItem key={item.name} className="px-2 mr-2">
+                  <SidebarMenuButton asChild isActive={item.href === pathname} className="py-5">
+                    <Link href={item.href} className="px-4 py-2">
+                      <item.icon className="w-5 h-5" />
                       <span>{item.name}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -63,10 +63,10 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {secondaryMenu.map((item: NavigationItem) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild isActive={item.href === pathname}>
-                    <Link href={item.href}>
-                      <item.icon />
+                <SidebarMenuItem key={item.name} className="px-2 mr-2">
+                  <SidebarMenuButton asChild isActive={item.href === pathname} className="py-5">
+                    <Link href={item.href} className="px-4 py-2">
+                      <item.icon className="w-5 h-5" />
                       <span>{item.name}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -79,13 +79,14 @@ export const AppSidebar = () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
+              <SidebarMenuItem className="px-2 mr-2">
                 <SidebarMenuButton
                   asChild
-                  onClick={logout}
+                  onClick={handleLogout}
+                  className="py-5"
                 >
                   <Link href="/login">
-                    <LogOut />
+                    <LogOut className="w-5 h-5" />
                     <span>Sign Out</span>
                   </Link>
                 </SidebarMenuButton>

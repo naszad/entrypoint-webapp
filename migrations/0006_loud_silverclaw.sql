@@ -1,0 +1,1 @@
+ALTER TABLE "students" ADD CONSTRAINT "students_external_key_hash_unique" UNIQUE("external_key_hash");

@@ -28,7 +28,7 @@ export const students = pgTable(
     externalSource: text('external_source'),
     externalKey: text('external_key'),
     externalId: integer('external_id'),
-    externalKeyHash: text('external_key_hash').notNull(),
+    externalKeyHash: text('external_key_hash').notNull().unique(),
     externalName: text('external_name'),
     graduationYear: integer('graduation_year'), 
     enrollmentStatus: text('enrollment_status').notNull(), 

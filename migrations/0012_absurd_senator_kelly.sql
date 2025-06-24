@@ -1,0 +1,2 @@
+ALTER TABLE "school_student_link" ADD CONSTRAINT "school_student_link_student_id_students_student_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("student_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "school_student_link" ADD CONSTRAINT "school_student_link_school_id_schools_school_id_fk" FOREIGN KEY ("school_id") REFERENCES "public"."schools"("school_id") ON DELETE no action ON UPDATE no action;

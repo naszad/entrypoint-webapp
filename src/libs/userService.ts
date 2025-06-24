@@ -4,7 +4,7 @@ import { UserInfo } from '@/types/UserInfo';
 
 type UserSchoolMembership = {
   role: string;
-  school: {
+  schools: {
     school_id: string;
     name: string;
   };
@@ -21,9 +21,9 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
       last_name,
       email,
       image_url,
-      user_school_membership:user_school_memberships!user_school_memberships_user_id_users_user_id_fk(
+      user_school_memberships(
         role,
-        school:schools!school_id(
+        schools(
           school_id,
           name
         )
@@ -36,7 +36,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
     return null;
   }
 
-  const userSchoolMembership = data.user_school_membership as unknown as UserSchoolMembership;
+  const userSchoolMemberships = data.user_school_memberships as unknown as UserSchoolMembership[];
 
   const userProfile: UserInfo = {
     userId: data.user_id,
@@ -45,10 +45,11 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
     lastName: data.last_name,
     email: data.email,
     imageUrl: data.image_url,
-    school: {
-      schoolId: userSchoolMembership?.school.school_id ?? '',
-      name: userSchoolMembership?.school.name ?? ''
-    }
+    isMultiSchoolUser: userSchoolMemberships.length > 1,
+    schools: userSchoolMemberships.map((membership) => ({
+      schoolId: membership.schools.school_id,
+      name: membership.schools.name,
+    })),
   };
 
   return userProfile;

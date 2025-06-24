@@ -37,6 +37,15 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const selectedSchool = request.cookies.get('selectedSchoolId')?.value;
+  const isMultiSchoolUser = request.cookies.get('isMultiSchoolUser')?.value === 'true';
+
+  if (user && isMultiSchoolUser && !selectedSchool && request.nextUrl.pathname !== '/select-school') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/select-school'
+    return NextResponse.redirect(url)
+  }
+
   // Redirect authenticated users away from the login page
   if (user && request.nextUrl.pathname === '/login') {    
     const url = request.nextUrl.clone()
