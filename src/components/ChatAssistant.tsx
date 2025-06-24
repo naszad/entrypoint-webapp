@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { MessagesSquare, Send, X, MoveDown, Trash2 } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
@@ -10,7 +9,6 @@ import { Input } from './ui/input'
 import { TypingAnimation } from './TypingAnimation/TypingAnimation';
 
 export function ChatAssistant() {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false)
   const [showJumpToBottom, setShowJumpToBottom] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -31,28 +29,17 @@ export function ChatAssistant() {
     return [];
   });
 
-  const { messages, input, handleInputChange, handleSubmit, status, setMessages, setInput } = useChat({
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit: handleChatSubmit,
+    status,
+    setMessages,
+    setInput,
+  } = useChat({
     id: 'chat-assistant',
     initialMessages,
-    onToolCall: ({ toolCall }) => {
-      if (toolCall.toolName === 'navigate') {
-        const { url, description } = toolCall.args as {
-          url: string,
-          description: string
-        };
-
-        if (typeof url === 'string' && typeof description === 'string') {
-          
-          // Use router.push for client-side navigation
-          router.push(url);
-          
-          return; 
-        } else {
-          console.error('Invalid url or description argument for navigate tool:', toolCall.args);
-          return;
-        }
-      }
-    }
   });
 
   // Handler to clear chat history
@@ -60,6 +47,16 @@ export function ChatAssistant() {
     setMessages([]);
     setInput('');
     localStorage.removeItem('chatAssistantMessages');
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    // `handleChatSubmit` will automatically append the user's message (from `input`)
+    // and send it to the API. The `useChat` hook manages the message list and
+    // will handle the full request-response cycle with tools.
+    handleChatSubmit(e as React.FormEvent<HTMLFormElement>);
   };
 
   // Persist chat messages to localStorage on change
@@ -118,9 +115,6 @@ export function ChatAssistant() {
     window.dispatchEvent(new Event('storage'))
   }
 
-  // Track the ID of the current assistant message being streamed
-  const activeMessageId = messages[messages.length - 1]?.id;
-
   return (
     <>
       {!isOpen && (
@@ -175,48 +169,6 @@ export function ChatAssistant() {
                     switch (part.type) {
                       case 'text':
                         return <div key={`${message.id}-${i}`}>{part.text}</div>
-                      case 'tool-invocation': {
-                        const invocation = part.toolInvocation;
-                        // Replace tool invocation and result render with collapsible details
-                        // Collapsible call details; expanded until result arrives
-                        const callComponent = (
-                          <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-call`} className="mb-2">
-                            <summary className="cursor-pointer font-small text-gray-600">Tool Called: {invocation.toolName}</summary>
-                            <div>
-                              <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.args, null, 2)}</pre>
-                            </div>
-                          </details>
-                        );
-                        if (invocation.state === 'result') {
-                          // Collapsible result details; default collapsed
-                          let resultComponent;
-                          if (invocation.toolName === 'navigate') {
-                            const { url, description } = invocation.result as { url: string; description: string };
-                            resultComponent = (
-                              <div key={`${message.id}-${i}-result`} className="flex flex-col mb-2">
-                                <button 
-                                  onClick={() => router.push(url)}
-                                  className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-md border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition-colors duration-150 cursor-pointer text-left"
-                                >
-                                  {description}
-                                </button>
-                              </div>
-                            );
-                          } else {
-                            resultComponent = (
-                              <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-result`} className="mb-2">
-                                <summary className="cursor-pointer font-small text-gray-600">Response from {invocation.toolName}</summary>
-                                <div>
-                                  <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.result, null, 2)}</pre>
-                                </div>
-                              </details>
-                            );
-                          }
-                          return [callComponent, resultComponent];
-                        }
-                        // Show only call details while invocation in progress
-                        return callComponent;
-                      }
                       default:
                         return null
                     }
@@ -252,7 +204,7 @@ export function ChatAssistant() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
-                      handleSubmit(e)
+                      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
                     }
                   }}
                 />
