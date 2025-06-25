@@ -11,12 +11,13 @@ import { useRouter } from 'next/navigation'
 import { getUserByAuthId } from '@/libs/userService';
 import { UserInfo } from '@/types/UserInfo';
 import { createClient } from '@/utils/supabase/supabaseClient';
-import { loginWithCredentials } from '@/libs/authService';
+import { loginWithCredentials, logout } from '@/libs/authService';
 
 interface AuthContextType {
   user: UserInfo | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
+  handleLogout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -25,6 +26,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter();
+
+  const setCookie = (key: string, value: string) => {
+    document.cookie = `${key}=${value}; path=/`;
+  }
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -38,6 +43,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (user) {
           setUser({ ...user, role: "Counselor" });
+          if (user.isMultiSchoolUser) {
+            setCookie('isMultiSchoolUser', user.isMultiSchoolUser.toString())
+          } else {
+            setCookie('selectedSchoolId', user.schools?.[0]?.schoolId || '')
+            sessionStorage.setItem('selectedSchool', user.schools?.[0] ? JSON.stringify(user.schools?.[0]) : '' )
+          }
           setLoading(false);
           return;
         } else {
@@ -56,6 +67,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user])
 
+const handleLogout = async () => {
+  sessionStorage.clear();
+  localStorage.clear();
+  setCookie('selectedSchoolId', '')
+  setCookie('isMultiSchoolUser', '')
+  await logout()
+}
+
 const login = async (email: string, password: string) => {
     const { data, error } = await loginWithCredentials(email, password)
 
@@ -66,7 +85,14 @@ const login = async (email: string, password: string) => {
       const userDetails = await getUserByAuthId(user.id);
       if (userDetails) {
         setUser({ ...userDetails, role: "Counselor" });
-        router.push('/dashboard')
+        if (userDetails.isMultiSchoolUser) {
+          setCookie('isMultiSchoolUser', userDetails.isMultiSchoolUser.toString())
+          router.push('/select-school')
+        } else {
+          setCookie('selectedSchoolId', userDetails.schools?.[0]?.schoolId || '')
+          sessionStorage.setItem('selectedSchool', userDetails.schools?.[0] ? JSON.stringify(userDetails.schools?.[0]) : '' )
+          router.push('/dashboard')
+        }
       } else {
         throw new Error('Error fetching user details')
       }
@@ -79,7 +105,7 @@ const login = async (email: string, password: string) => {
       <p className="text-xl text-gray-600">Loading...</p>
     </div>
   ) : (
-    <AuthContext.Provider value={{ user, loading, login }}>
+    <AuthContext.Provider value={{ user, loading, login, handleLogout }}>
       {children}
     </AuthContext.Provider>
   )

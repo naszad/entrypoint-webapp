@@ -1,17 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { MessagesSquare, Send, X, MoveDown, Trash2 } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { TypingAnimation } from './TypingAnimation/TypingAnimation';
+import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
 
 export function ChatAssistant() {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false)
+  const { isChatAssistantOpen, setIsChatAssistantOpen } = useChatAssistantOpen()
   const [showJumpToBottom, setShowJumpToBottom] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -31,28 +30,17 @@ export function ChatAssistant() {
     return [];
   });
 
-  const { messages, input, handleInputChange, handleSubmit, status, setMessages, setInput } = useChat({
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit: handleChatSubmit,
+    status,
+    setMessages,
+    setInput,
+  } = useChat({
     id: 'chat-assistant',
     initialMessages,
-    onToolCall: ({ toolCall }) => {
-      if (toolCall.toolName === 'navigate') {
-        const { url, description } = toolCall.args as {
-          url: string,
-          description: string
-        };
-
-        if (typeof url === 'string' && typeof description === 'string') {
-          
-          // Use router.push for client-side navigation
-          router.push(url);
-          
-          return; 
-        } else {
-          console.error('Invalid url or description argument for navigate tool:', toolCall.args);
-          return;
-        }
-      }
-    }
   });
 
   // Handler to clear chat history
@@ -60,6 +48,16 @@ export function ChatAssistant() {
     setMessages([]);
     setInput('');
     localStorage.removeItem('chatAssistantMessages');
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    // `handleChatSubmit` will automatically append the user's message (from `input`)
+    // and send it to the API. The `useChat` hook manages the message list and
+    // will handle the full request-response cycle with tools.
+    handleChatSubmit(e as React.FormEvent<HTMLFormElement>);
   };
 
   // Persist chat messages to localStorage on change
@@ -75,14 +73,22 @@ export function ChatAssistant() {
   useEffect(() => {
     const savedState = localStorage.getItem('chatAssistantOpen')
     if (savedState !== null) {
-      setIsOpen(JSON.parse(savedState))
+      setIsChatAssistantOpen(JSON.parse(savedState))
     }
-  }, [])
+    // Listen for storage events
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('chatAssistantOpen');
+      if (saved !== null) {
+        setIsChatAssistantOpen(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [setIsChatAssistantOpen]);
 
   // Handle scroll events
   const handleScroll = () => {
     if (!messagesContainerRef.current) return
-    
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
     setShowJumpToBottom(!isAtBottom)
@@ -111,38 +117,34 @@ export function ChatAssistant() {
 
   // Save state to localStorage and emit storage event
   const handleToggle = () => {
-    const newState = !isOpen
-    setIsOpen(newState)
+    const newState = !isChatAssistantOpen
+    setIsChatAssistantOpen(newState)
     localStorage.setItem('chatAssistantOpen', JSON.stringify(newState))
-    // Emit storage event for other components to listen to
     window.dispatchEvent(new Event('storage'))
   }
 
-  // Track the ID of the current assistant message being streamed
-  const activeMessageId = messages[messages.length - 1]?.id;
-
   return (
     <>
-      {!isOpen && (
-        <Button
+      {!isChatAssistantOpen && (
+        <Button id="chat-assistant-button"
           onClick={handleToggle}
-          className="fixed top-4 right-6 z-50 gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          className="fixed top-9 right-9 z-50 gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           aria-label="Open Assistant"
         >
-          <MessagesSquare size={20} /> Assistant
+          <MessagesSquare size={20} className="text-blue-500" /> Assistant
         </Button>
       )}
 
       <div
         className={cn(
           'fixed top-0 right-0 h-full w-[400px] bg-background border-l transform transition-transform duration-300 ease-in-out z-40 shadow-[-4px_0_10px_rgba(0,0,0,0.1)]',
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+          isChatAssistantOpen ? 'translate-x-0' : 'translate-x-full'
         )}
       >
         <div className="p-4 h-full flex flex-col">
           <div className="flex items-center justify-between mb-4 border-b pb-4">
             <div className="flex items-center gap-2 flex-1">
-              <MessagesSquare size={20} />
+              <MessagesSquare size={20} className="text-blue-500" />
               <h2 className="text-lg font-semibold">Assistant</h2>
             </div>
             <div className="flex items-center gap-2">
@@ -175,48 +177,6 @@ export function ChatAssistant() {
                     switch (part.type) {
                       case 'text':
                         return <div key={`${message.id}-${i}`}>{part.text}</div>
-                      case 'tool-invocation': {
-                        const invocation = part.toolInvocation;
-                        // Replace tool invocation and result render with collapsible details
-                        // Collapsible call details; expanded until result arrives
-                        const callComponent = (
-                          <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-call`} className="mb-2">
-                            <summary className="cursor-pointer font-small text-gray-600">Tool Called: {invocation.toolName}</summary>
-                            <div>
-                              <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.args, null, 2)}</pre>
-                            </div>
-                          </details>
-                        );
-                        if (invocation.state === 'result') {
-                          // Collapsible result details; default collapsed
-                          let resultComponent;
-                          if (invocation.toolName === 'navigate') {
-                            const { url, description } = invocation.result as { url: string; description: string };
-                            resultComponent = (
-                              <div key={`${message.id}-${i}-result`} className="flex flex-col mb-2">
-                                <button 
-                                  onClick={() => router.push(url)}
-                                  className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-md border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition-colors duration-150 cursor-pointer text-left"
-                                >
-                                  {description}
-                                </button>
-                              </div>
-                            );
-                          } else {
-                            resultComponent = (
-                              <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-result`} className="mb-2">
-                                <summary className="cursor-pointer font-small text-gray-600">Response from {invocation.toolName}</summary>
-                                <div>
-                                  <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.result, null, 2)}</pre>
-                                </div>
-                              </details>
-                            );
-                          }
-                          return [callComponent, resultComponent];
-                        }
-                        // Show only call details while invocation in progress
-                        return callComponent;
-                      }
                       default:
                         return null
                     }
@@ -245,14 +205,14 @@ export function ChatAssistant() {
             <div className="flex gap-2">
               <div className="w-[95%]">
                 <Input
-                  autoFocus={isOpen}
+                  autoFocus={isChatAssistantOpen}
                   placeholder="Need help? Press enter to send"
                   value={input}
                   onChange={handleInputChange}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
-                      handleSubmit(e)
+                      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
                     }
                   }}
                 />

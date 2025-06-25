@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Client } from 'pg';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env.local' })
+dotenv.config({ path: `.env.${process.env.NODE_ENV || 'local'}` })
 
 async function seedData() {
   const client = new Client({

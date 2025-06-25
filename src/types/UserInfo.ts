@@ -2,8 +2,9 @@ import { User } from "@/models/Users";
 
 export interface UserInfo extends Omit<User, 'authUserId' | 'schoolId'> {
   role?: string,
-  school?: {
+  isMultiSchoolUser?: boolean,
+  schools?: {
     schoolId?: string,
     name?: string
-  }
+  }[]
 }

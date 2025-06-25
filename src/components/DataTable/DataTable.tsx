@@ -220,7 +220,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {enablePagination && total && total > 0 && (
+      {enablePagination && !!total && total > 0 && (
         <Pagination
           total={total}
           currentPage={pageNumber}

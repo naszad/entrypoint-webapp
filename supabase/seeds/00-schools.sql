@@ -7,7 +7,7 @@ INSERT INTO customers (customer_id, name) VALUES ('48aac272-392f-4086-9dd3-4e4de
 
 -- create schools
 INSERT INTO schools (
-  -- customer_id,
+  customer_id,
   name,
   school_number,
   city,
@@ -25,7 +25,7 @@ INSERT INTO schools (
   external_key_hash,
   external_name
 ) VALUES (
-  -- (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
+  (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
   'Lincoln High School',
   12345,
   'Indianapolis',
@@ -44,9 +44,8 @@ INSERT INTO schools (
   'Lincoln HS'
 );
 
--- create a second school in the same district
 INSERT INTO schools (
-  -- customer_id,
+  customer_id,
   name,
   school_number,
   city,
@@ -64,22 +63,22 @@ INSERT INTO schools (
   external_key_hash,
   external_name
 ) VALUES (
-  -- (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
-  'Roosevelt High School',
-  67890,
+  (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
+  'Washington High School',
+  54321,
   'Indianapolis',
   'IN',
   'USA',
-  '456 Roosevelt Ave',
-  '555-0456',
-  'Alice Johnson',
-  'alice.johnson@test.com',
-  'Bob Smith',
-  'bob.smith@test.com',
+  '0987654321',
+  '555-3210',
+  'Mary Sue',
+  'mary.sue@test.com',
+  'Peter Pan',
+  'peter.pan@test.com',
   'mock_source',
   'MOCK_KEY_456',
-  65432,
+  56789,
   encode(digest('MOCK_KEY_456', 'sha256'), 'hex'),
-  'Roosevelt HS'
+  'Washington HS'
 );
 
