@@ -284,7 +284,7 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
         router.replace(newUrl);
       }
     }
-  }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination]);
+  }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination, compareParams]);
 
   // Filter handlers
   const handleFilterClick = (columnId: string, event: React.MouseEvent) => {
