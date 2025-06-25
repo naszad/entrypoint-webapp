@@ -27,7 +27,7 @@ Once you have the answer or have performed the navigation, present the informati
       filter_students: tool({
         description: `Applies filters to the student data table and navigates the user to the filtered view.
 
-Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions.
+Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed in the UI.
 
 - **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name."
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.`,

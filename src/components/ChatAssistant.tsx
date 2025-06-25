@@ -280,11 +280,11 @@ export function ChatAssistant() {
                 {message.content}
                 {toolResult?.url && (
                   <div className="mt-2">
-                    <Link href={toolResult.url} passHref>
-                      <Button asChild variant="action" size="sm" className="h-auto">
-                        <a>{generateFilterDescription(toolResult.filtersApplied)}</a>
-                      </Button>
-                    </Link>
+                    <Button asChild variant="action" size="sm" className="h-auto">
+                      <Link href={toolResult.url}>
+                        {generateFilterDescription(toolResult.filtersApplied)}
+                      </Link>
+                    </Button>
                   </div>
                 )}
               </div>
