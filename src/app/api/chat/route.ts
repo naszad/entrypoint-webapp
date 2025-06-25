@@ -27,7 +27,7 @@ Once you have the answer or have performed the navigation, present the informati
       filter_students: tool({
         description: `Applies filters to the student data table and navigates the user to the filtered view.
 
-Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed in the UI.
+Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
 - **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name."
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.`,
@@ -49,32 +49,22 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           const filters: string[] = [];
           const baseUrl = '/students';
     
-          if (parsedFilters.gradeLevel) {
-            filters.push(`gradeLevel:eq:${parsedFilters.gradeLevel}`);
-          }
-    
-          if (parsedFilters.fullName) {
-            filters.push(`fullName:contains:${encodeURIComponent(parsedFilters.fullName)}`);
-          }
-    
-          if (parsedFilters.enrollmentStatus) {
-            filters.push(`enrollmentStatus:eq:${parsedFilters.enrollmentStatus}`);
-          }
-    
-          if (parsedFilters.gender) {
-            filters.push(`gender:eq:${parsedFilters.gender}`);
-          }
-    
-          if (parsedFilters.homeroomName) {
-            filters.push(`homeroomName:contains:${encodeURIComponent(parsedFilters.homeroomName)}`);
-          }
-    
-          if (parsedFilters.graduationYear) {
-            filters.push(`graduationYear:eq:${parsedFilters.graduationYear}`);
-          }
-    
-          if (parsedFilters.email) {
-            filters.push(`email:contains:${encodeURIComponent(parsedFilters.email)}`);
+          for (const [key, value] of Object.entries(parsedFilters)) {
+            if (!value || key === 'ageFilter') continue;
+            
+            switch (key) {
+              case 'gradeLevel':
+              case 'enrollmentStatus':
+              case 'gender':
+              case 'graduationYear':
+                filters.push(`${key}:eq:${value}`);
+                break;
+              case 'fullName':
+              case 'homeroomName':
+              case 'email':
+                filters.push(`${key}:contains:${encodeURIComponent(value as string)}`);
+                break;
+            }
           }
     
           if (parsedFilters.ageFilter) {
