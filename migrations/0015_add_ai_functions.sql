@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.execute_safe_select(query_text text)
+-- Custom SQL migration file, put your code below! --CREATE OR REPLACE FUNCTION public.execute_safe_select(query_text text)
 RETURNS json
 LANGUAGE plpgsql
 AS $$
