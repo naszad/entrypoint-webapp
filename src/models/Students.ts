@@ -18,7 +18,7 @@ export const students = pgTable(
     middleName: text('middle_name'),
     lastName: text('last_name').notNull(),
     fullName : text('full_name').notNull(),
-    email: varchar('email', { length: 256 }).notNull(),
+    email: varchar('email', { length: 256 }),
     phone: varchar('phone', { length: 256 }),
     gradeLevel: integer('grade_level').notNull(),
     gender: varchar('gender', { length: 256 }),

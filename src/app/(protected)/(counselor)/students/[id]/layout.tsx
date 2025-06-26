@@ -58,7 +58,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
             gradeLevel={student.gradeLevel ?? ''}
             graduationYear={student.graduationYear ?? ''}
             studentId={student.externalId?.toString() ?? ''}
-            email={student.email}
+            email={student.email ?? ''}
         />
       {children}
     </div>

@@ -89,6 +89,10 @@ Table section_enrollments {
   student_id uuid [ref: > students.student_id]
   section_id uuid [ref: > course_sections.section_id]
   term_id uuid [ref: > terms.term_id]
+  start_date date
+  end_date date
+  absences int
+  tardies int
   created_at timestamp
   updated_at timestamp
 }
