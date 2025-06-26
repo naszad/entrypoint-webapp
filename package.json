@@ -25,7 +25,11 @@
     "db:seed": "npx supabase db reset && npx supabase db push",
     "db:seed-data": "npx tsx supabase/seed-data.ts",
     "db:seed-user": "npx tsx supabase/seed-user.ts",
-    "reset-linked": "NODE_ENV=development bash -c 'npx supabase db reset --linked && npx drizzle-kit migrate && npx tsx supabase/seed-data.ts && npx tsx supabase/seed-user.ts'"
+    "reset-linked": "NODE_ENV=development bash -c 'npx supabase db reset --linked && npx drizzle-kit migrate && npx tsx supabase/seed-data.ts && npx tsx supabase/seed-user.ts'",
+    "drizzle:migrate:cloud": "dotenv -e .env.cloud -- npx drizzle-kit migrate",
+    "drizzle:push:cloud": "dotenv -e .env.cloud -- npx drizzle-kit push",
+    "seed:cloud": "dotenv -e .env.cloud -- npx tsx supabase/seed-data.ts && dotenv -e .env.cloud -- npx tsx supabase/seed-user.ts",
+    "reset:cloud": "dotenv -e .env.cloud -- npx supabase db reset && dotenv -e .env.cloud -- npx drizzle-kit migrate && dotenv -e .env.cloud -- npx tsx supabase/seed-data.ts && dotenv -e .env.cloud -- npx tsx supabase/seed-user.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",

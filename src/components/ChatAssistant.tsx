@@ -8,12 +8,88 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { TypingAnimation } from './TypingAnimation/TypingAnimation';
 import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+type FiltersApplied = {
+  gradeLevel?: number;
+  fullName?: string;
+  enrollmentStatus?: 'active' | 'inactive';
+  gender?: 'male' | 'female';
+  homeroomName?: string;
+  graduationYear?: number;
+  email?: string;
+  ageFilter?: {
+    age: number;
+    operator: 'eq' | 'gte' | 'lte';
+  };
+};
+
+type ToolInvocation = {
+  toolName: string;
+  result: {
+    url?: string;
+    filtersApplied?: FiltersApplied;
+  }
+}
+
+const generateFilterDescription = (filters?: FiltersApplied): string => {
+  if (!filters || Object.keys(filters).length === 0) {
+    return 'View All Students';
+  }
+
+  const descriptions: string[] = [];
+
+  if (filters.gradeLevel) {
+    descriptions.push(`grade ${filters.gradeLevel}`);
+  }
+  if (filters.fullName) {
+    descriptions.push(`name: "${filters.fullName}"`);
+  }
+  if (filters.enrollmentStatus) {
+    descriptions.push(filters.enrollmentStatus);
+  }
+  if (filters.gender) {
+    descriptions.push(filters.gender);
+  }
+  if (filters.homeroomName) {
+    descriptions.push(`homeroom: "${filters.homeroomName}"`);
+  }
+  if (filters.graduationYear) {
+    descriptions.push(`graduating ${filters.graduationYear}`);
+  }
+  if (filters.email) {
+    descriptions.push(`email: "${filters.email}"`);
+  }
+  if (filters.ageFilter) {
+    const { age, operator } = filters.ageFilter;
+    switch (operator) {
+      case 'eq':
+        descriptions.push(`age ${age}`);
+        break;
+      case 'gte':
+        descriptions.push(`age ${age}+`);
+        break;
+      case 'lte':
+        descriptions.push(`age <= ${age}`);
+        break;
+    }
+  }
+
+  let fullDescription = `View students: ${descriptions.join(', ')}`;
+  if (fullDescription.length > 50) {
+    fullDescription = fullDescription.substring(0, 47) + '...';
+  }
+  return fullDescription;
+};
 
 export function ChatAssistant() {
   const { isChatAssistantOpen, setIsChatAssistantOpen } = useChatAssistantOpen()
   const [showJumpToBottom, setShowJumpToBottom] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter();
+  const [lastNavigatedMessageId, setLastNavigatedMessageId] = useState<string | null>(null);
 
   // Load initial messages from localStorage for persistence
   const [initialMessages] = useState(() => {
@@ -68,6 +144,25 @@ export function ChatAssistant() {
       console.error('Failed to store chat messages', err);
     }
   }, [messages]);
+
+  // Automatic navigation when a filter_students tool result is available
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage.id === lastNavigatedMessageId) return;
+
+    if (lastMessage.role === 'assistant' && lastMessage.toolInvocations) {
+      const toolInvocation = (lastMessage.toolInvocations as ToolInvocation[]).find(
+        (inv) => inv.toolName === 'filter_students'
+      );
+
+      if (toolInvocation?.result?.url) {
+        router.push(toolInvocation.result.url);
+        setLastNavigatedMessageId(lastMessage.id);
+      }
+    }
+  }, [messages, router, lastNavigatedMessageId]);
 
   // Load saved state from localStorage
   useEffect(() => {
@@ -161,7 +256,18 @@ export function ChatAssistant() {
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto relative"
           >
-            {messages.map(message => (
+            {messages.map((message) => {
+              let toolResult: ToolInvocation['result'] | undefined;
+
+              if (message.role === 'assistant' && message.toolInvocations) {
+                const toolInvocation = (message.toolInvocations as ToolInvocation[]).find(
+                  (inv) => inv.toolName === 'filter_students'
+                );
+                if (toolInvocation?.result?.url) {
+                  toolResult = toolInvocation.result;
+                }
+              }
+              return (
               <div
                 key={message.id}
                 className={cn(
@@ -171,21 +277,19 @@ export function ChatAssistant() {
                     : "mr-auto bg-gray-100"
                 )}
               >
-                {/* Display streamed parts if available, otherwise fallback to content */}
-                {message.parts && message.parts.length > 0 ? (
-                  message.parts.map((part, i) => {
-                    switch (part.type) {
-                      case 'text':
-                        return <div key={`${message.id}-${i}`}>{part.text}</div>
-                      default:
-                        return null
-                    }
-                  })
-                ) : (
-                  <div>{message.content}</div>
+                {message.content}
+                {toolResult?.url && (
+                  <div className="mt-2">
+                    <Button asChild variant="action" size="sm" className="h-auto">
+                      <Link href={toolResult.url}>
+                        {generateFilterDescription(toolResult.filtersApplied)}
+                      </Link>
+                    </Button>
+                  </div>
                 )}
               </div>
-            ))}
+              )
+            })}
             <div ref={messagesEndRef} />
             {(status === 'submitted' || status === 'streaming') && <TypingAnimation />}
             {showJumpToBottom && (

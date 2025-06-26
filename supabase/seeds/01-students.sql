@@ -95,7 +95,7 @@ WHERE email IN (
   'sophia.rodriguez@student.edu'
 );
 
--- Insert two students for Roosevelt High School
+-- Insert three students for Washington High School
 INSERT INTO students (
   first_name,
   last_name,
@@ -113,11 +113,63 @@ INSERT INTO students (
   enrollment_status,
   homeroom_name,
   full_name
-) VALUES
-  ('Alice','Brown','alice.brown@roosevelt.edu','555-0301',11,'female','2007-09-01','mock_source','STUDENT_A01',3001,encode(digest('STUDENT_A01','sha256'),'hex'),'Alice B',2025,'active','Room 501','Alice Brown'),
-  ('Bob','Smith','bob.smith@roosevelt.edu','555-0302',10,'male','2008-05-21','mock_source','STUDENT_B01',3002,encode(digest('STUDENT_B01','sha256'),'hex'),'Bob S',2026,'active','Room 502','Bob Smith');
+) VALUES 
+  (
+    'James',
+    'Williams',
+    'james.williams@student.edu',
+    '555-0201',
+    9,
+    'male',
+    '2009-02-10',
+    'mock_source',
+    'STUDENT_004',
+    1004,
+    encode(digest('STUDENT_004', 'sha256'), 'hex'),
+    'James W',
+    2027,
+    'active',
+    'Room 201',
+    'James Williams'
+  ),
+  (
+    'Olivia',
+    'Brown',
+    'olivia.brown@student.edu',
+    '555-0202',
+    10,
+    'female',
+    '2008-06-25',
+    'mock_source',
+    'STUDENT_005',
+    1005,
+    encode(digest('STUDENT_005', 'sha256'), 'hex'),
+    'Olivia B',
+    2026,
+    'active',
+    'Room 202',
+    'Olivia Brown'
+  ),
+  (
+    'Liam',
+    'Jones',
+    'liam.jones@student.edu',
+    '555-0203',
+    11,
+    'male',
+    '2007-11-12',
+    'mock_source',
+    'STUDENT_006',
+    1006,
+    encode(digest('STUDENT_006', 'sha256'), 'hex'),
+    'Liam J',
+    2025,
+    'active',
+    'Room 203',
+    'Liam Jones'
+  );
 
--- Associate Roosevelt students with Roosevelt High School
+-- Associate students with Washington High School
 INSERT INTO school_student_link (
   student_id,
   school_id,
@@ -125,15 +177,17 @@ INSERT INTO school_student_link (
   end_date,
   created_at,
   updated_at
-) SELECT
+)
+SELECT 
   student_id,
-  (SELECT school_id FROM schools WHERE name = 'Roosevelt High School'),
+  (SELECT school_id FROM schools WHERE name = 'Washington High School'),
   current_date,
   NULL,
   current_date,
   current_date
 FROM students
 WHERE email IN (
-  'alice.brown@roosevelt.edu',
-  'bob.smith@roosevelt.edu'
+  'james.williams@student.edu',
+  'olivia.brown@student.edu',
+  'liam.jones@student.edu'
 );

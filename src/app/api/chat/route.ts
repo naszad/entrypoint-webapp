@@ -9,27 +9,14 @@ export const maxDuration = 30
 export async function POST(req: Request) {
   const { messages }: { messages: CoreMessage[] } = await req.json()
 
-  const systemMessage = `You are a helpful AI assistant for school counselors. Your goal is to answer questions by querying the school's database.
+  const systemMessage = `You are a helpful AI assistant for school counselors. Your goal is to answer questions by querying the school's database or by helping the user navigate the application.
 
-You have access to the following tools to interact with the database:
-- \`list_tables()\`: Returns a list of all table names in the database.
-- \`get_table_schema(tableName: string)\`: Returns the schema for a specific table, including column names and data types.
-- \`execute_sql(sql: string)\`: Executes a read-only \`SELECT\` SQL query and returns the result as JSON.
+When a user asks a question, first determine their intent:
+1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool.
+2.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. Use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
 
-Here's how you should approach answering questions:
-1.  **Understand the User's Goal:** Analyze the user's question to determine what information is needed.
-2.  **Explore the Database:** If you don't know the database schema, start by using \`list_tables()\` to see what's available. Then, use \`get_table_schema()\` on tables that seem relevant to get more details about their columns. You may need to call this multiple times for different tables.
-3.  **Formulate a Query:** Once you understand the tables and their columns, write a PostgreSQL \`SELECT\` query to retrieve the necessary information. Make sure your query is specific and efficient (e.g., use \`LIMIT\` when appropriate).
-4.  **Execute and Analyze:** Run your query using \`execute_sql()\`. Examine the results to ensure they answer the user's question.
-5.  **Self-Correction:** If your query fails or returns unexpected results, analyze the error or output, revise your query or your plan, and try again. For example, you might need to re-examine the schema or join tables differently.
-6.  **Provide the Final Answer:** Once you have the correct information from the database, present it to the user in a clear, friendly, and easy-to-understand natural language format. Do not just output the raw JSON from the database.
-
-**Important Rules:**
-- You **must** use the provided tools to answer questions about the database. Do not make up information.
-- Always use the tool-calling process. Do not stop after just one tool call if you don't have the final answer.
-- You can only perform read operations (\`SELECT\` queries).
-- Maintain student confidentiality at all times.
-- If you have explored the database and cannot find the information, inform the user about what you checked and why you cannot answer the question.`
+Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
+`
 
   const result = await streamText({
     model: openai('gpt-4o'),
@@ -37,8 +24,84 @@ Here's how you should approach answering questions:
     messages,
     maxSteps: 10,
     tools: {
+      filter_students: tool({
+        description: `Applies filters to the student data table and navigates the user to the filtered view.
+
+Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
+
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name."
+- **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.`,
+        parameters: z.object({
+          gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12)'),
+          fullName: z.string().optional().describe('Name or part of name to search for'),
+          enrollmentStatus: z.enum(['active', 'inactive']).optional().describe('Student enrollment status'),
+          gender: z.enum(['male', 'female']).optional().describe('Student gender'),
+          homeroomName: z.string().optional().describe('Homeroom name or teacher'),
+          graduationYear: z.number().optional().describe('Expected graduation year'),
+          email: z.string().optional().describe('Email domain or part of email to search for'),
+          ageFilter: z.object({
+            age: z.number().describe('The age to filter by'),
+            operator: z.enum(['eq', 'gte', 'lte']).default('eq').describe('The comparison operator for the age filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to)')
+          }).optional().describe('Filter students by age. For example, "students older than 15" or "10-year-old students".')
+        }),
+        execute: async (parsedFilters) => {
+          console.log('Executing filter_students tool with filters:', parsedFilters);
+          const filters: string[] = [];
+          const baseUrl = '/students';
+    
+          for (const [key, value] of Object.entries(parsedFilters)) {
+            if (!value || key === 'ageFilter') continue;
+            
+            switch (key) {
+              case 'gradeLevel':
+              case 'enrollmentStatus':
+              case 'gender':
+              case 'graduationYear':
+                filters.push(`${key}:eq:${value}`);
+                break;
+              case 'fullName':
+              case 'homeroomName':
+              case 'email':
+                filters.push(`${key}:contains:${encodeURIComponent(value as string)}`);
+                break;
+            }
+          }
+    
+          if (parsedFilters.ageFilter) {
+            const { age, operator } = parsedFilters.ageFilter;
+            const currentYear = new Date().getFullYear();
+            const birthYear = currentYear - age;
+            
+            switch (operator) {
+              case 'eq':
+                // Assumes backend can handle year part for date contains
+                filters.push(`dateOfBirth:contains:${birthYear}`);
+                break;
+              case 'gte': // age >= X  means birth year <= Y
+                filters.push(`dateOfBirth:lte:${birthYear}-12-31`);
+                break;
+              case 'lte': // age <= X means birth year >= Y
+                filters.push(`dateOfBirth:gte:${birthYear}-01-01`);
+                break;
+            }
+          }
+    
+          // Construct the URL
+          let url = baseUrl;
+          if (filters.length > 0) {
+            const filterString = filters.join(',');
+            url += `?filters=${encodeURIComponent(filterString)}`;
+          }
+    
+          // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.
+          return {
+            url,
+            filtersApplied: parsedFilters,
+          };
+        }
+      }),
       list_tables: tool({
-        description: 'Lists all tables in the public schema of the database.',
+        description: 'Lists all available tables in the database. This is the first step for answering a question that requires specific information. Use this if you do not know the database schema.',
         parameters: z.object({}),
         execute: async () => {
           console.log('Executing list_tables tool');
@@ -55,7 +118,7 @@ Here's how you should approach answering questions:
         },
       }),
       get_table_schema: tool({
-        description: 'Gets the schema (column names and data types) for a specific table in the public schema.',
+        description: 'Gets the schema (column names and data types) for a specific table. After finding relevant tables with `list_tables`, use this to understand their structure before writing a query.',
         parameters: z.object({
           tableName: z.string().describe('The name of the table to get the schema for.'),
         }),
@@ -74,20 +137,7 @@ Here's how you should approach answering questions:
         },
       }),
       execute_sql: tool({
-        description: `Executes a read-only SQL query. IMPORTANT: This function requires a PostgreSQL stored procedure named 'execute_safe_select' to be created in your database with the following definition:
-          CREATE OR REPLACE FUNCTION execute_safe_select(query_text TEXT)
-          RETURNS JSON AS $$
-          DECLARE
-            result JSON;
-          BEGIN
-            IF lower(query_text) NOT LIKE 'select%' THEN
-              RAISE EXCEPTION 'Only SELECT queries are allowed.';
-            END IF;
-            EXECUTE 'SELECT json_agg(t) FROM (' || query_text || ') t' INTO result;
-            RETURN result;
-          END;
-          $$ LANGUAGE plpgsql;
-          `,
+        description: `Executes a final, read-only SQL 'SELECT' query to get specific information from the database. Use this after you have explored the schema with 'list_tables' and 'get_table_schema' to construct a precise query.`,
         parameters: z.object({
           sql: z.string().describe('The SQL SELECT query to execute.'),
         }),
