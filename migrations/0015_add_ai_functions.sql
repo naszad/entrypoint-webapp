@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION public.execute_safe_select(query_text text)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY INVOKER
-SET search_path = '';
+SET search_path = ''
 AS $$
 DECLARE
   result JSON;
@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION public.get_public_table_schema(p_table_name text)
 RETURNS TABLE(column_name text, data_type text)
 LANGUAGE plpgsql
 SECURITY INVOKER
-SET search_path = '';
+SET search_path = ''
 AS $$
 BEGIN
     RETURN QUERY
@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION public.list_public_tables()
 RETURNS TABLE(name text)
 LANGUAGE plpgsql
 SECURITY INVOKER
-SET search_path = '';
+SET search_path = ''
 AS $$
 BEGIN
     RETURN QUERY 
