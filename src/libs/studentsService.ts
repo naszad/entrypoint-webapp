@@ -79,6 +79,13 @@ const getColumnName = (key: string) => {
   }
 }
 
+const studentsFilterApplied = (filters: FilterValue[]) => {
+  return filters.some(f => {
+    const columnName = getColumnName(f.key);
+    return !['student_id', 'school_id'].includes(columnName);
+  });
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const applyFilters = (q: any, filters: FilterValue[]) => {
   filters.forEach((filter) => {
@@ -129,10 +136,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
     
-    const hasStudentFilters = filters.some(f => {
-      const columnName = getColumnName(f.key);
-      return !['student_id', 'school_id'].includes(columnName);
-    });
+    const hasStudentFilters = studentsFilterApplied(filters);
 
     let query = supabase
       .from('school_student_link')
@@ -275,10 +279,11 @@ export async function countStudentsByFilterCriteria(request: StudentsRequest): P
     const { filters } = request;
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
+    const hasStudentFilters = studentsFilterApplied(filters);
 
     let countQuery = supabase
         .from('school_student_link')
-        .select('*', { count: 'exact', head: true })
+        .select(hasStudentFilters ? '*,students!inner(*)' : '*', { count: 'exact', head: true })
         .eq('school_id', selectedSchoolId);
       
       // Apply the same filters to count query
