@@ -79,38 +79,51 @@ const getColumnName = (key: string) => {
   }
 }
 
+const studentsFilterApplied = (filters: FilterValue[]) => {
+  return filters.some(f => {
+    const columnName = getColumnName(f.key);
+    return !['student_id', 'school_id'].includes(columnName);
+  });
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const applyFilters = (q: any, filters: FilterValue[]) => {
   filters.forEach((filter) => {
     const columnName = getColumnName(filter.key);
+    const filterOnStudentTable = ![
+      'student_id',
+      'school_id',
+    ].includes(columnName);
     
+    const targetColumn = filterOnStudentTable ? `students.${columnName}` : columnName;
+
     switch (filter.condition) {
       case 'contains':
-        q = q.ilike(columnName, `%${filter.value}%`);
+        q = q.ilike(targetColumn, `%${filter.value}%`);
         break;
       case 'starts':
-        q = q.ilike(columnName, `${filter.value}%`);
+        q = q.ilike(targetColumn, `${filter.value}%`);
         break;
       case 'ends':
-        q = q.ilike(columnName, `%${filter.value}`);
+        q = q.ilike(targetColumn, `%${filter.value}`);
         break;
       case 'not':
-        q = q.neq(columnName, filter.value);
+        q = q.neq(targetColumn, filter.value);
         break;
       case 'gt':
-        q = q.gt(columnName, filter.value);
+        q = q.gt(targetColumn, filter.value);
         break;
       case 'lt':
-        q = q.lt(columnName, filter.value);
+        q = q.lt(targetColumn, filter.value);
         break;
       case 'gte':
-        q = q.gte(columnName, filter.value);
+        q = q.gte(targetColumn, filter.value);
         break;
       case 'lte':
-        q = q.lte(columnName, filter.value);
+        q = q.lte(targetColumn, filter.value);
         break;
       default:
-        q = q.eq(columnName, filter.value);
+        q = q.eq(targetColumn, filter.value);
     }
   });
   return q;
@@ -123,6 +136,8 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
     
+    const hasStudentFilters = studentsFilterApplied(filters);
+
     let query = supabase
       .from('school_student_link')
       .select(`
@@ -156,11 +171,21 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
 
     // Apply filters to main query
     query = applyFilters(query, filters);
+    if (hasStudentFilters) {
+      query = query.not('students', 'is', 'null');
+    }
 
     // Apply sorting
     if (sort) {
       const [sortField, sortDirection] = sort.split(':');
-      query = query.order(getColumnName(sortField), { ascending: sortDirection === 'asc' });
+      const sortColumn = getColumnName(sortField);
+      const onStudentTable = !['student_id', 'school_id'].includes(sortColumn);
+
+      if (onStudentTable) {
+        query = query.order(sortColumn, { ascending: sortDirection === 'asc', foreignTable: 'students' });
+      } else {
+        query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
+      }
     }
 
     // Apply pagination
@@ -174,6 +199,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const { data, error } = await query;
 
     if (error) {
+      console.error('Data query error:', error);
       throw new Error(error.message);
     }
 
@@ -186,7 +212,11 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
 
     const studentSchoolLinks: StudentSchoolLink[] = data as unknown as StudentSchoolLink[];
 
-    const students: StudentInfo[] = studentSchoolLinks.map((studentSchoolLink) => {
+    const students: StudentInfo[] = studentSchoolLinks.map((studentSchoolLink): StudentInfo | null => {
+      // It's possible for students to be null if the filter returns a link but no matching student
+      if (!studentSchoolLink.students) {
+        return null;
+      }
       return {
         studentId: studentSchoolLink.student_id,  
         schoolId: studentSchoolLink.school_id,
@@ -210,14 +240,14 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         enrollmentStatus: studentSchoolLink.students.enrollment_status,
         homeroomName: studentSchoolLink.students.homeroom_name,
       }
-    });
+    }).filter((student): student is StudentInfo => student !== null);
 
     // Execute count query if needed
     let totalCount: number | undefined;
     if (fetchWithCount) {
       let countQuery = supabase
         .from('school_student_link')
-        .select('*', { count: 'exact', head: true })
+        .select(hasStudentFilters ? '*,students!inner(*)' : '*', { count: 'exact', head: true })
         .eq('school_id', selectedSchoolId);
       
       // Apply the same filters to count query
@@ -225,6 +255,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       
       const { count, error: countError } = await countQuery;
       if (countError) {
+        console.error('Count query error:', countError);
         throw new Error(countError.message);
       }
       totalCount = count || 0;
@@ -236,7 +267,9 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     };
 
   } catch (err) {
-    throw new Error(`Failed to fetch students ${err}`);
+    console.error('Error in fetchStudentsByFilterCriteria:', err);
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    throw new Error(`Failed to fetch students. Error: ${message}`);
   }
 } 
 
@@ -246,10 +279,11 @@ export async function countStudentsByFilterCriteria(request: StudentsRequest): P
     const { filters } = request;
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
+    const hasStudentFilters = studentsFilterApplied(filters);
 
     let countQuery = supabase
         .from('school_student_link')
-        .select('*', { count: 'exact', head: true })
+        .select(hasStudentFilters ? '*,students!inner(*)' : '*', { count: 'exact', head: true })
         .eq('school_id', selectedSchoolId);
       
       // Apply the same filters to count query

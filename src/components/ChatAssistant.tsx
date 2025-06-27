@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { MessagesSquare, Send, X, MoveDown, Trash2 } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
@@ -9,13 +8,88 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { TypingAnimation } from './TypingAnimation/TypingAnimation';
 import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+type FiltersApplied = {
+  gradeLevel?: number;
+  fullName?: string;
+  enrollmentStatus?: 'active' | 'inactive';
+  gender?: 'male' | 'female';
+  homeroomName?: string;
+  graduationYear?: number;
+  email?: string;
+  ageFilter?: {
+    age: number;
+    operator: 'eq' | 'gte' | 'lte';
+  };
+};
+
+type ToolInvocation = {
+  toolName: string;
+  result: {
+    url?: string;
+    filtersApplied?: FiltersApplied;
+  }
+}
+
+const generateFilterDescription = (filters?: FiltersApplied): string => {
+  if (!filters || Object.keys(filters).length === 0) {
+    return 'View All Students';
+  }
+
+  const descriptions: string[] = [];
+
+  if (filters.gradeLevel) {
+    descriptions.push(`grade ${filters.gradeLevel}`);
+  }
+  if (filters.fullName) {
+    descriptions.push(`name: "${filters.fullName}"`);
+  }
+  if (filters.enrollmentStatus) {
+    descriptions.push(filters.enrollmentStatus);
+  }
+  if (filters.gender) {
+    descriptions.push(filters.gender);
+  }
+  if (filters.homeroomName) {
+    descriptions.push(`homeroom: "${filters.homeroomName}"`);
+  }
+  if (filters.graduationYear) {
+    descriptions.push(`graduating ${filters.graduationYear}`);
+  }
+  if (filters.email) {
+    descriptions.push(`email: "${filters.email}"`);
+  }
+  if (filters.ageFilter) {
+    const { age, operator } = filters.ageFilter;
+    switch (operator) {
+      case 'eq':
+        descriptions.push(`age ${age}`);
+        break;
+      case 'gte':
+        descriptions.push(`age ${age}+`);
+        break;
+      case 'lte':
+        descriptions.push(`age <= ${age}`);
+        break;
+    }
+  }
+
+  let fullDescription = `View students: ${descriptions.join(', ')}`;
+  if (fullDescription.length > 50) {
+    fullDescription = fullDescription.substring(0, 47) + '...';
+  }
+  return fullDescription;
+};
 
 export function ChatAssistant() {
-  const router = useRouter();
-  const { isChatAssistantOpen, setIsChatAssistantOpen } = useChatAssistantOpen();
+  const { isChatAssistantOpen, setIsChatAssistantOpen } = useChatAssistantOpen()
   const [showJumpToBottom, setShowJumpToBottom] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter();
+  const [lastNavigatedMessageId, setLastNavigatedMessageId] = useState<string | null>(null);
 
   // Load initial messages from localStorage for persistence
   const [initialMessages] = useState(() => {
@@ -32,25 +106,17 @@ export function ChatAssistant() {
     return [];
   });
 
-  const { messages, input, handleInputChange, handleSubmit, status, setMessages, setInput } = useChat({
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit: handleChatSubmit,
+    status,
+    setMessages,
+    setInput,
+  } = useChat({
     id: 'chat-assistant',
     initialMessages,
-    onToolCall: ({ toolCall }) => {
-      if (toolCall.toolName === 'navigate') {
-        const { url, description } = toolCall.args as {
-          url: string,
-          description: string
-        };
-
-        if (typeof url === 'string' && typeof description === 'string') {
-          router.push(url);
-          return; 
-        } else {
-          console.error('Invalid url or description argument for navigate tool:', toolCall.args);
-          return;
-        }
-      }
-    }
   });
 
   // Handler to clear chat history
@@ -58,6 +124,16 @@ export function ChatAssistant() {
     setMessages([]);
     setInput('');
     localStorage.removeItem('chatAssistantMessages');
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    // `handleChatSubmit` will automatically append the user's message (from `input`)
+    // and send it to the API. The `useChat` hook manages the message list and
+    // will handle the full request-response cycle with tools.
+    handleChatSubmit(e as React.FormEvent<HTMLFormElement>);
   };
 
   // Persist chat messages to localStorage on change
@@ -68,6 +144,25 @@ export function ChatAssistant() {
       console.error('Failed to store chat messages', err);
     }
   }, [messages]);
+
+  // Automatic navigation when a filter_students tool result is available
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage.id === lastNavigatedMessageId) return;
+
+    if (lastMessage.role === 'assistant' && lastMessage.toolInvocations) {
+      const toolInvocation = (lastMessage.toolInvocations as ToolInvocation[]).find(
+        (inv) => inv.toolName === 'filter_students'
+      );
+
+      if (toolInvocation?.result?.url) {
+        router.push(toolInvocation.result.url);
+        setLastNavigatedMessageId(lastMessage.id);
+      }
+    }
+  }, [messages, router, lastNavigatedMessageId]);
 
   // Load saved state from localStorage
   useEffect(() => {
@@ -123,9 +218,6 @@ export function ChatAssistant() {
     window.dispatchEvent(new Event('storage'))
   }
 
-  // Track the ID of the current assistant message being streamed
-  const activeMessageId = messages[messages.length - 1]?.id;
-
   return (
     <>
       {!isChatAssistantOpen && (
@@ -164,7 +256,18 @@ export function ChatAssistant() {
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto relative"
           >
-            {messages.map(message => (
+            {messages.map((message) => {
+              let toolResult: ToolInvocation['result'] | undefined;
+
+              if (message.role === 'assistant' && message.toolInvocations) {
+                const toolInvocation = (message.toolInvocations as ToolInvocation[]).find(
+                  (inv) => inv.toolName === 'filter_students'
+                );
+                if (toolInvocation?.result?.url) {
+                  toolResult = toolInvocation.result;
+                }
+              }
+              return (
               <div
                 key={message.id}
                 className={cn(
@@ -174,63 +277,19 @@ export function ChatAssistant() {
                     : "mr-auto bg-gray-100"
                 )}
               >
-                {/* Display streamed parts if available, otherwise fallback to content */}
-                {message.parts && message.parts.length > 0 ? (
-                  message.parts.map((part, i) => {
-                    switch (part.type) {
-                      case 'text':
-                        return <div key={`${message.id}-${i}`}>{part.text}</div>
-                      case 'tool-invocation': {
-                        const invocation = part.toolInvocation;
-                        // Replace tool invocation and result render with collapsible details
-                        // Collapsible call details; expanded until result arrives
-                        const callComponent = (
-                          <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-call`} className="mb-2">
-                            <summary className="cursor-pointer font-small text-gray-600">Tool Called: {invocation.toolName}</summary>
-                            <div>
-                              <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.args, null, 2)}</pre>
-                            </div>
-                          </details>
-                        );
-                        if (invocation.state === 'result') {
-                          // Collapsible result details; default collapsed
-                          let resultComponent;
-                          if (invocation.toolName === 'navigate') {
-                            const { url, description } = invocation.result as { url: string; description: string };
-                            resultComponent = (
-                              <div key={`${message.id}-${i}-result`} className="flex flex-col mb-2">
-                                <button 
-                                  onClick={() => router.push(url)}
-                                  className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-md border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition-colors duration-150 cursor-pointer text-left"
-                                >
-                                  {description}
-                                </button>
-                              </div>
-                            );
-                          } else {
-                            resultComponent = (
-                              <details open={message.id === activeMessageId && (status === 'submitted' || status === 'streaming')} key={`${message.id}-${i}-result`} className="mb-2">
-                                <summary className="cursor-pointer font-small text-gray-600">Response from {invocation.toolName}</summary>
-                                <div>
-                                  <pre className="whitespace-pre-wrap text-sm text-gray-700 p-2 bg-gray-200 rounded-md">{JSON.stringify(invocation.result, null, 2)}</pre>
-                                </div>
-                              </details>
-                            );
-                          }
-                          return [callComponent, resultComponent];
-                        }
-                        // Show only call details while invocation in progress
-                        return callComponent;
-                      }
-                      default:
-                        return null
-                    }
-                  })
-                ) : (
-                  <div>{message.content}</div>
+                {message.content}
+                {toolResult?.url && (
+                  <div className="mt-2">
+                    <Button asChild variant="action" size="sm" className="h-auto">
+                      <Link href={toolResult.url}>
+                        {generateFilterDescription(toolResult.filtersApplied)}
+                      </Link>
+                    </Button>
+                  </div>
                 )}
               </div>
-            ))}
+              )
+            })}
             <div ref={messagesEndRef} />
             {(status === 'submitted' || status === 'streaming') && <TypingAnimation />}
             {showJumpToBottom && (
@@ -257,7 +316,7 @@ export function ChatAssistant() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
-                      handleSubmit(e)
+                      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
                     }
                   }}
                 />
