@@ -18,13 +18,10 @@ export const sections = pgTable("sections", {
   courseNumber: text("course_number").notNull(),
   gradeLevel: text("grade_level").notNull(),
   transactionDate: date('transaction_date'),
-
   externalKey: text("external_key").notNull(),
   externalId: text("external_id").notNull(),
   externalKeyHash: text("external_key_hash").notNull().unique(),
   externalSource: text("external_source").notNull(),
-
-
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => [

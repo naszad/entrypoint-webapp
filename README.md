@@ -123,6 +123,8 @@ An outline of the process is:
 5. Inspect the generated migration files for accuracy, then apply it to your local instance with `npm run drizzle:migrate`
 6. Push your code, and open a PR
 
+**IMPORTANT!!** [Read here on how to resolve migration file conflicts.](https://entrypointsrm.atlassian.net/wiki/spaces/Tech/pages/64454661/Resolving+merge+conflicts)
+
 ### Pull requests
 Before opening a pull request, check:
 1. Does `npm run build` execute successfully?
