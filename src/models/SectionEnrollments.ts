@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, integer, date, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, date, unique, pgPolicy } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { students } from './Students';
 import { sections } from './Sections';
 import { terms } from './Terms';
@@ -20,5 +21,24 @@ export const sectionEnrollments = pgTable('section_enrollments', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 },
 (table) => ({
-  unique: unique().on(table.studentId, table.sectionId, table.termId)
+  unique: unique().on(table.studentId, table.sectionId, table.termId),
+  rls: pgPolicy('Allow Reading of Section Enrollments', {
+    for: 'select',
+    to: 'authenticated',
+    using: sql`
+      EXISTS (
+        SELECT 1
+        FROM sections s
+        JOIN courses c ON s.course_id = c.course_id
+        JOIN user_school_memberships usm ON usm.school_id = c.school_id
+        CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context
+        WHERE s.section_id = ${table.sectionId}
+          AND usm.user_id = auth.uid()
+          AND (
+            app_context.current_school_id IS NULL OR
+            c.school_id = app_context.current_school_id
+          )
+      )
+    `,
+  })
 }));

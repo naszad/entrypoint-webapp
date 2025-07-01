@@ -127,6 +127,48 @@
       "when": 1751313998399,
       "tag": "0017_lowly_squadron_supreme",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1751341015294,
+      "tag": "0018_update_safe_select_function",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1751341044408,
+      "tag": "0019_update_rls_policy_for_students",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1751377196053,
+      "tag": "0020_dazzling_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1751377962082,
+      "tag": "0021_light_devos",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1751378559795,
+      "tag": "0022_abandoned_northstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1751379179399,
+      "tag": "0023_bizarre_butterfly",
+      "breakpoints": true
     }
   ]
 }

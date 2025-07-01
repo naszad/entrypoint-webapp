@@ -3,6 +3,8 @@ import { students } from './Students';
 import { sections } from './Sections';
 import { terms } from './Terms';
 import { courses } from './Courses';
+import { pgPolicy } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const studentGrades = pgTable('student_grades', {
   gradeId: uuid('grade_id').defaultRandom().primaryKey(),
@@ -27,4 +29,24 @@ export const studentGrades = pgTable('student_grades', {
   externalSource: text("external_source").notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(), //When it was last updated in our database
-});
+}, (table) => [
+  pgPolicy('Allow Reading of Student Grades', {
+    for: 'select',
+    to: 'authenticated',
+    using: sql`
+      EXISTS (
+        SELECT 1
+        FROM sections s
+        JOIN courses c ON s.course_id = c.course_id
+        JOIN user_school_memberships usm ON usm.school_id = c.school_id
+        CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context
+        WHERE s.section_id = ${table.sectionId}
+          AND usm.user_id = auth.uid()
+          AND (
+            app_context.current_school_id IS NULL OR
+            c.school_id = app_context.current_school_id
+          )
+      )
+    `,
+  }),
+]);
