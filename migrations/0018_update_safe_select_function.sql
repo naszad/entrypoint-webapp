@@ -1,3 +1,4 @@
+-- Custom SQL migration file, put your code below! --
 DROP FUNCTION IF EXISTS public.execute_safe_select;
 CREATE OR REPLACE FUNCTION public.execute_safe_select(
     query_text text,

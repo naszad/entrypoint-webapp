@@ -1,5 +1,4 @@
 -- Custom SQL migration file, put your code below! --
-
 CREATE OR REPLACE FUNCTION public.get_current_school_id()
 RETURNS uuid AS $$
 BEGIN

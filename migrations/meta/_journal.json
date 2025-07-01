@@ -127,6 +127,20 @@
       "when": 1751313998399,
       "tag": "0017_lowly_squadron_supreme",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1751341015294,
+      "tag": "0018_update_safe_select_function",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1751341044408,
+      "tag": "0019_update_rls_policy_for_students",
+      "breakpoints": true
     }
   ]
 }
