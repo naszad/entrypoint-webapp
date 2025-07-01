@@ -113,6 +113,20 @@
       "when": 1750937182639,
       "tag": "0015_add_ai_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1751318818658,
+      "tag": "0016_update_safe_select_function",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1751326432383,
+      "tag": "0017_update_rls_policy_for_students",
+      "breakpoints": true
     }
   ]
 }

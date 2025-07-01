@@ -2,6 +2,7 @@ import { CoreMessage, streamText, tool } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { z } from 'zod'
+import { cookies } from 'next/headers'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -149,8 +150,14 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
             return { error: err_msg };
           }
 
+          const cookieStore = cookies()
+          const selectedSchoolId = (await cookieStore).get('selectedSchoolId')?.value
+
           const supabase = await createClient()
-          const { data, error } = await supabase.rpc('execute_safe_select', { query_text: sql });
+          const { data, error } = await supabase.rpc('execute_safe_select', { 
+            query_text: sql,
+            p_selected_school_id: selectedSchoolId
+          });
 
           if (error) {
             console.error('Error executing SQL:', error);
