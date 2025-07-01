@@ -89,7 +89,22 @@ export function ChatAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const router = useRouter();
-  const [lastNavigatedMessageId, setLastNavigatedMessageId] = useState<string | null>(null);
+  const [lastNavigatedMessageId, setLastNavigatedMessageId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('lastNavigatedMessageId');
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (lastNavigatedMessageId) {
+        sessionStorage.setItem('lastNavigatedMessageId', lastNavigatedMessageId);
+      } else {
+        sessionStorage.removeItem('lastNavigatedMessageId');
+      }
+    }
+  }, [lastNavigatedMessageId]);
 
   // Load initial messages from localStorage for persistence
   const [initialMessages] = useState(() => {
@@ -124,6 +139,7 @@ export function ChatAssistant() {
     setMessages([]);
     setInput('');
     localStorage.removeItem('chatAssistantMessages');
+    setLastNavigatedMessageId(null);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
