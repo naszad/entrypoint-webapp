@@ -24,9 +24,17 @@ export const courses = pgTable('courses', {
     to: 'authenticated',
     using: sql`
       EXISTS (
-        SELECT 1 FROM user_school_memberships usm
-        WHERE usm.user_id = auth.uid()
-        AND usm.school_id = ${table.schoolId}
+        SELECT 1
+        FROM
+          user_school_memberships usm
+          CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context
+        WHERE
+          usm.user_id = auth.uid() AND
+          usm.school_id = ${table.schoolId} AND
+          (
+            app_context.current_school_id IS NULL OR
+            usm.school_id = app_context.current_school_id
+          )
       )
     `,
   }),
