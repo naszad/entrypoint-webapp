@@ -14,7 +14,6 @@ ALTER TABLE public.students DISABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow Reading of Students" ON public.students;
 
--- Here, we create the new policy.
 CREATE POLICY "Allow Reading of Students"
 ON public.students
 FOR SELECT
