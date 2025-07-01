@@ -12,6 +12,8 @@ DECLARE
 BEGIN
   IF p_selected_school_id IS NOT NULL THEN
 
+    -- Set the school context so the query is scoped to the user's selected school.
+    -- The third parameter is true, which means that the context will be reset after the current transaction.
     PERFORM set_config('app.current_school_id', p_selected_school_id::text, true);
   END IF;
 
