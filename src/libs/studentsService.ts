@@ -43,7 +43,8 @@ type StudentSchoolLink = {
     external_name: string;
     graduation_year: number;
     enrollment_status: string;
-    homeroom_name: string;    
+    homeroom_name: string;
+    customer_id: string;
   }
 };
 
@@ -183,7 +184,8 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
           external_name,
           graduation_year,
           enrollment_status,
-          homeroom_name
+          homeroom_name,
+          customer_id
         )
       `)
       .eq('school_id', selectedSchoolId);
@@ -253,12 +255,13 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         updatedAt: studentSchoolLink.students.updated_at,
         externalSource: studentSchoolLink.students.external_source,
         externalKey: studentSchoolLink.students.external_key,
-        externalId: Number(studentSchoolLink.students.external_id) || 0,
+        externalId: studentSchoolLink.students.external_id,
         externalKeyHash: studentSchoolLink.students.external_key_hash,
         externalName: studentSchoolLink.students.external_name,
         graduationYear: studentSchoolLink.students.graduation_year,
         enrollmentStatus: studentSchoolLink.students.enrollment_status,
         homeroomName: studentSchoolLink.students.homeroom_name,
+        customerId: studentSchoolLink.students.customer_id,
       }
     }).filter((student): student is StudentInfo => student !== null);
 
@@ -342,7 +345,8 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       external_name,
       graduation_year,
       enrollment_status,
-      homeroom_name
+      homeroom_name,
+      customer_id
     `)
     .eq('student_id', studentId)
     .single();
@@ -368,12 +372,13 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       updatedAt: student.updated_at,
       externalSource: student.external_source,
       externalKey: student.external_key,
-      externalId: Number(student.external_id) || 0,
+      externalId: student.external_id,
       externalKeyHash: student.external_key_hash,
       externalName: student.external_name,
       graduationYear: student.graduation_year,
       enrollmentStatus: student.enrollment_status,
       homeroomName: student.homeroom_name,
+      customerId: student.customer_id,
     }
 
     return parsedStudent;

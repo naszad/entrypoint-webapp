@@ -9,6 +9,7 @@ import {
   pgPolicy
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { customers } from './Customers';
 
 export const students = pgTable(
   'students',
@@ -23,16 +24,20 @@ export const students = pgTable(
     gradeLevel: integer('grade_level').notNull(),
     gender: varchar('gender', { length: 256 }),
     dateOfBirth: date('date_of_birth'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-    externalSource: text('external_source'),
-    externalKey: text('external_key'),
-    externalId: integer('external_id'),
-    externalKeyHash: text('external_key_hash').notNull().unique(),
-    externalName: text('external_name'),
     graduationYear: integer('graduation_year'), 
     enrollmentStatus: text('enrollment_status').notNull(), 
     homeroomName: text('homeroom_name'),
+
+    externalSource: text('external_source').notNull().default('Powerschool'),
+    externalName: text('external_name'),
+    externalId: text('external_id').notNull(),
+    externalKey: text('external_key').notNull().unique(),
+    externalKeyHash: text('external_key_hash').notNull().unique(),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    customerId: uuid('customer_id').references(() => customers.customerId, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    
   }, 
 (table) => [
     pgPolicy('Allow Reading of Students', {

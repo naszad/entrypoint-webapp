@@ -13,8 +13,8 @@ import { students } from './Students';
 export const schoolStudentLinks = pgTable(
   'school_student_link',
   {
-    studentId: uuid('student_id').notNull().references(() => students.studentId),
-    schoolId: uuid('school_id').notNull().references(() => schools.schoolId),
+    studentId: uuid('student_id').notNull().references(() => students.studentId, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    schoolId: uuid('school_id').notNull().references(() => schools.schoolId, { onDelete: 'cascade', onUpdate: 'cascade' }),
     startDate: date('start_date'),
     endDate: date('end_date'),
     createdAt: timestamp('created_at').defaultNow(),

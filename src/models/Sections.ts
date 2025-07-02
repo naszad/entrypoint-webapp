@@ -9,21 +9,28 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { courses } from "./Courses";
+import { customers } from "./Customers";
 
 export const sections = pgTable("sections", {
   sectionId: uuid("section_id").primaryKey().defaultRandom(),
-  courseId: uuid('course_id').notNull().references(() => courses.courseId, { onDelete: 'cascade' }),
+  courseId: uuid('course_id').notNull().references(() => courses.courseId, { onDelete: 'cascade', onUpdate: 'cascade' }),
   noOfStudents: integer("no_of_students").notNull(),
   sectionNumber: integer("section_number").notNull(),
   courseNumber: text("course_number").notNull(),
   gradeLevel: text("grade_level").notNull(),
   transactionDate: date('transaction_date'),
-  externalKey: text("external_key").notNull(),
-  externalId: text("external_id").notNull(),
-  externalKeyHash: text("external_key_hash").notNull().unique(),
-  externalSource: text("external_source").notNull(),
+
+  externalSource: text('external_source').notNull().default('Powerschool'),
+  externalName: text('external_name'),
+  externalId: text('external_id').notNull(),
+  externalKey: text('external_key').notNull().unique(),
+  externalKeyHash: text('external_key_hash').notNull().unique(),
+
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  customerId: uuid('customer_id').references(() => customers.customerId, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  
 }, (table) => [
   pgPolicy('Allow Reading of Sections', {
     for: 'select',

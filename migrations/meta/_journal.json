@@ -169,6 +169,13 @@
       "when": 1751379179399,
       "tag": "0023_bizarre_butterfly",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1751461430344,
+      "tag": "0024_charming_exiles",
+      "breakpoints": true
     }
   ]
 }

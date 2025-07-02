@@ -6,18 +6,22 @@ import { customers } from './Customers';
 
 export const courses = pgTable('courses', {
   courseId: uuid('course_id').default(sql`gen_random_uuid()`).primaryKey(),
-  externalKey: text('external_key').notNull(),
-  externalId: text('external_id').notNull(),
-  externalKeyHash: text('external_key_hash').notNull().unique(),
+
   externalSource: text('external_source').notNull().default('Powerschool'),
   externalName: text('external_name'),
-  schoolId: uuid('school_id').notNull().references(() => schools.schoolId, { onDelete: 'cascade' }),
-  customerId: uuid('customer_id').references(() => customers.customerId, { onDelete: 'cascade' }),
+  externalId: text('external_id').notNull(),
+  externalKey: text('external_key').notNull().unique(),
+  externalKeyHash: text('external_key_hash').notNull().unique(),
+
+  schoolId: uuid('school_id').notNull().references(() => schools.schoolId, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  
   name: text('name'),
   localCourseCode: text('local_course_code'),
   stateCourseCode: text('state_course_code'),
+  
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  customerId: uuid('customer_id').references(() => customers.customerId, { onDelete: 'cascade', onUpdate: 'cascade' }),
 }, (table) => [
   pgPolicy('Allow Reading of Courses', {
     for: 'select',

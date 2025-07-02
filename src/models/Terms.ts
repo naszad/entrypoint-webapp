@@ -7,21 +7,26 @@ import {
   pgPolicy,
 } from "drizzle-orm/pg-core";
 import { schools } from "./Schools";
+import { customers } from "./Customers";
 
 export const terms = pgTable("terms", {
   termId: uuid("term_id").primaryKey().defaultRandom(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
   abbreviation: text("abbreviation").notNull(),
-  schoolId: uuid('school_id').notNull().references(() => schools.schoolId, { onDelete: 'cascade' }),
+  schoolId: uuid('school_id').notNull().references(() => schools.schoolId, { onDelete: 'cascade', onUpdate: 'cascade' }),
   yearId: text("year_id").notNull(),
-  externalId: text("external_id"),
-  externalName: text("external_name"),
-  externalKey: text("external_key"),
-  externalKeyHash: text("external_key_hash").unique(),
-  externalSource: text("external_source"),
+
+  externalSource: text('external_source').notNull().default('Powerschool'),
+  externalName: text('external_name'),
+  externalId: text('external_id').notNull(),
+  externalKey: text('external_key').notNull().unique(),
+  externalKeyHash: text('external_key_hash').notNull().unique(),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  customerId: uuid('customer_id').references(() => customers.customerId, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  
 }, (table) => [
   pgPolicy('Allow Reading of Terms', {
     for: 'select',
