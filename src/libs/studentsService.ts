@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { StudentInfo } from '@/types/StudentInfo';
+import { StudentTermGradeInfo } from '@/types/StudentTermGradeInfo';
 import { cookies } from 'next/headers';
 
 type StudentsRequest = {
@@ -44,6 +45,25 @@ type StudentSchoolLink = {
     enrollment_status: string;
     homeroom_name: string;    
   }
+};
+
+type GradeData = {
+  course: {
+    name: string;
+    course_id: string;
+    local_course_code: string;
+  };
+  grade_letter: string;
+  grade_percent: number;
+  grade_points: number;
+  updated_at: Date;
+};
+type TermGradeData = {
+  term: {
+    term_id: string;
+    abbreviation: string;
+    term_grades: GradeData[];
+  };
 };
 
 const getColumnName = (key: string) => {
@@ -255,7 +275,6 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       
       const { count, error: countError } = await countQuery;
       if (countError) {
-        console.error('Count query error:', countError);
         throw new Error(countError.message);
       }
       totalCount = count || 0;
@@ -267,7 +286,6 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     };
 
   } catch (err) {
-    console.error('Error in fetchStudentsByFilterCriteria:', err);
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     throw new Error(`Failed to fetch students. Error: ${message}`);
   }
@@ -362,4 +380,94 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
   } catch (err) { 
     throw new Error(`Failed to fetch student ${err}`);
   }
-} 
+}
+  export async function fetchStudentCurrentGrades(studentId: string): Promise<StudentTermGradeInfo> {
+    try {
+      const supabase = await createClient()
+
+      const { data, error } = await supabase
+        .from('section_enrollments')
+        .select(`
+          term_id,
+          term:terms (
+            term_id,
+            abbreviation,
+            term_grades:student_grades (
+              grade_id,
+              grade_letter,
+              grade_percent,
+              grade_points,
+              updated_at,
+              course:courses (
+                course_id,
+                name,
+                local_course_code
+              )
+            )
+          )
+        `)
+        .eq('student_id', studentId)
+        .eq('term.term_grades.student_id', studentId)
+        .or('start_date.is.null,start_date.lt.now()')
+        .or('end_date.is.null,end_date.gt.now()');
+
+      if (error) {
+        throw new Error(`Failed to fetch section enrollments: ${error.message}`);
+      }
+
+      const refinedData = data as unknown as TermGradeData[];
+
+      const termsData = refinedData
+        .map((d: TermGradeData) => ({
+          termId: d.term.term_id,
+          abbreviation: d.term.abbreviation
+        }))
+        .filter((term, index, self) => 
+          index === self.findIndex(t => t.termId === term.termId)
+        );
+
+      const courseMap = new Map();
+      const courseGradesMap = new Map<string, { [termId: string]: { gradeLetter: string; gradePercentage: number; gradePoints: number; updatedAt: string } }>();
+      
+      refinedData.forEach((termData: TermGradeData) => {
+        const termId = termData.term.term_id;
+        
+        termData.term.term_grades.forEach((grade: GradeData) => {
+          const courseId = grade.course.course_id;
+          
+          if (!courseMap.has(courseId)) {
+            courseMap.set(courseId, {
+              courseId: courseId,
+              courseName: grade.course.name,
+              courseNumber: grade.course.local_course_code
+            });
+          }
+          
+          if (!courseGradesMap.has(courseId)) {
+            courseGradesMap.set(courseId, {});
+          }
+          
+          courseGradesMap.get(courseId)![termId] = {
+            gradeLetter: grade.grade_letter || '',
+            gradePercentage: grade.grade_percent || 0,
+            gradePoints: grade.grade_points || 0,
+            updatedAt: grade.updated_at ? new Date(grade.updated_at).toISOString() : ''
+          };
+        });
+      });
+
+      const coursesData = Array.from(courseMap.values()).map((gradeData: { courseId: string; courseName: string; courseNumber: string }) => ({
+        courseId: gradeData.courseId,
+        courseName: gradeData.courseName,
+        courseNumber: gradeData.courseNumber || '',
+        grades: courseGradesMap.get(gradeData.courseId) || {}
+      }));
+
+      return {
+        terms: termsData,
+        courses: coursesData
+      };
+    } catch (err) {
+      throw new Error(`Failed to fetch student current grades: ${err}`);
+    }
+  }
