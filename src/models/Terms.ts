@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { schools } from "./Schools";
 import { customers } from "./Customers";
+import { years } from "./Years";
 
 export const terms = pgTable("terms", {
   termId: uuid("term_id").primaryKey().defaultRandom(),
@@ -15,7 +16,7 @@ export const terms = pgTable("terms", {
   endDate: text("end_date").notNull(),
   abbreviation: text("abbreviation").notNull(),
   schoolId: uuid('school_id').notNull().references(() => schools.schoolId, { onDelete: 'cascade', onUpdate: 'cascade' }),
-  yearId: text("year_id").notNull(),
+  yearId: uuid("year_id").notNull().references(() => years.yearId, { onDelete: 'cascade', onUpdate: 'cascade' }),
 
   externalSource: text('external_source').notNull().default('Powerschool'),
   externalName: text('external_name'),

@@ -7,27 +7,30 @@
 DO $$
 DECLARE
   lincoln_hs_id uuid;
+  year_34_id uuid;
 BEGIN
   SELECT school_id INTO lincoln_hs_id FROM schools WHERE name = 'Lincoln High School' LIMIT 1;
+  SELECT year_id INTO year_34_id FROM years WHERE year_external_id = '34' LIMIT 1;
+
 
   INSERT INTO terms (
     term_id, school_id, start_date, end_date, abbreviation, year_id,
     external_id, external_name, external_key, external_key_hash, external_source
   ) VALUES
   (
-    gen_random_uuid(), lincoln_hs_id, '2024-08-15', '2024-10-18', 'Q1', '34',
+    gen_random_uuid(), lincoln_hs_id, '2024-08-15', '2024-10-18', 'Q1', year_34_id,
     'TERM_Q1_2425_LHS', 'Quarter 1 2024-2025', 'LHS_Q1_2425', encode(digest('LHS_Q1_2425', 'sha256'), 'hex'), 'mock_source'
   ),
   (
-    gen_random_uuid(), lincoln_hs_id, '2024-10-21', '2024-12-20', 'Q2', '34',
+    gen_random_uuid(), lincoln_hs_id, '2024-10-21', '2024-12-20', 'Q2', year_34_id,
     'TERM_Q2_2425_LHS', 'Quarter 2 2024-2025', 'LHS_Q2_2425', encode(digest('LHS_Q2_2425', 'sha256'), 'hex'), 'mock_source'
   ),
   (
-    gen_random_uuid(), lincoln_hs_id, '2025-01-06', '2025-03-14', 'Q3', '34',
+    gen_random_uuid(), lincoln_hs_id, '2025-01-06', '2025-03-14', 'Q3', year_34_id,
     'TERM_Q3_2425_LHS', 'Quarter 3 2024-2025', 'LHS_Q3_2425', encode(digest('LHS_Q3_2425', 'sha256'), 'hex'), 'mock_source'
   ),
   (
-    gen_random_uuid(), lincoln_hs_id, '2025-03-17', '2025-05-23', 'Q4', '34',
+    gen_random_uuid(), lincoln_hs_id, '2025-03-17', '2025-05-23', 'Q4', year_34_id,
     'TERM_Q4_2425_LHS', 'Quarter 4 2024-2025', 'LHS_Q4_2425', encode(digest('LHS_Q4_2425', 'sha256'), 'hex'), 'mock_source'
   );
 END $$;

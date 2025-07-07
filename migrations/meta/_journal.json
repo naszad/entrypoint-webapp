@@ -176,6 +176,13 @@
       "when": 1751461430344,
       "tag": "0024_charming_exiles",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1751632630641,
+      "tag": "0025_bizarre_eternals",
+      "breakpoints": true
     }
   ]
 }

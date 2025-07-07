@@ -5,6 +5,7 @@ import { terms } from './Terms';
 import { courses } from './Courses';
 import { pgPolicy } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { customers } from './Customers';
 
 export const studentGrades = pgTable('student_grades', {
   gradeId: uuid('grade_id').defaultRandom().primaryKey(),
@@ -23,12 +24,19 @@ export const studentGrades = pgTable('student_grades', {
   gradeLevel: text('grade_level'),
   sourceApi: text('source_api'), // The API that the grade was pulled from, since these can come from multiple sources. Nullable because in some source systems this will be irrelevant.
   sourceUpdatedDate: timestamp('source_updated_date').notNull(), // When it was last updated in the source system
-  externalKey: text("external_key").notNull(),
-  externalId: text("external_id").notNull(),
-  externalKeyHash: text("external_key_hash").notNull().unique(),
-  externalSource: text("external_source").notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(), //When it was last updated in our database
+  externalSource: text('external_source').notNull().default('Powerschool'),
+    externalName: text('external_name'),
+    externalId: text('external_id').notNull(),
+    externalKey: text('external_key').notNull().unique(),
+    externalKeyHash: text('external_key_hash').notNull().unique(),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+
+    customerId: uuid('customer_id').references(() => customers.customerId, {
+      onDelete: 'cascade',
+      onUpdate: 'cascade',
+    }),
 }, (table) => [
   pgPolicy('Allow Reading of Student Grades', {
     for: 'select',
