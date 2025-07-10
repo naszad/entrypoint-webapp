@@ -49,9 +49,23 @@ BEGIN
         p_term_ids,
         p_use_percent
       ) INTO gpa;
-    -- TODO: Add other cases for 'added_value', 'credit_hour_weighted', etc.
-    -- WHEN 'added_value' THEN
-    --   gpa := calculate_added_value_gpa(...);
+    WHEN 'added_value' THEN
+      SELECT calculate_added_value_gpa(
+        p_student_id,
+        p_grade_codes,
+        p_grade_levels,
+        p_credit_types,
+        p_term_ids
+      ) INTO gpa;
+    WHEN 'credit_hour_weighted' THEN
+      SELECT calculate_credit_hour_weighted_gpa(
+        p_student_id,
+        p_grade_codes,
+        p_grade_levels,
+        p_credit_types,
+        p_term_ids,
+        p_use_percent
+      ) INTO gpa;
     ELSE
       -- Optionally, raise an exception for an unknown method
       RAISE EXCEPTION 'Unknown GPA calculation method: %', resolved_method;

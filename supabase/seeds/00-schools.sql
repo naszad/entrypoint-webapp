@@ -23,7 +23,8 @@ INSERT INTO schools (
   external_key,
   external_id,
   external_key_hash,
-  external_name
+  external_name,
+  gpa_config
 ) VALUES (
   (SELECT customer_id FROM customers WHERE name = 'Lincoln Township District'),
   'Lincoln High School',
@@ -41,7 +42,10 @@ INSERT INTO schools (
   'MOCK_KEY_123',
   98765,
   encode(digest('MOCK_KEY_123', 'sha256'), 'hex'),
-  'Lincoln HS'
+  'Lincoln HS',
+  '{
+    "default_method": "simple"
+  }'::JSONB
 );
 
 INSERT INTO schools (
