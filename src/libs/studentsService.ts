@@ -56,7 +56,7 @@ type GradeData = {
   };
   grade_letter: string;
   grade_percent: number;
-  grade_points: number;
+  gpa_points: number;
   updated_at: Date;
 };
 type TermGradeData = {
@@ -401,7 +401,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
               grade_id,
               grade_letter,
               grade_percent,
-              grade_points,
+              gpa_points,
               updated_at,
               course:courses (
                 course_id,
@@ -455,7 +455,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
           courseGradesMap.get(courseId)![termId] = {
             gradeLetter: grade.grade_letter || '',
             gradePercentage: grade.grade_percent || 0,
-            gradePoints: grade.grade_points || 0,
+            gradePoints: grade.gpa_points || 0,
             updatedAt: grade.updated_at ? new Date(grade.updated_at).toISOString() : ''
           };
         });
