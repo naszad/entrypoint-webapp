@@ -91,29 +91,29 @@ BEGIN
 
   -- Emma Johnson's Grades (Grade 11)
   -- US History (Q1 & Q2)
-  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, grade_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (emma_johnson_student_id, us_history_section_id, q1_2425_term_id, us_history_course_id, 'A-', 'Q1', 92.00, 3.70, 0.5, 'History', 'Final', 'Excellent work on Q1 project!', '11', 'StoredGrades', '2024-10-20', 'GRADE_EMMA_USHIST_Q1', 'G_EMMA_USHIST_Q1', encode(digest('GRADE_EMMA_USHIST_Q1', 'sha256'), 'hex'), 'mock_source'),
   (emma_johnson_student_id, us_history_section_id, q2_2425_term_id, us_history_course_id, 'B+', 'Q2', 88.50, 3.30, 0.5, 'History', 'InProgress', 'Good participation.', '11', 'PGFinalGrades', '2024-12-15', 'GRADE_EMMA_USHIST_Q2', 'G_EMMA_USHIST_Q2', encode(digest('GRADE_EMMA_USHIST_Q2', 'sha256'), 'hex'), 'mock_source');
   -- English 11 (Q1 & Q2)
-  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, grade_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (emma_johnson_student_id, english_11_section_id, q1_2425_term_id, english_11_course_id, 'A', 'Q1', 95.00, 4.00, 0.5, 'English', 'Final', 'Great analytical essays.', '11', 'StoredGrades', '2024-10-20', 'GRADE_EMMA_ENG11_Q1', 'G_EMMA_ENG11_Q1', encode(digest('GRADE_EMMA_ENG11_Q1', 'sha256'), 'hex'), 'mock_source'),
   (emma_johnson_student_id, english_11_section_id, q2_2425_term_id, english_11_course_id, 'A-', 'Q2', 91.00, 3.70, 0.5, 'English', 'InProgress', NULL, '11', 'PGFinalGrades', '2024-12-15', 'GRADE_EMMA_ENG11_Q2', 'G_EMMA_ENG11_Q2', encode(digest('GRADE_EMMA_ENG11_Q2', 'sha256'), 'hex'), 'mock_source');
 
   -- Michael Chen's Grades (Grade 10)
   -- English 10 (Q1 & Q2)
-  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, grade_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (michael_chen_student_id, english_10_section_id, q1_2425_term_id, english_10_course_id, 'B', 'Q1', 85.00, 3.00, 0.5, 'English', 'Final', 'Needs to work on thesis statements.', '10', 'StoredGrades', '2024-10-20', 'GRADE_MICHAEL_ENG10_Q1', 'G_MICHAEL_ENG10_Q1', encode(digest('GRADE_MICHAEL_ENG10_Q1', 'sha256'), 'hex'), 'mock_source'),
   (michael_chen_student_id, english_10_section_id, q2_2425_term_id, english_10_course_id, 'B-', 'Q2', 81.50, 2.70, 0.5, 'English', 'InProgress', NULL, '10', 'PGFinalGrades', '2024-12-15', 'GRADE_MICHAEL_ENG10_Q2', 'G_MICHAEL_ENG10_Q2', encode(digest('GRADE_MICHAEL_ENG10_Q2', 'sha256'), 'hex'), 'mock_source');
   -- Algebra I (Q1)
-  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, grade_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (michael_chen_student_id, algebra_1_section_id, q1_2425_term_id, algebra_1_course_id, 'C+', 'Q1', 78.00, 2.30, 0.5, 'Math', 'Final', 'Showing improvement.', '10', 'StoredGrades', '2024-10-20', 'GRADE_MICHAEL_ALG1_Q1', 'G_MICHAEL_ALG1_Q1', encode(digest('GRADE_MICHAEL_ALG1_Q1', 'sha256'), 'hex'), 'mock_source');
   -- Biology (Q1)
-  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, grade_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (michael_chen_student_id, biology_1_section_id, q1_2425_term_id, biology_1_course_id, 'B', 'Q1', 86.00, 3.00, 0.5, 'Science', 'Final', 'Good lab work.', '10', 'StoredGrades', '2024-10-20', 'GRADE_MICHAEL_BIO1_Q1', 'G_MICHAEL_BIO1_Q1', encode(digest('GRADE_MICHAEL_BIO1_Q1', 'sha256'), 'hex'), 'mock_source');
 
   -- Sophia Rodriguez's Grades (Grade 12)
   -- English 12 (Q1 & Q2)
-  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, grade_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (sophia_rodriguez_student_id, english_12_section_id, q1_2425_term_id, english_12_course_id, 'A', 'Q1', 96.50, 4.00, 0.5, 'English', 'Final', 'Outstanding analysis.', '12', 'StoredGrades', '2024-10-20', 'GRADE_SOPHIA_ENG12_Q1', 'G_SOPHIA_ENG12_Q1', encode(digest('GRADE_SOPHIA_ENG12_Q1', 'sha256'), 'hex'), 'mock_source'),
   (sophia_rodriguez_student_id, english_12_section_id, q2_2425_term_id, english_12_course_id, 'A', 'Q2', 94.00, 4.00, 0.5, 'English', 'InProgress', NULL, '12', 'PGFinalGrades', '2024-12-15', 'GRADE_SOPHIA_ENG12_Q2', 'G_SOPHIA_ENG12_Q2', encode(digest('GRADE_SOPHIA_ENG12_Q2', 'sha256'), 'hex'), 'mock_source');
 
