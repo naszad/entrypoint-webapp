@@ -4,8 +4,7 @@ CREATE OR REPLACE FUNCTION calculate_simple_gpa(
   p_grade_codes  TEXT[]  DEFAULT NULL,
   p_grade_levels INT[]   DEFAULT NULL,
   p_credit_types TEXT[]  DEFAULT NULL,
-  p_term_ids     UUID[]  DEFAULT NULL,
-  p_use_percent  BOOLEAN DEFAULT FALSE
+  p_term_ids     UUID[]  DEFAULT NULL
 ) RETURNS NUMERIC AS
 $$
 DECLARE
@@ -14,17 +13,13 @@ DECLARE
   gpa          NUMERIC := NULL;
 BEGIN
   SELECT
-    COALESCE(SUM(
-      CASE
-        WHEN p_use_percent AND sg.grade_percent IS NOT NULL THEN
-             (sg.grade_percent / 100.0) * 4.0      -- convert % to a 4.0 scale
-        ELSE sg.grade_points
-      END), 0),
+    COALESCE(SUM(sg.gpa_points), 0),
     COUNT(sg.grade_id)
   INTO total_points, course_count
   FROM student_grades sg
   WHERE sg.student_id = p_student_id
     AND sg.grade_status = 'Final' -- Assuming 'Final' indicates a completed grade
+    AND sg.exclude_from_gpa IS NOT TRUE
     AND (p_grade_codes  IS NULL OR sg.grade_code   = ANY(p_grade_codes))
     AND (p_grade_levels IS NULL OR sg.grade_level::INT = ANY(p_grade_levels))
     AND (p_credit_types IS NULL OR sg.credit_type  = ANY(p_credit_types))

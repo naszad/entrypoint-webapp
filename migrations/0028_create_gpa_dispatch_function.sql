@@ -5,8 +5,7 @@ CREATE OR REPLACE FUNCTION calculate_gpa_dispatch(
   p_grade_codes  TEXT[]  DEFAULT NULL,
   p_grade_levels INT[]   DEFAULT NULL,
   p_credit_types TEXT[]  DEFAULT NULL,
-  p_term_ids     UUID[]  DEFAULT NULL,
-  p_use_percent  BOOLEAN DEFAULT FALSE
+  p_term_ids     UUID[]  DEFAULT NULL
 ) RETURNS NUMERIC AS
 $$
 DECLARE
@@ -46,8 +45,7 @@ BEGIN
         p_grade_codes,
         p_grade_levels,
         p_credit_types,
-        p_term_ids,
-        p_use_percent
+        p_term_ids
       ) INTO gpa;
     WHEN 'added_value' THEN
       SELECT calculate_added_value_gpa(
@@ -63,8 +61,7 @@ BEGIN
         p_grade_codes,
         p_grade_levels,
         p_credit_types,
-        p_term_ids,
-        p_use_percent
+        p_term_ids
       ) INTO gpa;
     ELSE
       -- Optionally, raise an exception for an unknown method
