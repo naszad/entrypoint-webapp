@@ -85,7 +85,7 @@ const StudentGradesPage = () => {
     // If no saved data, initialize with current year's grade codes
     const currentYear = studentTermGradeInfo.find((year: YearGradeInfo) => year.isCurrent);
     if (currentYear && currentYear.gradeCodes.length > 0) {
-      const defaultCodes = currentYear.gradeCodes.slice(0, 2); // Default to first 2 codes
+      const defaultCodes = currentYear.gradeCodes.slice(0, 4); // Default to first 4 codes
       localStorage.setItem(getGradeCodesStorageKey(params.id as string), JSON.stringify(defaultCodes));
       setCurrentCodes(defaultCodes);
     }
@@ -121,18 +121,19 @@ const StudentGradesPage = () => {
       <div className="flex flex-col items-center mb-6">
         <h2 className="text-xl font-semibold">{getGPA().toFixed(2)} Cumulative GPA</h2>
       </div>        
-      <div className="overflow-x-auto">
-        <div className="border-separate border-spacing-0 inline-block min-w-full">
+      
+      <div className="overflow-x-auto flex justify-center">
+        <div className="border-separate border-spacing-0 inline-block">
           {/* Header */}
           <div className="flex">
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 min-w-[220px]">CATEGORY</div>
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 min-w-[80px]">GPA</div>
+            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[150px]">CATEGORY</div>
+            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[50px]">GPA</div>
             {studentTermGradeInfo.map((year) => (
               <div
                 key={year.label}
                 className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-center bg-gray-50"
                 
-                style={{ minWidth: `${((year.isCurrent ? currentCodes.length + 1 : year.gradeCodes.length + 1) * 100) + 100}px` }}
+                style={{ minWidth: `${((year.isCurrent ? currentCodes.length + 1 : year.gradeCodes.length + 1) * 45) + 100}px` }}
               >
                 <div className="flex">
                   {year.label}
@@ -150,13 +151,13 @@ const StudentGradesPage = () => {
           
           {/* Sub-header */}
           <div className="flex">
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 min-w-[220px]"></div>
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 min-w-[80px]"></div>
+            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[150px]"></div>
+            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[50px]"></div>
             {studentTermGradeInfo.map((year) => (
               <div key={year.label + '-subheader'} className="flex">
-                <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 min-w-[200px]">Course</div>
+                <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[150px]">Course</div>
                 {(year.isCurrent ? year.gradeCodes.filter((gradeCode) => currentCodes.includes(gradeCode)) : year.gradeCodes).map((gradeCode: string) => (
-                  <div key={year.label + '-' + gradeCode} className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-center bg-gray-50 min-w-[100px]">{gradeCode}</div>
+                  <div key={year.label + '-' + gradeCode} className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-center bg-gray-50 w-[45px]">{gradeCode}</div>
                 ))}
               </div>
             ))}
@@ -177,18 +178,18 @@ const StudentGradesPage = () => {
                 <div key={ct.creditType + '-row-' + rowIdx} className="flex">
                   {/* CATEGORY and GPA columns - show content on first row, empty cells on subsequent rows */}
                   {rowIdx === 0 ? (
-                    <div className="px-4 py-2 text-sm text-gray-700 align-top border-t border-gray-50 font-semibold bg-gray-50 min-w-[220px]">
+                    <div className="px-4 py-2 text-sm text-gray-700 align-top border-t border-gray-50 font-semibold bg-gray-50 w-[150px]">
                       {ct.creditType}
                     </div>
                   ) : (
-                    <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-gray-50 min-w-[220px] min-h-[40px]"></div>
+                    <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-gray-50 w-[150px] min-h-[40px]"></div>
                   )}
                   {rowIdx === 0 ? (
-                    <div className="px-4 py-2 text-sm text-gray-700 align-top border-t border-gray-50 bg-gray-50 min-w-[80px]">
+                    <div className="px-4 py-2 text-sm text-gray-700 align-top border-t border-gray-50 bg-gray-50 w-[50px]">
                       {creditTypeGPA.toFixed(2)}
                     </div>
                   ) : (
-                    <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-gray-50 min-w-[80px] min-h-[40px]"></div>
+                    <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-gray-50 w-[50px] min-h-[40px]"></div>
                   )}
                   {/* For each year, render the course at this rowIdx (if exists), else empty cells */}
                   {studentTermGradeInfo.map((year) => {
@@ -196,12 +197,12 @@ const StudentGradesPage = () => {
                     const course = courses[rowIdx];
                     return (
                       <div key={year.label + '-year-data'} className="flex">
-                        <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-white min-w-[200px] min-h-[40px] flex items-center">
+                        <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-white w-[150px] min-h-[40px] flex items-center">
                           {course ? course.courseName : ''}
                         </div>
                         {year.gradeCodes.map((gradeCode: string) => (
                           (year.isCurrent ? currentCodes.includes(gradeCode) : true) && (
-                            <div key={year.label + '-' + (course ? course.courseId : 'empty') + '-' + gradeCode} className="px-4 py-2 text-center border-t border-gray-50 bg-white min-w-[100px] min-h-[40px] flex items-center justify-center">
+                            <div key={year.label + '-' + (course ? course.courseId : 'empty') + '-' + gradeCode} className="px-4 py-2 text-center border-t border-gray-50 bg-white w-[45px] min-h-[40px] flex items-center justify-center">
                               {course ? <GradeLetter grade={course.grades[gradeCode]?.gradeLetter ?? null} /> : ''}
                             </div>
                           )
@@ -215,13 +216,13 @@ const StudentGradesPage = () => {
             
             {/* GPA row at the bottom */}
             <div className="flex">
-              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 min-w-[220px]">GPA</div>
-              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 min-w-[80px]">{getGPA().toFixed(2)}</div>
+              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 w-[150px]">GPA</div>
+              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 w-[50px]">{getGPA().toFixed(2)}</div>
               {studentTermGradeInfo.map((year) => (
                 <div key={year.label + '-gpa-row'} className="flex">
-                  <div className="px-4 py-2 text-sm font-bold text-gray-600 border-t bg-gray-50 min-w-[200px]"></div>
+                  <div className="px-4 py-2 text-sm font-bold text-gray-600 border-t bg-gray-50 w-[150px]"></div>
                   {year.gradeCodes.map((gradeCode: string) => (year.isCurrent ? currentCodes.includes(gradeCode) : true) && (
-                    <div key={year.label + '-gpa-' + gradeCode} className="px-4 py-2 text-xs text-center font-bold text-gray-600 border-t bg-gray-50 min-w-[100px]">{getGPA().toFixed(2)}</div>
+                    <div key={year.label + '-gpa-' + gradeCode} className="px-4 py-2 text-xs text-center font-bold text-gray-600 border-t bg-gray-50 w-[45px]">{getGPA().toFixed(2)}</div>
                   ))}
                 </div>
               ))}
