@@ -7,11 +7,6 @@ import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInf
 import { useParams } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Hardcoded GPA calculation for now
-function getGPA() {
-  return 3.2;
-}
-
 const getGradeCodesStorageKey = (studentId: string) => {
   return `currentYearGradeCodes-${studentId}`;
 }
@@ -22,6 +17,33 @@ const StudentGradesPage = () => {
   const [allCreditTypes, setAllCreditTypes] = useState<CreditType[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const [currentCodes, setCurrentCodes] = useState<string[]>([]);
+  const [gpaInfo, setGpaInfo] = useState<{ value: number; method: string; } | null>(null);
+
+  const calculateTermGpa = (year: YearGradeInfo, gradeCode: string) => {
+    const grades = year.creditTypes
+      .flatMap(ct => ct.courses)
+      .map(c => c.grades[gradeCode])
+      .filter(g => g && g.gradePoints > 0);
+    
+    if (grades.length === 0) return null;
+    
+    const totalPoints = grades.reduce((acc, g) => acc + g.gradePoints, 0);
+    return (totalPoints / grades.length);
+  };
+
+  const calculateCreditTypeGpa = (creditType: string) => {
+    const grades = studentTermGradeInfo
+      .flatMap(year => year.creditTypes)
+      .filter(ct => ct.creditType === creditType)
+      .flatMap(ct => ct.courses)
+      .flatMap(course => Object.values(course.grades))
+      .filter(grade => grade && grade.gradePoints > 0);
+
+    if (grades.length === 0) return null;
+
+    const totalPoints = grades.reduce((acc, grade) => acc + grade.gradePoints, 0);
+    return totalPoints / grades.length;
+  };
 
   const handleCurrentCodesChange = useCallback((codes: string[]) => {
     localStorage.setItem(getGradeCodesStorageKey(params.id as string), JSON.stringify(codes));
@@ -63,9 +85,37 @@ const StudentGradesPage = () => {
     }
   }, [params]);
 
+  const fetchGpa = useCallback(async () => {
+    const studentId = params.id as string;
+    if (!studentId) return;
+
+    try {
+      const url = `/api/students/${studentId}/gpa`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAlertMessage({ 
+          type: 'destructive', 
+          message: data.error || 'Failed to fetch GPA'
+        });
+        return;
+      }
+
+      setGpaInfo({ value: data.gpa, method: data.method });
+    } catch (err) {
+      setAlertMessage({ 
+        type: 'destructive', 
+        message: `Failed to fetch GPA ${err instanceof Error ? err.message : ''}`
+      });
+    }
+  }, [params.id]);
+
+
   useEffect(() => {
     fetchStudentCurrentGrades();
-  }, [fetchStudentCurrentGrades]);
+    fetchGpa();
+  }, [fetchStudentCurrentGrades, fetchGpa]);
 
   // Load from localStorage on mount or when student data changes
   useEffect(() => {
@@ -119,7 +169,16 @@ const StudentGradesPage = () => {
       {studentTermGradeInfo.length > 0 ? (
         <>
       <div className="flex flex-col items-center mb-6">
-        <h2 className="text-xl font-semibold">{getGPA().toFixed(2)} Cumulative GPA</h2>
+        {gpaInfo && gpaInfo.value !== null ? (
+          <>
+            <h2 className="text-xl font-semibold">{gpaInfo.value.toFixed(2)} Cumulative GPA</h2>
+            <p className="text-sm text-gray-500 capitalize">
+              {gpaInfo.method.replace(/_/g, ' ')}
+            </p>
+          </>
+        ) : (
+          <h2 className="text-xl font-semibold">-</h2>
+        )}
       </div>        
       
       <div className="overflow-x-auto flex justify-center">
@@ -169,10 +228,7 @@ const StudentGradesPage = () => {
               // Find the maximum number of courses for this credit type across all years
               const maxRows = Math.max(...studentTermGradeInfo.map((year) => getCourses(year, ct.creditType).length));
               
-              // Get the GPA for this credit type (use the first available GPA from any year)
-              const creditTypeGPA = studentTermGradeInfo
-                .flatMap(year => year.creditTypes)
-                .find(creditType => creditType.creditType === ct.creditType)?.gpa || 3.2;
+              const creditTypeGPA = calculateCreditTypeGpa(ct.creditType);
               
               return Array.from({ length: maxRows }).map((_, rowIdx) => (
                 <div key={ct.creditType + '-row-' + rowIdx} className="flex">
@@ -186,7 +242,7 @@ const StudentGradesPage = () => {
                   )}
                   {rowIdx === 0 ? (
                     <div className="px-4 py-2 text-sm text-gray-700 align-top border-t border-gray-50 bg-gray-50 w-[50px]">
-                      {creditTypeGPA.toFixed(2)}
+                      {creditTypeGPA ? creditTypeGPA.toFixed(2) : '-'}
                     </div>
                   ) : (
                     <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-gray-50 w-[50px] min-h-[40px]"></div>
@@ -217,12 +273,14 @@ const StudentGradesPage = () => {
             {/* GPA row at the bottom */}
             <div className="flex">
               <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 w-[150px]">GPA</div>
-              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 w-[50px]">{getGPA().toFixed(2)}</div>
+              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 w-[50px]">{gpaInfo?.value?.toFixed(2) ?? '-'}</div>
               {studentTermGradeInfo.map((year) => (
                 <div key={year.label + '-gpa-row'} className="flex">
                   <div className="px-4 py-2 text-sm font-bold text-gray-600 border-t bg-gray-50 w-[150px]"></div>
                   {year.gradeCodes.map((gradeCode: string) => (year.isCurrent ? currentCodes.includes(gradeCode) : true) && (
-                    <div key={year.label + '-gpa-' + gradeCode} className="px-4 py-2 text-xs text-center font-bold text-gray-600 border-t bg-gray-50 w-[45px]">{getGPA().toFixed(2)}</div>
+                    <div key={year.label + '-gpa-' + gradeCode} className="px-4 py-2 text-xs text-center font-bold text-gray-600 border-t bg-gray-50 w-[45px]">
+                      {calculateTermGpa(year, gradeCode)?.toFixed(2) ?? '-'}
+                    </div>
                   ))}
                 </div>
               ))}
