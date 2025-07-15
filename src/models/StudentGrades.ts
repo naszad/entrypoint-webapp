@@ -61,3 +61,5 @@ export const studentGrades = pgTable('student_grades', {
     `,
   }),
 ]);
+
+export type StudentGrade = typeof studentGrades.$inferSelect;
