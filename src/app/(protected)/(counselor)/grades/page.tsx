@@ -1,10 +1,16 @@
 'use client';
+import { useState, useEffect } from "react";
+import { useSearchParams } from 'next/navigation';
 import { columns, defaultVisibility as initialVisibility } from "@/components/GradeColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
-import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useSearchParams } from 'next/navigation';
+import { SaveViewDialog } from "@/components/SaveViewDialog";
+import { saveReport } from '@/libs/reportsService';
 import { StudentGradeInfo } from "@/types/StudentGradeInfo";
+import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
+import { useAuth } from '@/context/AuthContext'
+import { cn } from "@/utils/utils"
+
 
 const GradesPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,6 +18,8 @@ const GradesPage = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const searchParams = useSearchParams();
+  const { isChatAssistantOpen } = useChatAssistantOpen();
+  const { user } = useAuth();
 
   const initialPageSize = (() => {
     const sizeParam = searchParams.get('pageSize');
@@ -78,6 +86,31 @@ const GradesPage = () => {
     await fetchStudentGrades(filters, sortId, sortDirection, params.pageNumber, params.pageSize);
   };
 
+  const handleSaveView = async (viewData: {
+    name: string;
+    description: string;
+    params: string;
+  }) => {
+    try {
+      if (!user?.userId) {
+        throw new Error('User ID is required');
+      }
+
+      const result = await saveReport({
+        ...viewData,
+        pageName: 'grades',
+        userId: user.userId
+      });
+
+      setAlertMessage({ type: 'success', message: result.message });
+    } catch (err) {
+      setAlertMessage({ 
+        type: 'destructive', 
+        message: err instanceof Error ? err.message : 'Failed to save view'
+      });
+    }
+  };
+
   // Clear alert message after 5 seconds
   useEffect(() => {
     if (alertMessage) {
@@ -94,6 +127,9 @@ const GradesPage = () => {
     <div className="flex flex-col w-full h-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-gray-700">Grades</h3>
+        <div className={cn("flex gap-2 justify-end", isChatAssistantOpen ? "" : "mr-35")}>
+          <SaveViewDialog onSave={handleSaveView} />
+        </div>
       </div>
       
       {alertMessage && (
