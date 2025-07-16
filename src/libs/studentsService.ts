@@ -234,15 +234,39 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     }
 
     const studentSchoolLinks: StudentSchoolLink[] = data as unknown as StudentSchoolLink[];
+    const studentIds = studentSchoolLinks.map(link => link.student_id);
+
+    let gpaMap: Record<string, number> = {};
+    if (studentIds.length > 0) {
+      try {
+        const { data: gpaData, error: gpaError } = await supabase.rpc('calculate_gpa_for_students', {
+          p_student_ids: studentIds,
+        });
+
+        if (gpaError) {
+          console.error(`Error fetching GPAs for students:`, gpaError);
+        } else {
+          gpaMap = (gpaData as { student_id: string; gpa: number }[]).reduce((acc, item) => {
+            acc[item.student_id] = item.gpa;
+            return acc;
+          }, {} as Record<string, number>);
+        }
+      } catch (error) {
+        console.error(`Exception fetching GPAs for students:`, error);
+      }
+    }
+
 
     const students: StudentInfo[] = studentSchoolLinks.map((studentSchoolLink): StudentInfo | null => {
       // It's possible for students to be null if the filter returns a link but no matching student
       if (!studentSchoolLink.students) {
         return null;
       }
+
       return {
         studentId: studentSchoolLink.student_id,  
         schoolId: studentSchoolLink.school_id,
+        gpa: gpaMap[studentSchoolLink.student_id] ?? null,
         firstName: studentSchoolLink.students.first_name,
         middleName: studentSchoolLink.students.middle_name,
         lastName: studentSchoolLink.students.last_name,
@@ -262,12 +286,11 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         graduationYear: studentSchoolLink.students.graduation_year,
         enrollmentStatus: studentSchoolLink.students.enrollment_status,
         homeroomName: studentSchoolLink.students.homeroom_name,
-        customerId: studentSchoolLink.students.customer_id,
-      }
+        customerId: studentSchoolLink.students.customer_id
+      };
     }).filter((student): student is StudentInfo => student !== null);
 
-    // Execute count query if needed
-    let totalCount: number | undefined;
+    let countResult: number | undefined = undefined;
     if (fetchWithCount) {
       let countQuery = supabase
         .from('school_student_link')
@@ -281,12 +304,12 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       if (countError) {
         throw new Error(countError.message);
       }
-      totalCount = count || 0;
+      countResult = count || 0;
     }
 
     return {
       data: students,
-      count: totalCount
+      count: countResult
     };
 
   } catch (err) {
