@@ -42,47 +42,25 @@ function findDumpToRestore(dir: string, filename?: string): string | null {
   return dumps[0].name;
 }
 
-// Check if dump has any TABLE DATA
-function checkDumpHasData(filePath: string, callback: (hasData: boolean) => void): void {
-  const listCmd = `pg_restore -l "${filePath}"`;
-  exec(listCmd, { env: { ...process.env, PGPASSWORD } }, (err, stdout, stderr) => {
-    if (err || !stdout.trim()) {
-      console.error('Dump file is unreadable or empty:\n', stderr);
-      return callback(false);
-    }
-    const hasData = stdout.includes('TABLE DATA');
-    callback(hasData);
-  });
-}
-
 function runRestore(file: string): void {
   const fullPath = path.join(RESTORE_DIR, file);
   console.log(`Attempting to restore from: ${fullPath}`);
 
-  // Detect format by checking if file is binary (custom format) or text (plain SQL)
-  const isBinary = fs.readFileSync(fullPath, { encoding: 'utf8' }).includes('PGDMP') === false;
+  let fileContent = fs.readFileSync(fullPath, 'utf8');
+  fileContent = fileContent.replace(/SET transaction_timeout = 0;/g, '');
+  const tempDumpPath = path.join(RESTORE_DIR, 'temp_dump.sql');
+  fs.writeFileSync(tempDumpPath, fileContent);
 
-  const dropCmd = `psql -h ${PG_HOST} -p ${PG_PORT} -U ${PG_USER} -d ${PG_DB} -c "DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE;"`;
-  const restoreCmd = isBinary
-    ? `psql -h ${PG_HOST} -p ${PG_PORT} -U ${PG_USER} -d ${PG_DB} -f "${fullPath}"`
-    : `pg_restore --no-comments --no-owner --no-privileges -h ${PG_HOST} -p ${PG_PORT} -U ${PG_USER} -d ${PG_DB} "${fullPath}"`;
+  const restoreCmd = `psql -h ${PG_HOST} -p ${PG_PORT} -U ${PG_USER} -d ${PG_DB} -f "${tempDumpPath}"`;
 
-  exec(dropCmd, { env: { ...process.env, PGPASSWORD } }, (dropErr, _stdout, dropStderr) => {
-    if (dropErr) {
-      console.error('Error dropping schemas:\n', dropStderr);
+  exec(restoreCmd, { env: { ...process.env, PGPASSWORD } }, (restoreErr, _stdout, restoreStderr) => {
+    if (restoreErr) {
+      console.error('Restore failed:\n', restoreStderr);
       process.exit(1);
     }
 
-    console.log('Schemas dropped and recreated.');
-
-    exec(restoreCmd, { env: { ...process.env, PGPASSWORD } }, (restoreErr, _stdout, restoreStderr) => {
-      if (restoreErr) {
-        console.error('Restore failed:\n', restoreStderr);
-        process.exit(1);
-      }
-
-      console.log('Restore completed successfully.');
-    });
+    console.log('Restore completed successfully.');
+    fs.unlinkSync(tempDumpPath);
   });
 }
 

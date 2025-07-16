@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import path from 'path';
 import dotenv from "dotenv";
+import fs from "fs";
 
 type Environment = 'local' | 'development' | 'production' | 'test';
 const env = (process.env.NODE_ENV || 'local') as Environment;
@@ -68,6 +69,14 @@ function backupDatabase({
     const databaseUrl = process.env.DATABASE_URL!;
     console.log('Using DATABASE_URL:', databaseUrl);
     const { hostname, port, username, password, pathname } = new URL(databaseUrl);
+
+    const outFile = path.resolve(__dirname, 'backups', `drizzle_and_public.dump`);
+    const backupDir = path.dirname(outFile);
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+      console.log(`Created backup directory at: ${backupDir}`);
+    }
+
     const dumpFile = await backupDatabase({
         host: hostname,
         port: Number(port),
@@ -75,7 +84,7 @@ function backupDatabase({
         password: password,
         database: pathname.slice(1),
         schemas: ['public', 'drizzle'],
-        outFile: path.resolve(__dirname, 'backups', `drizzle_and_public.dump`)
+        outFile
     });
     console.log('Backup succeeded:', dumpFile);
   } catch (err) {
