@@ -225,13 +225,6 @@
       "when": 1752267217876,
       "tag": "0031_motionless_swordsman",
       "breakpoints": true
-    },
-    {
-      "idx": 32,
-      "version": "7",
-      "when": 1752685316683,
-      "tag": "0032_create_bulk_gpa_function",
-      "breakpoints": true
     }
   ]
 }

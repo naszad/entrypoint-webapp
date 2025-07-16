@@ -1,25 +1,7 @@
-export type StudentInfo = {
-  studentId: string;
-  schoolId: string;
-  gpa?: number;
-  firstName: string;
-  middleName: string;
-  lastName: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  gradeLevel: number;
-  gender: string;
-  dateOfBirth: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  externalSource: string;
-  externalKey: string;
-  externalId: string;
-  externalKeyHash: string;
-  externalName: string;
-  graduationYear: number;
-  enrollmentStatus: string;
-  homeroomName: string;
-  customerId: string;
-};
+import { Student } from "@/models/Students";
+
+export interface StudentInfo extends Student {
+  photoUrl?: string;
+  schoolId?: string;
+  schoolName?: string;
+}
