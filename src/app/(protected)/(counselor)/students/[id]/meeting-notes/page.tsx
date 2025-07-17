@@ -10,7 +10,14 @@ import Link from 'next/link';
 const StudentMeetingNotesPage = () => {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [transcriptionInfo, setTranscriptionInfo] = useState<any | null>(null);
+  const [transcriptionInfo, setTranscriptionInfo] = useState<{
+    error?: string;
+    meetingNoteId?: string;
+    summary?: string;
+    notes?: string;
+    transcript?: string;
+    studentEmail?: string;
+  } | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
