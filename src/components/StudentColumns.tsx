@@ -9,6 +9,7 @@ export const defaultVisibility: VisibilityState = {
   fullName: true,
   email: true,
   gradeLevel: true,
+  gpa: true,
   gender: false,
   enrollmentStatus: false,
   homeroomName: false,
@@ -73,6 +74,18 @@ export const columns: ColumnDef<StudentInfo>[] = [
     },
     cell: ({ row }) => {
       return row.original.gradeLevel || "N/A";
+    },
+  },
+  {
+    accessorKey: "gpa",
+    header: "GPA",
+    meta: {
+      enableFiltering: true,
+      filterType: "number",
+    },
+    cell: ({ row }) => {
+      const gpa = row.original.gpa;
+      return gpa ? gpa.toFixed(2) : "N/A";
     },
   },
   {

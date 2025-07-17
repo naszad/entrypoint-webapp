@@ -234,15 +234,39 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     }
 
     const studentSchoolLinks: StudentSchoolLink[] = data as unknown as StudentSchoolLink[];
+    const studentIds = studentSchoolLinks.map(link => link.student_id);
+
+    let gpaMap: Record<string, number> = {};
+    if (studentIds.length > 0) {
+      try {
+        const { data: gpaData, error: gpaError } = await supabase.rpc('calculate_gpa_for_students', {
+          p_student_ids: studentIds,
+        });
+
+        if (gpaError) {
+          console.error(`Error fetching GPAs for students:`, gpaError);
+        } else {
+          gpaMap = (gpaData as { student_id: string; gpa: number }[]).reduce((acc, item) => {
+            acc[item.student_id] = item.gpa;
+            return acc;
+          }, {} as Record<string, number>);
+        }
+      } catch (error) {
+        console.error(`Exception fetching GPAs for students:`, error);
+      }
+    }
+
 
     const students: StudentInfo[] = studentSchoolLinks.map((studentSchoolLink): StudentInfo | null => {
       // It's possible for students to be null if the filter returns a link but no matching student
       if (!studentSchoolLink.students) {
         return null;
       }
+
       return {
         studentId: studentSchoolLink.student_id,  
         schoolId: studentSchoolLink.school_id,
+        gpa: gpaMap[studentSchoolLink.student_id] ?? null,
         firstName: studentSchoolLink.students.first_name,
         middleName: studentSchoolLink.students.middle_name,
         lastName: studentSchoolLink.students.last_name,
@@ -251,9 +275,9 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         phone: studentSchoolLink.students.phone,
         gradeLevel: studentSchoolLink.students.grade_level,
         gender: studentSchoolLink.students.gender,
-        dateOfBirth: studentSchoolLink.students.date_of_birth ? new Date(studentSchoolLink.students.date_of_birth).toISOString() : '',
-        createdAt: studentSchoolLink.students.created_at,
-        updatedAt: studentSchoolLink.students.updated_at,
+        dateOfBirth: studentSchoolLink.students.date_of_birth ? new Date(studentSchoolLink.students.date_of_birth) : null,
+        createdAt: new Date(studentSchoolLink.students.created_at),
+        updatedAt: new Date(studentSchoolLink.students.updated_at),
         externalSource: studentSchoolLink.students.external_source,
         externalKey: studentSchoolLink.students.external_key,
         externalId: studentSchoolLink.students.external_id,
@@ -262,12 +286,11 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         graduationYear: studentSchoolLink.students.graduation_year,
         enrollmentStatus: studentSchoolLink.students.enrollment_status,
         homeroomName: studentSchoolLink.students.homeroom_name,
-        customerId: studentSchoolLink.students.customer_id,
-      }
+        customerId: studentSchoolLink.students.customer_id
+      };
     }).filter((student): student is StudentInfo => student !== null);
 
-    // Execute count query if needed
-    let totalCount: number | undefined;
+    let countResult: number | undefined = undefined;
     if (fetchWithCount) {
       let countQuery = supabase
         .from('school_student_link')
@@ -281,12 +304,12 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       if (countError) {
         throw new Error(countError.message);
       }
-      totalCount = count || 0;
+      countResult = count || 0;
     }
 
     return {
       data: students,
-      count: totalCount
+      count: countResult
     };
 
   } catch (err) {
@@ -324,6 +347,9 @@ export async function countStudentsByFilterCriteria(request: StudentsRequest): P
 export async function fetchStudentById(studentId: string): Promise<StudentInfo> {
   try {
     const supabase = await createClient()
+    const cookieStore = await cookies();
+    const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
+    
     const query = supabase
     .from('students')
     .select(`
@@ -360,6 +386,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
 
     const parsedStudent: StudentInfo = {
       studentId: student.student_id,
+      schoolId: selectedSchoolId || '',
       firstName: student.first_name,
       middleName: student.middle_name,
       lastName: student.last_name,
@@ -368,9 +395,9 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       phone: student.phone,
       gradeLevel: student.grade_level,
       gender: student.gender,
-      dateOfBirth: student.date_of_birth ? new Date(student.date_of_birth).toISOString() : '',
-      createdAt: student.created_at,
-      updatedAt: student.updated_at,
+      dateOfBirth: student.date_of_birth ? new Date(student.date_of_birth) : null,
+      createdAt: new Date(student.created_at),
+      updatedAt: new Date(student.updated_at),
       externalSource: student.external_source,
       externalKey: student.external_key,
       externalId: student.external_id,
