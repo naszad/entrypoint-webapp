@@ -275,7 +275,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         phone: studentSchoolLink.students.phone,
         gradeLevel: studentSchoolLink.students.grade_level,
         gender: studentSchoolLink.students.gender,
-        dateOfBirth: studentSchoolLink.students.date_of_birth ? new Date(studentSchoolLink.students.date_of_birth).toISOString() : '',
+        dateOfBirth: studentSchoolLink.students.date_of_birth ? new Date(studentSchoolLink.students.date_of_birth) : null,
         createdAt: studentSchoolLink.students.created_at,
         updatedAt: studentSchoolLink.students.updated_at,
         externalSource: studentSchoolLink.students.external_source,
@@ -347,6 +347,9 @@ export async function countStudentsByFilterCriteria(request: StudentsRequest): P
 export async function fetchStudentById(studentId: string): Promise<StudentInfo> {
   try {
     const supabase = await createClient()
+    const cookieStore = await cookies();
+    const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
+    
     const query = supabase
     .from('students')
     .select(`
@@ -383,6 +386,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
 
     const parsedStudent: StudentInfo = {
       studentId: student.student_id,
+      schoolId: selectedSchoolId || '',
       firstName: student.first_name,
       middleName: student.middle_name,
       lastName: student.last_name,
@@ -391,7 +395,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       phone: student.phone,
       gradeLevel: student.grade_level,
       gender: student.gender,
-      dateOfBirth: student.date_of_birth ? new Date(student.date_of_birth).toISOString() : '',
+      dateOfBirth: student.date_of_birth ? new Date(student.date_of_birth) : null,
       createdAt: student.created_at,
       updatedAt: student.updated_at,
       externalSource: student.external_source,

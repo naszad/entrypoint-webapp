@@ -10,7 +10,7 @@ export type StudentInfo = {
   phone: string;
   gradeLevel: number;
   gender: string;
-  dateOfBirth: Date;
+  dateOfBirth: Date | null;
   createdAt: Date;
   updatedAt: Date;
   externalSource: string;
