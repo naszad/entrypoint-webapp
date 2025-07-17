@@ -44,4 +44,4 @@ export const courses = pgTable('courses', {
   }),
 ]);
 
-export type COurse = typeof courses.$inferSelect;
+export type Course = typeof courses.$inferSelect;
