@@ -143,7 +143,7 @@ Table student_grades {
   grade_letter varchar
   grade_code varchar
   grade_percent decimal // 92.50. Allowing up to 999.99 or 100.00 if that's the max
-  gpa_points decimal // 4.000
+  grade_points decimal // 4.000
   credit_hours_earned decimal
   credit_type varchar // Taken from StoredGrades.credit_type
   comment text
