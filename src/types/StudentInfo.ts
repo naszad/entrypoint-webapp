@@ -6,6 +6,7 @@ export type StudentInfo = {
   middleName: string;
   lastName: string;
   fullName: string;
+  photoUrl?: string;
   email: string;
   phone: string;
   gradeLevel: number;
