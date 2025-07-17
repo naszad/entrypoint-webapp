@@ -981,7 +981,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
           phone: gradeRecord.student.phone,
           gradeLevel: gradeRecord.student.grade_level,
           gender: gradeRecord.student.gender,
-          dateOfBirth: gradeRecord.student.date_of_birth ? new Date(gradeRecord.student.date_of_birth).toISOString() : '',
+          dateOfBirth: gradeRecord.student.date_of_birth ? new Date(gradeRecord.student.date_of_birth) : null,
           createdAt: new Date(gradeRecord.student.created_at),
           updatedAt: new Date(gradeRecord.student.updated_at),
           externalSource: gradeRecord.student.external_source,
