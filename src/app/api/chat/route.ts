@@ -15,6 +15,7 @@ export async function POST(req: Request) {
 When a user asks a question, first determine their intent:
 1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool.
 2.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. Use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
+3.  Are they asking for a **student's GPA or a filtered slice of their GPA** (e.g., cumulative or by subject)? If so, use the \`get_student_gpa\` tool with parameters \`studentName\`, \`method\`, \`gradeCodes\`, \`gradeLevels\`, \`creditTypes\`, and \`termIds\`.
 
 Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
 `
@@ -166,6 +167,46 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 
           console.log('Query result:', data);
           return data;
+        },
+      }),
+      get_student_gpa: tool({
+        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by specific school years (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to quarterly grades (Q1, Q2, Q3, Q4).`,
+        parameters: z.object({
+          studentName: z.string().describe('Full name or part of the student\'s name'),
+          method: z.string().optional().describe('GPA calculation method: simple, added_value, credit_hour_weighted'),
+          gradeCodes: z.array(z.string()).optional().describe('Filter by grade codes (e.g., Q1, Q2, S1)'),
+          creditTypes: z.array(z.string()).optional().describe('Filter by course subject(s), matching the credit_type in grade records (e.g., ["English", "Math"])'),
+          yearLabels: z.array(z.string()).optional().describe('Filter by school year labels (e.g., ["2022-2023", "2023-2024"])'),
+        }),
+        execute: async (parsed) => {
+          console.log(`Executing get_student_gpa tool with parsed params: studentName="${parsed.studentName}", method="${parsed.method ?? 'simple'}", gradeCodes=${JSON.stringify(parsed.gradeCodes)}, creditTypes=${JSON.stringify(parsed.creditTypes)}, yearLabels=${JSON.stringify(parsed.yearLabels)}`);
+          const supabase = await createClient();
+          const { data: student, error: studentError } = await supabase
+            .from('students')
+            .select('student_id')
+            .ilike('full_name', `%${parsed.studentName}%`)
+            .single();
+          if (studentError || !student) {
+            throw new Error('Student not found: ' + parsed.studentName);
+          }
+          const studentId = student.student_id;
+          // Default to quarterly grades if none provided (avoids including semester averages S1/S2)
+          const gradeCodesFilter = parsed.gradeCodes ?? ['Q1','Q2','Q3','Q4'];
+          const creditTypesFilter = parsed.creditTypes ?? null;
+          const yearLabelsFilter = parsed.yearLabels ?? null;
+          
+          console.log('Computed get_student_gpa filters:', { gradeCodesFilter, creditTypesFilter, yearLabelsFilter });
+          const { data: gpa, error } = await supabase.rpc('calculate_gpa_dispatch', {
+            p_student_id: studentId,
+            p_method: parsed.method ?? null,
+            p_grade_codes: gradeCodesFilter,
+            p_credit_types: creditTypesFilter,
+            p_year_labels: yearLabelsFilter,
+          });
+          if (error) {
+            throw new Error(error.message);
+          }
+          return { gpa, method: parsed.method ?? 'simple' };
         },
       }),
     }

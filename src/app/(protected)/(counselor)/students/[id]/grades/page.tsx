@@ -6,6 +6,18 @@ import GradeCodeSelector from '@/components/GradeCodeSelector';
 import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInfo';
 import { useParams } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import React from 'react';
+
+// Types for the new bulk GPA API response
+interface BulkGpaResponse {
+  cumulative: { gpa: number; method: string };
+  currentYear: { gpa: number; method: string };
+  byYearAndQuarter: Record<string, Record<string, number>>;
+  byCreditType: Record<string, number>;
+}
+
+const PAST_YEAR_GRADE_CODES = ['S1', 'S2'];
+const CURRENT_YEAR_GRADE_CODES = ['Q1', 'Q2', 'S1', 'Q3', 'Q4', 'S2'];
 
 const getGradeCodesStorageKey = (studentId: string) => {
   return `currentYearGradeCodes-${studentId}`;
@@ -13,37 +25,12 @@ const getGradeCodesStorageKey = (studentId: string) => {
 
 const StudentGradesPage = () => {
   const params = useParams();
-  const [studentTermGradeInfo, setStudentTermGradeInfo] = useState<YearGradeInfo[] | []>([]);
+  const [studentTermGradeInfo, setStudentTermGradeInfo] = useState<YearGradeInfo[]>([]);
   const [allCreditTypes, setAllCreditTypes] = useState<CreditType[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const [currentCodes, setCurrentCodes] = useState<string[]>([]);
-  const [gpaInfo, setGpaInfo] = useState<{ value: number; method: string; } | null>(null);
-
-  const calculateTermGpa = (year: YearGradeInfo, gradeCode: string) => {
-    const grades = year.creditTypes
-      .flatMap(ct => ct.courses)
-      .map(c => c.grades[gradeCode])
-      .filter(g => g && g.gradePoints > 0);
-    
-    if (grades.length === 0) return null;
-    
-    const totalPoints = grades.reduce((acc, g) => acc + g.gradePoints, 0);
-    return (totalPoints / grades.length);
-  };
-
-  const calculateCreditTypeGpa = (creditType: string) => {
-    const grades = studentTermGradeInfo
-      .flatMap(year => year.creditTypes)
-      .filter(ct => ct.creditType === creditType)
-      .flatMap(ct => ct.courses)
-      .flatMap(course => Object.values(course.grades))
-      .filter(grade => grade && grade.gradePoints > 0);
-
-    if (grades.length === 0) return null;
-
-    const totalPoints = grades.reduce((acc, grade) => acc + grade.gradePoints, 0);
-    return totalPoints / grades.length;
-  };
+  const [gpaData, setGpaData] = useState<BulkGpaResponse | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleCurrentCodesChange = useCallback((codes: string[]) => {
     localStorage.setItem(getGradeCodesStorageKey(params.id as string), JSON.stringify(codes));
@@ -83,63 +70,61 @@ const StudentGradesPage = () => {
         message: `Failed to fetch grades ${err instanceof Error ? err.message : ''}`
       });
     }
-  }, [params]);
+  }, [params.id]);
 
-  const fetchGpa = useCallback(async () => {
-    const studentId = params.id as string;
-    if (!studentId) return;
-
+  const fetchBulkGpaData = useCallback(async () => {
+    if (!params.id) return;
+    
+    setLoading(true);
     try {
-      const url = `/api/students/${studentId}/gpa`;
-      const response = await fetch(url);
+      const response = await fetch(`/api/students/${params.id}/gpa?bulk=true`);
       const data = await response.json();
-
+      
       if (!response.ok) {
-        setAlertMessage({ 
-          type: 'destructive', 
-          message: data.error || 'Failed to fetch GPA'
-        });
+        console.error('Failed to fetch GPA data:', data.error);
         return;
       }
-
-      setGpaInfo({ value: data.gpa, method: data.method });
+      
+      setGpaData(data);
     } catch (err) {
-      setAlertMessage({ 
-        type: 'destructive', 
-        message: `Failed to fetch GPA ${err instanceof Error ? err.message : ''}`
-      });
+      console.error('Failed to fetch GPA data:', err);
+    } finally {
+      setLoading(false);
     }
   }, [params.id]);
 
-
+  // Load student grades and GPA data on mount
   useEffect(() => {
     fetchStudentCurrentGrades();
-    fetchGpa();
-  }, [fetchStudentCurrentGrades, fetchGpa]);
+  }, [fetchStudentCurrentGrades]);
 
-  // Load from localStorage on mount or when student data changes
+  // Load saved selections from localStorage once data is loaded
   useEffect(() => {
     if (studentTermGradeInfo.length === 0) return;
     
-    const saved = localStorage.getItem(getGradeCodesStorageKey(params.id as string));
-    if (saved) {
+    // Load saved grade codes
+    const savedCodes = localStorage.getItem(getGradeCodesStorageKey(params.id as string));
+    if (savedCodes && currentCodes.length === 0) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(savedCodes);
         if (Array.isArray(parsed)) {
           setCurrentCodes(parsed);
-          return;
         }
       } catch {}
-    }
-    
-    // If no saved data, initialize with current year's grade codes
-    const currentYear = studentTermGradeInfo.find((year: YearGradeInfo) => year.isCurrent);
-    if (currentYear && currentYear.gradeCodes.length > 0) {
-      const defaultCodes = currentYear.gradeCodes.slice(0, 4); // Default to first 4 codes
+    } else if (currentCodes.length === 0) {
+      // Default to Q1-Q4 for current year
+      const defaultCodes = ['Q1', 'Q2', 'Q3', 'Q4'];
       localStorage.setItem(getGradeCodesStorageKey(params.id as string), JSON.stringify(defaultCodes));
       setCurrentCodes(defaultCodes);
     }
-  }, [studentTermGradeInfo, params.id]);
+  }, [studentTermGradeInfo, currentCodes.length, params.id]);
+
+  // Fetch GPA data when data is loaded
+  useEffect(() => {
+    if (studentTermGradeInfo.length > 0 && allCreditTypes.length > 0) {
+      fetchBulkGpaData();
+    }
+  }, [fetchBulkGpaData, studentTermGradeInfo.length, allCreditTypes.length]);
 
   // Helper to get courses for a credit type in a year
   const getCourses = (year: YearGradeInfo, creditType: string): CourseGradeInfo[] => {
@@ -147,7 +132,36 @@ const StudentGradesPage = () => {
     return ct ? ct.courses : [];
   };
 
-  // Clear alert message after 5 seconds
+  // Get GPA for a specific quarter in a specific year
+  const getQuarterGpa = (yearLabel: string, quarter: string): string => {
+    if (!gpaData?.byYearAndQuarter || !gpaData.byYearAndQuarter[yearLabel] || gpaData.byYearAndQuarter[yearLabel][quarter] === undefined) return '-';
+    return gpaData.byYearAndQuarter[yearLabel][quarter].toFixed(2);
+  };
+
+  // Get GPA for a specific credit type (from bulk data)
+  const getCreditTypeGpa = (creditType: string): string => {
+    if (!gpaData?.byCreditType || gpaData.byCreditType[creditType] === undefined) return '-';
+    return gpaData.byCreditType[creditType].toFixed(2);
+  };
+
+  // Get current selection GPA (calculate from selected quarters in current year)
+  const getCurrentSelectionGpa = (): string => {
+    if (!gpaData?.byYearAndQuarter || currentCodes.length === 0) return '-';
+    
+    const currentYear = studentTermGradeInfo.find(y => y.isCurrent);
+    if (!currentYear || !gpaData.byYearAndQuarter[currentYear.label]) return '-';
+    
+    const validGpas = currentCodes
+      .map(code => gpaData.byYearAndQuarter[currentYear.label][code])
+      .filter(gpa => gpa !== undefined && gpa !== null);
+    
+    if (validGpas.length === 0) return '-';
+    
+    const average = validGpas.reduce((sum, gpa) => sum + gpa, 0) / validGpas.length;
+    return average.toFixed(2);
+  };
+
+  // Clear alert message after 3 seconds
   useEffect(() => {
     if (alertMessage) {
       const timer = setTimeout(() => {
@@ -157,138 +171,220 @@ const StudentGradesPage = () => {
     }
   }, [alertMessage]);
 
-  // Table rendering
-  return (
-    <div className="bg-white rounded-lg shadow-md p-8 items-center">
-      {alertMessage && (
-          <Alert variant={alertMessage.type}>
-            <AlertDescription>{alertMessage.message}</AlertDescription>
-          </Alert>
-        )}
-      {/* Card Title */}
-      {studentTermGradeInfo.length > 0 ? (
-        <>
-      <div className="flex flex-col items-center mb-6">
-        {gpaInfo && gpaInfo.value !== null ? (
-          <>
-            <h2 className="text-xl font-semibold">{gpaInfo.value.toFixed(2)} Cumulative GPA</h2>
-            <p className="text-sm text-gray-500 capitalize">
-              {gpaInfo.method.replace(/_/g, ' ')}
-            </p>
-          </>
-        ) : (
-          <h2 className="text-xl font-semibold">-</h2>
-        )}
-      </div>        
-      
-      <div className="overflow-x-auto flex justify-center">
-        <div className="border-separate border-spacing-0 inline-block">
-          {/* Header */}
-          <div className="flex">
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[150px]">CATEGORY</div>
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[50px]">GPA</div>
-            {studentTermGradeInfo.map((year) => (
-              <div
-                key={year.label}
-                className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-center bg-gray-50"
-                
-                style={{ minWidth: `${((year.isCurrent ? currentCodes.length + 1 : year.gradeCodes.length + 1) * 45) + 100}px` }}
-              >
-                <div className="flex">
-                  {year.label}
-                  {year.isCurrent && (
-                    <GradeCodeSelector
-                      allCodes={year.gradeCodes}
-                      selectedCodes={currentCodes}
-                      onChange={handleCurrentCodesChange}
-                    />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {/* Sub-header */}
-          <div className="flex">
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[150px]"></div>
-            <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[50px]"></div>
-            {studentTermGradeInfo.map((year) => (
-              <div key={year.label + '-subheader'} className="flex">
-                <div className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-left bg-gray-50 w-[150px]">Course</div>
-                {(year.isCurrent ? year.gradeCodes.filter((gradeCode) => currentCodes.includes(gradeCode)) : year.gradeCodes).map((gradeCode: string) => (
-                  <div key={year.label + '-' + gradeCode} className="px-4 py-2 text-xs font-bold text-gray-600 border-b text-center bg-gray-50 w-[45px]">{gradeCode}</div>
-                ))}
-              </div>
-            ))}
-          </div>
-          
-          {/* Body */}
-          <div>
-            {allCreditTypes.map((ct) => {
-              // Find the maximum number of courses for this credit type across all years
-              const maxRows = Math.max(...studentTermGradeInfo.map((year) => getCourses(year, ct.creditType).length));
-              
-              const creditTypeGPA = calculateCreditTypeGpa(ct.creditType);
-              
-              return Array.from({ length: maxRows }).map((_, rowIdx) => (
-                <div key={ct.creditType + '-row-' + rowIdx} className="flex">
-                  {/* CATEGORY and GPA columns - show content on first row, empty cells on subsequent rows */}
-                  {rowIdx === 0 ? (
-                    <div className="px-4 py-2 text-sm text-gray-700 align-top border-t border-gray-50 font-semibold bg-gray-50 w-[150px]">
-                      {ct.creditType}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-gray-50 w-[150px] min-h-[40px]"></div>
-                  )}
-                  {rowIdx === 0 ? (
-                    <div className="px-4 py-2 text-sm text-gray-700 align-top border-t border-gray-50 bg-gray-50 w-[50px]">
-                      {creditTypeGPA ? creditTypeGPA.toFixed(2) : '-'}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-gray-50 w-[50px] min-h-[40px]"></div>
-                  )}
-                  {/* For each year, render the course at this rowIdx (if exists), else empty cells */}
-                  {studentTermGradeInfo.map((year) => {
-                    const courses = getCourses(year, ct.creditType);
-                    const course = courses[rowIdx];
-                    return (
-                      <div key={year.label + '-year-data'} className="flex">
-                        <div className="px-4 py-2 text-sm text-gray-700 border-t border-gray-50 bg-white w-[150px] min-h-[40px] flex items-center">
-                          {course ? course.courseName : ''}
-                        </div>
-                        {year.gradeCodes.map((gradeCode: string) => (
-                          (year.isCurrent ? currentCodes.includes(gradeCode) : true) && (
-                            <div key={year.label + '-' + (course ? course.courseId : 'empty') + '-' + gradeCode} className="px-4 py-2 text-center border-t border-gray-50 bg-white w-[45px] min-h-[40px] flex items-center justify-center">
-                              {course ? <GradeLetter grade={course.grades[gradeCode]?.gradeLetter ?? null} /> : ''}
-                            </div>
-                          )
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ));
-            })}
-            
-            {/* GPA row at the bottom */}
-            <div className="flex">
-              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 w-[150px]">GPA</div>
-              <div className="px-4 py-2 text-xs font-bold text-gray-600 border-t bg-gray-50 w-[50px]">{gpaInfo?.value?.toFixed(2) ?? '-'}</div>
-              {studentTermGradeInfo.map((year) => (
-                <div key={year.label + '-gpa-row'} className="flex">
-                  <div className="px-4 py-2 text-sm font-bold text-gray-600 border-t bg-gray-50 w-[150px]"></div>
-                  {year.gradeCodes.map((gradeCode: string) => (year.isCurrent ? currentCodes.includes(gradeCode) : true) && (
-                    <div key={year.label + '-gpa-' + gradeCode} className="px-4 py-2 text-xs text-center font-bold text-gray-600 border-t bg-gray-50 w-[45px]">
-                      {calculateTermGpa(year, gradeCode)?.toFixed(2) ?? '-'}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-8 items-center">
+        <div className="text-center text-gray-500 py-8">
+          Loading GPA data...
         </div>
       </div>
-      </>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 overflow-x-auto flex flex-col items-center">
+      {alertMessage && (
+        <Alert variant={alertMessage.type}>
+          <AlertDescription>{alertMessage.message}</AlertDescription>
+        </Alert>
+      )}
+      
+      {studentTermGradeInfo.length > 0 ? (
+        <>
+          <h2 className="text-lg font-semibold mb-4">
+            {gpaData?.cumulative && gpaData.cumulative.gpa !== null 
+              ? `${gpaData.cumulative.gpa.toFixed(2)} Cumulative GPA`
+              : '— Cumulative GPA'
+            }
+          </h2>
+          
+          <table className="table-auto border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap">Category</th>
+                <th className="text-center px-3 py-2 text-xs font-semibold text-gray-600 uppercase w-14 min-w-[3.5rem] max-w-[3.5rem]">GPA</th>
+                {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
+                  <React.Fragment key={year.label}>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap border-l border-gray-200">{year.label}</th>
+                    {PAST_YEAR_GRADE_CODES.map(code => (
+                      <th key={code} className="text-center px-3 py-2 text-xs font-semibold text-gray-600 uppercase w-14 min-w-[3.5rem] max-w-[3.5rem]">{code}</th>
+                    ))}
+                  </React.Fragment>
+                ))}
+                {(() => {
+                  const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                  return currentYear ? (
+                    <React.Fragment key={currentYear.label}>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap border-l border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <span>{currentYear.label}</span>
+                          <GradeCodeSelector
+                            allCodes={CURRENT_YEAR_GRADE_CODES}
+                            selectedCodes={currentCodes}
+                            onChange={handleCurrentCodesChange}
+                          />
+                        </div>
+                      </th>
+                      {currentCodes.map(code => (
+                        <th key={code} className="text-center px-3 py-2 text-xs font-semibold text-gray-600 uppercase w-14 min-w-[3.5rem] max-w-[3.5rem]">{code}</th>
+                      ))}
+                    </React.Fragment>
+                  ) : null;
+                })()}
+              </tr>
+            </thead>
+            <tbody>
+              {allCreditTypes.map((ct) => {
+                const maxRows = Math.max(...studentTermGradeInfo.map((year) => getCourses(year, ct.creditType).length));
+                const rows = Array.from({ length: Math.max(1, maxRows) });
+
+                if (maxRows === 0) {
+                  return (
+                    <tr key={ct.creditType}>
+                      <td className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap bg-gray-50">
+                        {ct.creditType}
+                      </td>
+                      <td className="px-3 py-2 text-center text-gray-600 bg-gray-50 w-14 min-w-[3.5rem] max-w-[3.5rem]">
+                        {getCreditTypeGpa(ct.creditType)}
+                      </td>
+                      {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
+                        <React.Fragment key={year.label}>
+                          <td className="border-l border-gray-200"></td>
+                          {PAST_YEAR_GRADE_CODES.map(code => (
+                            <td key={code} className=""></td>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                      {(() => {
+                        const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                        return currentYear ? (
+                          <React.Fragment>
+                            <td className="border-l border-gray-200"></td>
+                            {currentCodes.map(code => (
+                              <td key={code}></td>
+                            ))}
+                          </React.Fragment>
+                        ) : null;
+                      })()}
+                    </tr>
+                  );
+                }
+
+                return rows.map((_, rowIndex) => (
+                  <tr
+                    key={`${ct.creditType}-${rowIndex}`}
+                    className={rowIndex === rows.length - 1 ? 'border-b-2 border-gray-200' : ''}
+                  >
+                    {rowIndex === 0 && (
+                      <>
+                        <td
+                          className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap bg-gray-50 align-top"
+                          rowSpan={rows.length}
+                        >
+                          {ct.creditType}
+                        </td>
+                        <td
+                          className="px-3 py-2 text-center text-xs text-gray-600 bg-gray-50 w-14 min-w-[3.5rem] max-w-[3.5rem] align-top"
+                          rowSpan={rows.length}
+                        >
+                          {getCreditTypeGpa(ct.creditType)}
+                        </td>
+                      </>
+                    )}
+
+                    {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => {
+                      const courses = getCourses(year, ct.creditType);
+                      const course = courses[rowIndex];
+                      return (
+                        <React.Fragment key={year.label}>
+                          <td className="px-3 py-2 text-left align-top font-medium text-gray-800 whitespace-nowrap border-l border-gray-200">
+                            {course ? course.courseName : <span className="text-gray-300">—</span>}
+                          </td>
+                          {PAST_YEAR_GRADE_CODES.map(code => (
+                            <td
+                              key={code}
+                              className="px-3 py-2 text-center align-top w-14 min-w-[3.5rem] max-w-[3.5rem]"
+                            >
+                              {course ? (
+                                <GradeLetter grade={course.grades[code]?.gradeLetter ?? null} />
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
+                            </td>
+                          ))}
+                        </React.Fragment>
+                      );
+                    })}
+
+                    {(() => {
+                      const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                      if (!currentYear) return null;
+                      
+                      const courses = getCourses(currentYear, ct.creditType);
+                      const course = courses[rowIndex];
+                      return (
+                        <React.Fragment key={currentYear.label}>
+                          <td className="px-3 py-2 text-left align-top font-medium text-gray-800 whitespace-nowrap border-l border-gray-200">
+                            {course ? course.courseName : <span className="text-gray-300">—</span>}
+                          </td>
+                          {currentCodes.map(code => (
+                            <td
+                              key={code}
+                              className="px-3 py-2 text-center align-top w-14 min-w-[3.5rem] max-w-[3.5rem]"
+                            >
+                              {course ? (
+                                <GradeLetter grade={course.grades[code]?.gradeLetter ?? null} />
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
+                            </td>
+                          ))}
+                        </React.Fragment>
+                      );
+                    })()}
+                  </tr>
+                ));
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-gray-300 bg-gray-100 font-semibold">
+                <td className="px-3 py-2 text-left text-gray-700 whitespace-nowrap">GPA</td>
+                <td className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]">
+                  {getCurrentSelectionGpa()}
+                </td>
+                {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
+                  <React.Fragment key={`${year.label}-gpa`}>
+                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap border-l border-gray-200"></td>
+                    {PAST_YEAR_GRADE_CODES.map(code => (
+                      <td
+                        key={`${year.label}-${code}-gpa`}
+                        className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]"
+                      >
+                        {getQuarterGpa(year.label, code)}
+                      </td>
+                    ))}
+                  </React.Fragment>
+                ))}
+                {(() => {
+                  const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                  return currentYear ? (
+                    <React.Fragment>
+                      <td className="px-3 py-2 border-l border-gray-200"></td>
+                      {currentCodes.map(code => (
+                        <td
+                          key={`${currentYear.label}-${code}-gpa`}
+                          className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]"
+                        >
+                          {getQuarterGpa(currentYear.label, code)}
+                        </td>
+                      ))}
+                    </React.Fragment>
+                  ) : null;
+                })()}
+              </tr>
+            </tfoot>
+          </table>
+        </>
       ) : (
         <div className="text-center text-gray-500 py-8">
           No grades available for this student.

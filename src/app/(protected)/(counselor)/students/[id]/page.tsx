@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { StudentTermGradeInfo } from "@/types/StudentTermGradeInfo";
 import { useParams } from "next/navigation";
-import { gradeColors } from "@/utils/gradeColors";
+import { gradeColors } from "../../../../../utils/gradeColors";
 import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
