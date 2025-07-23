@@ -239,6 +239,20 @@
       "when": 1752763067371,
       "tag": "0033_bouncy_dracula",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1753114400751,
+      "tag": "0034_awesome_komodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1753205985629,
+      "tag": "0035_warm_slipstream",
+      "breakpoints": true
     }
   ]
 }

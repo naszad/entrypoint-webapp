@@ -6,8 +6,11 @@ import { generateMeetingNotesAction } from '@/app/actions/meetingNotes';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import { format } from 'date-fns';
+import { MeetingNoteInfo } from '@/types/MeetingNoteInfo';
 
 const StudentMeetingNotesPage = () => {
+  const [recentMeetings, setRecentMeetings] = useState<MeetingNoteInfo[]>([]);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [transcriptionInfo, setTranscriptionInfo] = useState<{
@@ -24,7 +27,7 @@ const StudentMeetingNotesPage = () => {
   const [audioMp3, setAudioMp3] = useState<Blob | null>(null);
   const { user } = useAuth();
   const { id: studentId } = useParams<{ id: string }>();
-  // Generate meeting notes when audioMp3 changes
+
   useEffect(() => {
     if (audioMp3) {
       const generateNotes = async () => {
@@ -44,6 +47,22 @@ const StudentMeetingNotesPage = () => {
       generateNotes();
     }
   }, [audioMp3, user?.userId, studentId]);
+
+  useEffect(() => {
+    const fetchRecentMeetings = async () => {
+      try {
+        const response = await fetch(`/api/students/${studentId}/meeting-notes`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch recent meetings');
+        }
+        const data = await response.json();
+        setRecentMeetings(data);
+      } catch (error) {
+        console.error('Error fetching recent meetings:', error);
+      }
+    };  
+    fetchRecentMeetings();
+  }, [studentId]);
 
   const handleStartTranscription = async () => {
     try {
@@ -165,11 +184,18 @@ const StudentMeetingNotesPage = () => {
         <div
           className={`transition-all duration-500 ease-in-out overflow-hidden ${showSummary && !isTranscribing ? 'max-h-96 opacity-100 mt-8 pt-6 border-t' : 'max-h-0 opacity-0 mt-0 pt-0 border-t-0'} border-gray-200`}
         >
+          {transcriptionInfo && transcriptionInfo.error && (
+            <div className="text-left">
+              <p className="text-sm text-gray-600 bg-gray-50 p-4 rounded border border-gray-200 mb-5 leading-relaxed">
+                {transcriptionInfo.error}
+              </p>
+            </div>
+          )}
           {transcriptionInfo && !isGenerating && !transcriptionInfo.error && (
             <div className="text-left">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold mb-3 text-gray-700">Generated summary:</h3>
-                <Link href={`/counselor/students/${studentId}/meeting-notes/${transcriptionInfo.meetingNoteId}`}
+                <Link href={`/students/${studentId}/meeting-notes/${transcriptionInfo.meetingNoteId}`}
                 className="mr-1 flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors">
                   <FileText className="w-3.5 h-3.5" />
                   View details
@@ -196,6 +222,32 @@ const StudentMeetingNotesPage = () => {
                 </button> */}
               </div>
             </div>
+          )}
+        </div>
+      </div>
+      {/* Previous Meetings Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Recent Meetings</h2>
+        <div className="space-y-4">
+          {recentMeetings.map((meeting) => (
+            <div key={meeting.meetingNoteId} className="bg-white rounded-lg shadow p-5 border border-gray-200 hover:shadow-md transition-shadow duration-150">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-grow">
+                  <p className="text-xs text-gray-500 mb-1">
+                      {format(new Date(meeting.updatedAt), 'MMMM d, yyyy')}
+                  </p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{meeting.summary}</p>
+                </div>
+                <Link href={`/students/${studentId}/meeting-notes/${meeting.meetingNoteId}`}
+                className="mr-1 flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors">
+                  <FileText className="w-3.5 h-3.5" />
+                  View details
+                </Link>
+              </div>
+            </div>
+          ))}
+          {recentMeetings.length === 0 && (
+            <p className="text-sm text-gray-500 text-center py-4">No previous meeting notes found.</p>
           )}
         </div>
       </div>

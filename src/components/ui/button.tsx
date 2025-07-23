@@ -17,6 +17,8 @@ const buttonVariants = cva(
           "px-2 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600 rounded",
         destructive:
           "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+        danger:
+          "bg-red-500 text-white shadow-xs hover:bg-red-600 focus-visible:ring-red-500/20",
         outline:
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         secondary:
