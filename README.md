@@ -129,3 +129,42 @@ An outline of the process is:
 Before opening a pull request, check:
 1. Does `npm run build` execute successfully?
 2. Have migrations been generated and have you tested them against a reset copy of your local database?
+
+## Database Backup and Restore
+
+### Prerequisites
+
+These commands require the following utilities to be installed and available in your system's PATH:
+
+- [`pg_dump`](https://www.postgresql.org/docs/current/app-pgdump.html)
+- [`pg_restore`](https://www.postgresql.org/docs/current/app-pgrestore.html)
+
+These are standard command-line tools provided by PostgreSQL. You can install them by installing [PostgreSQL](https://www.postgresql.org/download/) on your system.
+
+### Backup the Database
+
+To create a backup of your current database state, run:
+
+```bash
+npm run db:backup
+```
+
+- This command executes the script at `supabase/backup-data.ts`.
+- The backup file will be saved in the `supabase/backups/` directory (e.g., `supabase/backups/backup.dump`).
+- Use this before making major changes or for regular backups.
+
+### Restore the Database
+
+To restore your database from a backup, run:
+
+```bash
+npm run db:restore
+```
+
+- This command executes the script at `supabase/restore-data.ts`.
+- It restores your database from the backup file located in the `supabase/backups/` directory (e.g., `supabase/backups/backup.dump`).
+- Use this if you need to revert your database to a previous state.
+
+**Note:**
+- Restoring a backup will overwrite existing data in your database.
+- Ensure you have the correct permissions and have reviewed the backup file before restoring.
