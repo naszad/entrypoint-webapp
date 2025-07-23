@@ -341,6 +341,10 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       try {
         const { data: gpaData, error: gpaError } = await supabase.rpc('calculate_gpa_for_students', {
           p_student_ids: studentIds,
+          p_method: null,
+          p_grade_codes: ['Q1', 'Q2', 'Q3', 'Q4'], // Use quarterly grades only, consistent with grades page
+          p_credit_types: null,
+          p_year_labels: null,
         });
 
         if (gpaError) {

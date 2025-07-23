@@ -48,7 +48,7 @@ const StudentProfilePage = () => {
 
   const fetchGpa = useCallback(async (studentId: string) => {
     try {
-      const url = `/api/students/${studentId}/gpa`;
+      const url = `/api/students/${studentId}/gpa?gradeCodes=Q1,Q2,Q3,Q4`;
       const response = await fetch(url);
       const data = await response.json();
 

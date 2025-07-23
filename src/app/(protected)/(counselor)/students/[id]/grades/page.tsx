@@ -6,6 +6,7 @@ import GradeCodeSelector from '@/components/GradeCodeSelector';
 import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInfo';
 import { useParams } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import React from 'react';
 
 // Types for the new bulk GPA API response
@@ -38,6 +39,7 @@ const StudentGradesPage = () => {
   }, [params.id]);
 
   const fetchStudentCurrentGrades = useCallback(async () => {
+    setLoading(true);
     try {
       const url = `/api/students/${params.id}/grades`;
       const response = await fetch(url);
@@ -69,6 +71,8 @@ const StudentGradesPage = () => {
         type: 'destructive', 
         message: `Failed to fetch grades ${err instanceof Error ? err.message : ''}`
       });
+    } finally {
+      setLoading(false);
     }
   }, [params.id]);
 
@@ -144,21 +148,10 @@ const StudentGradesPage = () => {
     return gpaData.byCreditType[creditType].toFixed(2);
   };
 
-  // Get current selection GPA (calculate from selected quarters in current year)
-  const getCurrentSelectionGpa = (): string => {
-    if (!gpaData?.byYearAndQuarter || currentCodes.length === 0) return '-';
-    
-    const currentYear = studentTermGradeInfo.find(y => y.isCurrent);
-    if (!currentYear || !gpaData.byYearAndQuarter[currentYear.label]) return '-';
-    
-    const validGpas = currentCodes
-      .map(code => gpaData.byYearAndQuarter[currentYear.label][code])
-      .filter(gpa => gpa !== undefined && gpa !== null);
-    
-    if (validGpas.length === 0) return '-';
-    
-    const average = validGpas.reduce((sum, gpa) => sum + gpa, 0) / validGpas.length;
-    return average.toFixed(2);
+  // Get current year cumulative GPA (from bulk API response)
+  const getCurrentYearGpa = (): string => {
+    if (!gpaData?.currentYear || gpaData.currentYear.gpa === null || gpaData.currentYear.gpa === undefined) return '-';
+    return gpaData.currentYear.gpa.toFixed(2);
   };
 
   // Clear alert message after 3 seconds
@@ -173,10 +166,89 @@ const StudentGradesPage = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-8 items-center">
-        <div className="text-center text-gray-500 py-8">
-          Loading GPA data...
+      <div className="bg-white rounded-lg shadow p-6 overflow-x-auto flex flex-col items-center">
+        {/* Loading skeleton for header */}
+        <div className="mb-4">
+          <Skeleton className="h-6 w-48" />
         </div>
+        
+        {/* Loading skeleton for table */}
+        <table className="table-auto border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left px-3 py-2 w-32">
+                <Skeleton className="h-4 w-20" />
+              </th>
+              <th className="text-center px-3 py-2 w-14">
+                <Skeleton className="h-4 w-8" />
+              </th>
+              {[...Array(3)].map((_, yearIndex) => (
+                <React.Fragment key={yearIndex}>
+                  <th className="text-left px-3 py-2 border-l border-gray-200">
+                    <Skeleton className="h-4 w-16" />
+                  </th>
+                  {[...Array(4)].map((_, termIndex) => (
+                    <th key={termIndex} className="text-center px-3 py-2 w-14">
+                      <Skeleton className="h-4 w-6" />
+                    </th>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[...Array(4)].map((_, creditTypeIndex) => (
+              <React.Fragment key={creditTypeIndex}>
+                {[...Array(3)].map((_, courseIndex) => (
+                  <tr key={courseIndex} className={courseIndex === 2 ? 'border-b-2 border-gray-200' : ''}>
+                    {courseIndex === 0 && (
+                      <>
+                        <td className="px-3 py-2 font-medium bg-gray-50 align-top" rowSpan={3}>
+                          <Skeleton className="h-4 w-16" />
+                        </td>
+                        <td className="px-3 py-2 text-center bg-gray-50 w-14 align-top" rowSpan={3}>
+                          <Skeleton className="h-4 w-8" />
+                        </td>
+                      </>
+                    )}
+                    {[...Array(3)].map((_, yearIndex) => (
+                      <React.Fragment key={yearIndex}>
+                        <td className="px-3 py-2 text-left align-top border-l border-gray-200">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        {[...Array(4)].map((_, termIndex) => (
+                          <td key={termIndex} className="px-3 py-2 text-center align-top w-14">
+                            <Skeleton className="h-6 w-6 rounded-full" />
+                          </td>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-gray-300 bg-gray-100">
+              <td className="px-3 py-2">
+                <Skeleton className="h-4 w-8" />
+              </td>
+              <td className="px-3 py-2 w-14">
+                <Skeleton className="h-4 w-8" />
+              </td>
+              {[...Array(3)].map((_, yearIndex) => (
+                <React.Fragment key={yearIndex}>
+                  <td className="px-3 py-2 border-l border-gray-200"></td>
+                  {[...Array(4)].map((_, termIndex) => (
+                    <td key={termIndex} className="px-3 py-2 text-center w-14">
+                      <Skeleton className="h-4 w-8" />
+                    </td>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
       </div>
     );
   }
@@ -350,7 +422,7 @@ const StudentGradesPage = () => {
               <tr className="border-t-2 border-gray-300 bg-gray-100 font-semibold">
                 <td className="px-3 py-2 text-left text-gray-700 whitespace-nowrap">GPA</td>
                 <td className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]">
-                  {getCurrentSelectionGpa()}
+                  {getCurrentYearGpa()}
                 </td>
                 {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
                   <React.Fragment key={`${year.label}-gpa`}>

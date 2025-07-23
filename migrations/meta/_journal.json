@@ -253,6 +253,13 @@
       "when": 1753127852349,
       "tag": "0035_gpa_functions_accept_year_array",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1753232940568,
+      "tag": "0036_drop_old_gpa_function",
+      "breakpoints": true
     }
   ]
 }

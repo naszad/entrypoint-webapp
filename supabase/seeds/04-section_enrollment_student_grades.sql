@@ -136,7 +136,7 @@ BEGIN
   SELECT course_id INTO us_history_b_course_id FROM courses WHERE name = 'US History B' AND school_id = lincoln_high_school_id LIMIT 1;
   SELECT course_id INTO biology_a_course_id FROM courses WHERE name = 'Biology A' AND school_id = lincoln_high_school_id LIMIT 1;
   SELECT course_id INTO biology_b_course_id FROM courses WHERE name = 'Biology B' AND school_id = lincoln_high_school_id LIMIT 1;
-  
+
   -- Get Section IDs
   SELECT section_id INTO english_9a_section_id FROM sections WHERE course_number = 'ENG9A' AND course_id = english_9a_course_id LIMIT 1;
   SELECT section_id INTO english_9b_section_id FROM sections WHERE course_number = 'ENG9B' AND course_id = english_9b_course_id LIMIT 1;
@@ -321,7 +321,7 @@ BEGIN
   (emma_johnson_student_id, english_11b_section_id, q3_2425_term_id, english_11b_course_id, 'A-', 'Q3', 92.50, 3.70, 0.5, 0.5, 0, false, 'English', 'InProgress', 'Excellent contributions.', '11', 'PGFinalGrades', '2025-03-16', 'GRADE_EMMA_ENG11B_Q3_2425', 'G_EMMA_ENG11B_Q3_2425', encode(digest('GRADE_EMMA_ENG11B_Q3_2425', 'sha256'), 'hex'), 'mock_source'),
   (emma_johnson_student_id, english_11b_section_id, q4_2425_term_id, english_11b_course_id, 'A', 'Q4', 96.00, 4.00, 0.5, 0.5, 0, false, 'English', 'InProgress', 'Superb final paper.', '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_ENG11B_Q4_2425', 'G_EMMA_ENG11B_Q4_2425', encode(digest('GRADE_EMMA_ENG11B_Q4_2425', 'sha256'), 'hex'), 'mock_source'),
   (emma_johnson_student_id, english_11b_section_id, s2_2425_term_id, english_11b_course_id, 'A-', 'S2', 94.25, 3.85, 1.0, 1.0, 0, false, 'English', 'InProgress', NULL, '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_ENG11B_S2_2425', 'G_EMMA_ENG11B_S2_2425', encode(digest('GRADE_EMMA_ENG11B_S2_2425', 'sha256'), 'hex'), 'mock_source');
-  
+
   -- Michael Chen's Grades
   -- Grade 9 (2023-2024)
   -- English 9A (S1)
@@ -480,5 +480,5 @@ BEGIN
   -- Algebra I A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (ethan_anderson_student_id, algebra_1a_section_id, q1_2425_term_id, algebra_1a_course_id, 'B-', 'Q1', 82.00, 2.70, 0.5, 0.5, 0, false, 'Math', 'InProgress', NULL, '09', 'PGFinalGrades', '2024-10-20', 'GRADE_ETHAN_ALG1A_Q1_2425', 'G_ETHAN_ALG1A_Q1_2425', encode(digest('GRADE_ETHAN_ALG1A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
-  
+
 END $$;
