@@ -117,7 +117,8 @@ export function DataTable<TData, TValue>({
   return (
     <div
       className={cn(
-        "rounded-lg border shadow-sm bg-white h-full flex flex-col overflow-auto",
+        "rounded-lg border shadow-sm bg-white flex flex-col overflow-hidden",
+        "h-[calc(100vh-140px)]", // Fixed height based on viewport minus header/padding
         className
       )}
     >
@@ -126,108 +127,120 @@ export function DataTable<TData, TValue>({
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
           </div>
         )}
-      <DataTableToolbar
-        table={table}
-        filterValues={filterValues}
-        actions={actions}
-        onActionItemClicked={onActionItemClicked}
-        onRemoveFilter={handleRemoveFilter}
-        onClearAllFilters={handleClearAllFilters}
-        showColumnSettings={showColumnSettings}
-        setShowColumnSettings={setShowColumnSettings}
-      />
-
-      <div className="overflow-auto flex-1 relative">
-        <Table>
-          <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 shadow-sm">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header, index) => {
-                  const column = header.column;
-                  const meta = column.columnDef.meta as ColumnMeta;
-                  const isFilterable = meta?.enableFiltering ?? false;
-                  const isFilterOpen = openFilterColumn === column.id;
-                  const isLastColumn = index === headerGroup.headers.length - 1;
-
-                  return (
-                    <NewTableHeader
-                      key={header.id}
-                      header={header}
-                      isFilterable={isFilterable}
-                      isFilterOpen={isFilterOpen}
-                      filterConditions={filterConditions}
-                      setFilterConditions={setFilterConditions}
-                      onFilterClick={handleFilterClick}
-                      onApplyFilter={handleApplyFilter}
-                      onClearFilter={handleClearFilter}
-                      onSort={handleSort}
-                      currentSortDirection={getCurrentSortDirection(column.id)}
-                      isLastColumn={isLastColumn}
-                      filterButtonRef={(el) => {
-                        filterButtonRefs.current[column.id] = el;
-                      }}
-                      filterDropdownRef={(el) => {
-                        filterDropdownRefs.current[column.id] = el;
-                      }}
-                      filterInputRef={(el, key) => {
-                        if (key) {
-                          filterInputRefs.current[key] = el;
-                        } else {
-                          filterInputRefs.current[column.id] = el;
-                        }
-                      }}
-                      filterConditionRef={(el) => {
-                        filterConditionRefs.current[column.id] = el;
-                      }}
-                    />
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody className="flex-1 overflow-auto">
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row, i) => (
-                <TableRow
-                  key={row.id}
-                  onClick={() => onRowClick?.(row.original)}
-                  className={cn(
-                    "hover:bg-gray-50 transition-colors cursor-pointer",
-                    i % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3 px-4 text-sm">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-100 text-center text-gray-500 italic"
-                >
-                  {isLoading ? 'Loading...' : 'No data available.'}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      
+      {/* Toolbar - Fixed height */}
+      <div className="flex-shrink-0">
+        <DataTableToolbar
+          table={table}
+          filterValues={filterValues}
+          actions={actions}
+          onActionItemClicked={onActionItemClicked}
+          onRemoveFilter={handleRemoveFilter}
+          onClearAllFilters={handleClearAllFilters}
+          showColumnSettings={showColumnSettings}
+          setShowColumnSettings={setShowColumnSettings}
+        />
       </div>
 
+      {/* Table content - Flexible height with internal scroll */}
+      <div className="flex-1 overflow-hidden relative flex flex-col">
+        <div className="overflow-auto flex-1">
+          <Table>
+            <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 shadow-sm">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header, index) => {
+                    const column = header.column;
+                    const meta = column.columnDef.meta as ColumnMeta;
+                    const isFilterable = meta?.enableFiltering ?? false;
+                    const isFilterOpen = openFilterColumn === column.id;
+                    const isLastColumn = index === headerGroup.headers.length - 1;
+
+                    return (
+                      <NewTableHeader
+                        key={header.id}
+                        header={header}
+                        isFilterable={isFilterable}
+                        isFilterOpen={isFilterOpen}
+                        filterConditions={filterConditions}
+                        setFilterConditions={setFilterConditions}
+                        onFilterClick={handleFilterClick}
+                        onApplyFilter={handleApplyFilter}
+                        onClearFilter={handleClearFilter}
+                        onSort={handleSort}
+                        currentSortDirection={getCurrentSortDirection(column.id)}
+                        isLastColumn={isLastColumn}
+                        filterButtonRef={(el) => {
+                          filterButtonRefs.current[column.id] = el;
+                        }}
+                        filterDropdownRef={(el) => {
+                          filterDropdownRefs.current[column.id] = el;
+                        }}
+                        filterInputRef={(el, key) => {
+                          if (key) {
+                            filterInputRefs.current[key] = el;
+                          } else {
+                            filterInputRefs.current[column.id] = el;
+                          }
+                        }}
+                        filterConditionRef={(el) => {
+                          filterConditionRefs.current[column.id] = el;
+                        }}
+                      />
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row, i) => (
+                  <TableRow
+                    key={row.id}
+                    onClick={() => onRowClick?.(row.original)}
+                    className={cn(
+                      "hover:bg-gray-50 transition-colors cursor-pointer",
+                      i % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="py-3 px-4 text-sm">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-full text-center text-gray-500 italic"
+                  >
+                    <div className="flex items-center justify-center h-full min-h-[300px]">
+                      {isLoading ? 'Loading...' : 'No data available.'}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Pagination - Fixed at bottom */}
       {enablePagination && !!total && total > 0 && (
-        <Pagination
-          total={total}
-          currentPage={pageNumber}
-          onPageChange={onPageChange || handlePageChange}
-          onPageSizeChange={onPageSizeChange || handlePageSizeChange}
-          pageSize={pageSize || tablePageSize}
-        />
+        <div className="flex-shrink-0 border-t bg-white">
+          <Pagination
+            total={total}
+            currentPage={pageNumber}
+            onPageChange={onPageChange || handlePageChange}
+            onPageSizeChange={onPageSizeChange || handlePageSizeChange}
+            pageSize={pageSize || tablePageSize}
+          />
+        </div>
       )}
 
     </div>
