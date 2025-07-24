@@ -12,13 +12,13 @@ DECLARE
   year_32_id uuid;
 BEGIN
   SELECT school_id INTO lincoln_hs_id FROM schools WHERE name = 'Lincoln High School' LIMIT 1;
-  SELECT year_id INTO year_34_id FROM years WHERE year_external_id = '34' LIMIT 1;
-  SELECT year_id INTO year_33_id FROM years WHERE year_external_id = '33' LIMIT 1;
-  SELECT year_id INTO year_32_id FROM years WHERE year_external_id = '32' LIMIT 1;
+  SELECT school_year_id INTO year_34_id FROM school_years WHERE name = '2024-2025' LIMIT 1;
+  SELECT school_year_id INTO year_33_id FROM school_years WHERE name = '2023-2024' LIMIT 1;
+  SELECT school_year_id INTO year_32_id FROM school_years WHERE name = '2022-2023' LIMIT 1;
 
 
   INSERT INTO terms (
-    term_id, school_id, start_date, end_date, abbreviation, year_id,
+    term_id, school_id, start_date, end_date, abbreviation, school_year_id,
     external_id, external_name, external_key, external_key_hash, external_source
   ) VALUES
   -- 2024-2025 Terms

@@ -260,6 +260,13 @@
       "when": 1753232940568,
       "tag": "0036_drop_old_gpa_function",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1753337453056,
+      "tag": "0037_refactor_to_universal_school_years",
+      "breakpoints": true
     }
   ]
 }

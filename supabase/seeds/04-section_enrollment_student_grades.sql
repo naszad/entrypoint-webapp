@@ -92,34 +92,34 @@ BEGIN
   -- Get School ID
   SELECT school_id INTO lincoln_high_school_id FROM schools WHERE name = 'Lincoln High School' LIMIT 1;
 
-  -- Get Year IDs
-  SELECT year_id INTO year_2223_id FROM years WHERE year_external_id = '32' LIMIT 1;
-  SELECT year_id INTO year_2324_id FROM years WHERE year_external_id = '33' LIMIT 1;
-  SELECT year_id INTO year_2425_id FROM years WHERE year_external_id = '34' LIMIT 1;
+  -- Get School Year IDs
+  SELECT school_year_id INTO year_2223_id FROM school_years WHERE name = '2022-2023' LIMIT 1;
+  SELECT school_year_id INTO year_2324_id FROM school_years WHERE name = '2023-2024' LIMIT 1;
+  SELECT school_year_id INTO year_2425_id FROM school_years WHERE name = '2024-2025' LIMIT 1;
 
   -- Get Term IDs for 2024-2025
-  SELECT term_id INTO q1_2425_term_id FROM terms WHERE abbreviation = 'Q1' AND school_id = lincoln_high_school_id AND year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO q2_2425_term_id FROM terms WHERE abbreviation = 'Q2' AND school_id = lincoln_high_school_id AND year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO q3_2425_term_id FROM terms WHERE abbreviation = 'Q3' AND school_id = lincoln_high_school_id AND year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO q4_2425_term_id FROM terms WHERE abbreviation = 'Q4' AND school_id = lincoln_high_school_id AND year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO s1_2425_term_id FROM terms WHERE abbreviation = 'S1' AND school_id = lincoln_high_school_id AND year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO s2_2425_term_id FROM terms WHERE abbreviation = 'S2' AND school_id = lincoln_high_school_id AND year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q1_2425_term_id FROM terms WHERE abbreviation = 'Q1' AND school_id = lincoln_high_school_id AND school_year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q2_2425_term_id FROM terms WHERE abbreviation = 'Q2' AND school_id = lincoln_high_school_id AND school_year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q3_2425_term_id FROM terms WHERE abbreviation = 'Q3' AND school_id = lincoln_high_school_id AND school_year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q4_2425_term_id FROM terms WHERE abbreviation = 'Q4' AND school_id = lincoln_high_school_id AND school_year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO s1_2425_term_id FROM terms WHERE abbreviation = 'S1' AND school_id = lincoln_high_school_id AND school_year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO s2_2425_term_id FROM terms WHERE abbreviation = 'S2' AND school_id = lincoln_high_school_id AND school_year_id = year_2425_id LIMIT 1;
 
   -- Get Term IDs for 2023-2024
-  SELECT term_id INTO q1_2324_term_id FROM terms WHERE abbreviation = 'Q1' AND school_id = lincoln_high_school_id AND year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO q2_2324_term_id FROM terms WHERE abbreviation = 'Q2' AND school_id = lincoln_high_school_id AND year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO q3_2324_term_id FROM terms WHERE abbreviation = 'Q3' AND school_id = lincoln_high_school_id AND year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO q4_2324_term_id FROM terms WHERE abbreviation = 'Q4' AND school_id = lincoln_high_school_id AND year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO s1_2324_term_id FROM terms WHERE abbreviation = 'S1' AND school_id = lincoln_high_school_id AND year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO s2_2324_term_id FROM terms WHERE abbreviation = 'S2' AND school_id = lincoln_high_school_id AND year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q1_2324_term_id FROM terms WHERE abbreviation = 'Q1' AND school_id = lincoln_high_school_id AND school_year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q2_2324_term_id FROM terms WHERE abbreviation = 'Q2' AND school_id = lincoln_high_school_id AND school_year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q3_2324_term_id FROM terms WHERE abbreviation = 'Q3' AND school_id = lincoln_high_school_id AND school_year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q4_2324_term_id FROM terms WHERE abbreviation = 'Q4' AND school_id = lincoln_high_school_id AND school_year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO s1_2324_term_id FROM terms WHERE abbreviation = 'S1' AND school_id = lincoln_high_school_id AND school_year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO s2_2324_term_id FROM terms WHERE abbreviation = 'S2' AND school_id = lincoln_high_school_id AND school_year_id = year_2324_id LIMIT 1;
 
   -- Get Term IDs for 2022-2023 (assuming these are seeded in courses_terms.sql)
-  SELECT term_id INTO q1_2223_term_id FROM terms WHERE abbreviation = 'Q1' AND school_id = lincoln_high_school_id AND year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO q2_2223_term_id FROM terms WHERE abbreviation = 'Q2' AND school_id = lincoln_high_school_id AND year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO q3_2223_term_id FROM terms WHERE abbreviation = 'Q3' AND school_id = lincoln_high_school_id AND year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO q4_2223_term_id FROM terms WHERE abbreviation = 'Q4' AND school_id = lincoln_high_school_id AND year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO s1_2223_term_id FROM terms WHERE abbreviation = 'S1' AND school_id = lincoln_high_school_id AND year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO s2_2223_term_id FROM terms WHERE abbreviation = 'S2' AND school_id = lincoln_high_school_id AND year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q1_2223_term_id FROM terms WHERE abbreviation = 'Q1' AND school_id = lincoln_high_school_id AND school_year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q2_2223_term_id FROM terms WHERE abbreviation = 'Q2' AND school_id = lincoln_high_school_id AND school_year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q3_2223_term_id FROM terms WHERE abbreviation = 'Q3' AND school_id = lincoln_high_school_id AND school_year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q4_2223_term_id FROM terms WHERE abbreviation = 'Q4' AND school_id = lincoln_high_school_id AND school_year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO s1_2223_term_id FROM terms WHERE abbreviation = 'S1' AND school_id = lincoln_high_school_id AND school_year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO s2_2223_term_id FROM terms WHERE abbreviation = 'S2' AND school_id = lincoln_high_school_id AND school_year_id = year_2223_id LIMIT 1;
 
   -- Get Course IDs
   SELECT course_id INTO english_9a_course_id FROM courses WHERE name = 'English 9 A' AND school_id = lincoln_high_school_id LIMIT 1;

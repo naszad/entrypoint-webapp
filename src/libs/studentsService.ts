@@ -648,11 +648,11 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
         term:terms (
           term_id,
           abbreviation,
-          year:years (
-            year_id,
+          school_year:school_years (
+            school_year_id,
             name,
-            year_start,
-            year_end
+            start_year,
+            end_year
           )
         )
       `)
@@ -670,44 +670,44 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
     const typedData = data as any[];
 
     const validGrades = typedData.filter(grade => 
-      grade.term && grade.term.year && grade.course
+      grade.term && grade.term.school_year && grade.course
     );
 
     if (validGrades.length === 0) {
       return [];
     }
 
-    const allYears = validGrades.map(grade => grade.term.year);
-    const uniqueYears = allYears.filter((year, index, self) => 
-      index === self.findIndex(y => y.year_id === year.year_id)
+    const allSchoolYears = validGrades.map(grade => grade.term.school_year);
+    const uniqueSchoolYears = allSchoolYears.filter((schoolYear, index, self) => 
+      index === self.findIndex(y => y.school_year_id === schoolYear.school_year_id)
     );
-    const currentYear = uniqueYears.reduce((latest, current) => 
-      current.year_start > latest.year_start ? current : latest
+    const currentSchoolYear = uniqueSchoolYears.reduce((latest, current) => 
+      current.start_year > latest.start_year ? current : latest
     );
 
     const yearMap = new Map<string, YearGradeInfo>();
     const finalGradeCodesByYear = new Map<string, Set<string>>();
 
     validGrades.forEach((grade) => {
-      const yearId = grade.term.year.year_id;
-      const yearName = grade.term.year.name;
-      const isCurrentYear = yearId === currentYear.year_id;
+      const schoolYearId = grade.term.school_year.school_year_id;
+      const schoolYearName = grade.term.school_year.name;
+      const isCurrentYear = schoolYearId === currentSchoolYear.school_year_id;
       
-      if (!yearMap.has(yearId)) {
-        yearMap.set(yearId, {
-          yearId,
-          label: yearName,
+      if (!yearMap.has(schoolYearId)) {
+        yearMap.set(schoolYearId, {
+          yearId: schoolYearId,
+          label: schoolYearName,
           isCurrent: isCurrentYear,
           gradeCodes: [],
           creditTypes: []
         });
       }
 
-      if (!finalGradeCodesByYear.has(yearId)) {
-        finalGradeCodesByYear.set(yearId, new Set<string>());
+      if (!finalGradeCodesByYear.has(schoolYearId)) {
+        finalGradeCodesByYear.set(schoolYearId, new Set<string>());
       }
 
-      const yearData = yearMap.get(yearId)!;
+      const yearData = yearMap.get(schoolYearId)!;
       const gradeCode = grade.grade_code;
       const creditType = grade.credit_type || 'Other';
 
@@ -716,7 +716,7 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
       }
 
       if (!isCurrentYear && grade.grade_status === 'Final') {
-        finalGradeCodesByYear.get(yearId)!.add(gradeCode);
+        finalGradeCodesByYear.get(schoolYearId)!.add(gradeCode);
       }
 
       let creditTypeData = yearData.creditTypes.find(ct => ct.creditType === creditType);
@@ -768,9 +768,9 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
     });
 
     yearGradeInfoArray.sort((a, b) => {
-      const yearA = uniqueYears.find(y => y.year_id === a.yearId);
-      const yearB = uniqueYears.find(y => y.year_id === b.yearId);
-      return (yearA?.year_start || 0) - (yearB?.year_start || 0);
+      const yearA = uniqueSchoolYears.find(y => y.school_year_id === a.yearId);
+      const yearB = uniqueSchoolYears.find(y => y.school_year_id === b.yearId);
+      return (yearA?.start_year || 0) - (yearB?.start_year || 0);
     });
 
     return yearGradeInfoArray;
