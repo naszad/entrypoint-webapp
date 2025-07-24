@@ -175,16 +175,15 @@ async function getBulkGpaData(
   console.log('Credit types:', creditTypes);
   console.log('Results count:', results.length);
   
+  // Round cumulative and current year GPAs to 2 decimals
+  const cumulativeRaw = results[0].data;
+  const currentRaw = results[1].data;
+  const cumulativeGpa = typeof cumulativeRaw === 'number' ? Number(cumulativeRaw.toFixed(2)) : cumulativeRaw;
+  const currentYearGpa = typeof currentRaw === 'number' ? Number(currentRaw.toFixed(2)) : currentRaw;
   // Structure the response
   const response = {
-    cumulative: {
-      gpa: results[0].data,
-      method
-    },
-    currentYear: {
-      gpa: results[1].data,
-      method
-    },
+    cumulative: { gpa: cumulativeGpa, method },
+    currentYear: { gpa: currentYearGpa, method },
     byCreditType: {} as Record<string, number>,
     byYearAndQuarter: {} as Record<string, Record<string, number>>
   };
@@ -193,7 +192,8 @@ async function getBulkGpaData(
   creditTypes.forEach((creditType, index) => {
     const result = results[2 + index];
     if (!result.error && result.data !== null) {
-      response.byCreditType[creditType] = result.data;
+      const raw = result.data as number;
+      response.byCreditType[creditType] = typeof raw === 'number' ? Number(raw.toFixed(2)) : raw;
     }
   });
 
@@ -204,7 +204,8 @@ async function getBulkGpaData(
     gradeCodes.forEach(code => {
       const result = results[resultIndex++];
       if (!result.error && result.data !== null) {
-        response.byYearAndQuarter[yearName][code] = result.data;
+        const raw = result.data as number;
+        response.byYearAndQuarter[yearName][code] = typeof raw === 'number' ? Number(raw.toFixed(2)) : raw;
       }
     });
   });
@@ -252,5 +253,8 @@ async function getSingleGpa(
     throw error;
   }
 
-  return NextResponse.json({ gpa: data, method });
+  // Round single GPA to 2 decimals
+  const rawGpa = data as number;
+  const roundedGpa = typeof rawGpa === 'number' ? Number(rawGpa.toFixed(2)) : rawGpa;
+  return NextResponse.json({ gpa: roundedGpa, method });
 } 

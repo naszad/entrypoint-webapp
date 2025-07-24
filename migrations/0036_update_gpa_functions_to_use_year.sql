@@ -1,4 +1,4 @@
--- Custom SQL migration file, put your code below!
+-- Custom SQL migration file, put your code below! --
 
 -- Update calculate_simple_gpa
 CREATE OR REPLACE FUNCTION calculate_simple_gpa(

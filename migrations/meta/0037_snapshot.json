@@ -1,6 +1,6 @@
 {
-  "id": "4a378ce7-b14e-4773-8dae-f52793837987",
-  "prevId": "1a39ef1b-70a2-4a7a-b7c0-39a8c2a75eae",
+  "id": "f1d0e8c4-aca4-4da5-b35d-bba11c747491",
+  "prevId": "bd420562-7ac9-484b-850d-9f243f9798f7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -306,7 +306,54 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "Allow Access to Own Notes": {
+          "name": "Allow Access to Own Notes",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Access to Non-Private Notes for Students in User Schools": {
+          "name": "Allow Access to Non-Private Notes for Students in User Schools",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"private\" = false\n      AND EXISTS (\n        SELECT 1\n        FROM user_school_memberships AS usm\n        JOIN school_student_link AS ssl\n          ON usm.school_id = ssl.school_id\n        WHERE usm.user_id = auth.uid()\n          AND ssl.student_id = \"meeting_notes\".\"student_id\"\n      )\n    "
+        },
+        "Allow Insert Own Notes": {
+          "name": "Allow Insert Own Notes",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Update Own Notes": {
+          "name": "Allow Update Own Notes",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    ",
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Delete Own Notes": {
+          "name": "Allow Delete Own Notes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -513,12 +560,6 @@
         "customer_id": {
           "name": "customer_id",
           "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gpa_config": {
-          "name": "gpa_config",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         }
@@ -1819,19 +1860,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "school_id": {
-          "name": "school_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_current_year": {
-          "name": "is_current_year",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1848,21 +1876,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "years_school_id_schools_school_id_fk": {
-          "name": "years_school_id_schools_school_id_fk",
-          "tableFrom": "years",
-          "columnsFrom": [
-            "school_id"
-          ],
-          "tableTo": "schools",
-          "columnsTo": [
-            "school_id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

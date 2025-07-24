@@ -11,12 +11,12 @@ function ChatAssistantOpenLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "w-full h-full pl-[240px] transition-all duration-300",
+        "w-full min-h-full pl-[240px] transition-all duration-300",
         isChatAssistantOpen ? "pr-[400px]" : "pr-0"
       )}
     >
       <Suspense>
-        <main className="px-9 py-5 w-full h-full bg-gray-100 pt-9">{children}</main>
+        <main className="px-9 py-5 w-full min-h-full bg-gray-100 pt-9">{children}</main>
       </Suspense>
     </div>
   );

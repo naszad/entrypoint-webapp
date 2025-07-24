@@ -250,7 +250,10 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           if (error) {
             throw new Error(error.message);
           }
-          return { gpa, method: parsed.method ?? 'simple' };
+          // Round GPA to two decimals for consistency with bulk endpoint
+          const rawGpa = gpa as number;
+          const roundedGpa = typeof rawGpa === 'number' ? Number(rawGpa.toFixed(2)) : rawGpa;
+          return { gpa: roundedGpa, method: parsed.method ?? 'simple' };
         },
       }),
     }

@@ -66,6 +66,7 @@ type GradeData = {
   grade_percent: number;
   gpa_points: number;
   updated_at: Date;
+  grade_status: string;
 };
 
 type TermGradeData = {
@@ -537,6 +538,7 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
             grade_percent,
             gpa_points,
             updated_at,
+            grade_status,
             course:courses (
               course_id,
               name,
@@ -554,7 +556,19 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
       throw new Error(`Failed to fetch section enrollments: ${error.message}`);
     }
 
-    const refinedData = data as unknown as TermGradeData[];
+    // Filter to only in-progress grades
+    const refinedData: TermGradeData[] = (data as unknown as TermGradeData[]).map(termData => {
+      // Only include grades that are still in progress
+      const filteredGrades = termData.term.term_grades.filter(
+        (g: GradeData & { grade_status?: string }) => g.grade_status === 'InProgress'
+      );
+      return {
+        term: {
+          ...termData.term,
+          term_grades: filteredGrades
+        }
+      };
+    });
 
     const termsData = refinedData
       .map((d: TermGradeData) => ({

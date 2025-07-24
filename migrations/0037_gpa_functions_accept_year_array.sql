@@ -1,4 +1,4 @@
-    -- Custom SQL migration file, put your code below! --
+-- Custom SQL migration file, put your code below! --
 
 -- Create index on years(name) for better performance
 CREATE INDEX IF NOT EXISTS idx_years_name ON years(name);

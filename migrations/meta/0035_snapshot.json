@@ -1,6 +1,6 @@
 {
-  "id": "3cc4d5fd-70db-4c66-a406-72992e6d769e",
-  "prevId": "7235b06f-ac27-4b8e-a495-2bbf11214596",
+  "id": "b37280ef-5f88-4e39-a3e2-95b3c6b944fd",
+  "prevId": "a18d37e4-26b0-4ded-9a14-385c4332602a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -96,45 +96,45 @@
         "courses_school_id_schools_school_id_fk": {
           "name": "courses_school_id_schools_school_id_fk",
           "tableFrom": "courses",
+          "tableTo": "schools",
           "columnsFrom": [
             "school_id"
           ],
-          "tableTo": "schools",
           "columnsTo": [
             "school_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "courses_customer_id_customers_customer_id_fk": {
           "name": "courses_customer_id_customers_customer_id_fk",
           "tableFrom": "courses",
+          "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "customer_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "courses_external_key_unique": {
           "name": "courses_external_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "courses_external_key_hash_unique": {
           "name": "courses_external_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -189,10 +189,10 @@
       "uniqueConstraints": {
         "customers_name_unique": {
           "name": "customers_name_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "name"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -280,33 +280,80 @@
         "meeting_notes_user_id_users_user_id_fk": {
           "name": "meeting_notes_user_id_users_user_id_fk",
           "tableFrom": "meeting_notes",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "user_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "meeting_notes_student_id_students_student_id_fk": {
           "name": "meeting_notes_student_id_students_student_id_fk",
           "tableFrom": "meeting_notes",
+          "tableTo": "students",
           "columnsFrom": [
             "student_id"
           ],
-          "tableTo": "students",
           "columnsTo": [
             "student_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "Allow Access to Own Notes": {
+          "name": "Allow Access to Own Notes",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Access to Non-Private Notes for Students in User Schools": {
+          "name": "Allow Access to Non-Private Notes for Students in User Schools",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"private\" = false\n      AND EXISTS (\n        SELECT 1\n        FROM user_school_memberships AS usm\n        JOIN school_student_link AS ssl\n          ON usm.school_id = ssl.school_id\n        WHERE usm.user_id = auth.uid()\n          AND ssl.student_id = \"meeting_notes\".\"student_id\"\n      )\n    "
+        },
+        "Allow Insert Own Notes": {
+          "name": "Allow Insert Own Notes",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Update Own Notes": {
+          "name": "Allow Update Own Notes",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    ",
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Delete Own Notes": {
+          "name": "Allow Delete Own Notes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -371,15 +418,15 @@
         "reports_user_id_users_user_id_fk": {
           "name": "reports_user_id_users_user_id_fk",
           "tableFrom": "reports",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "user_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -522,32 +569,32 @@
         "schools_customer_id_customers_customer_id_fk": {
           "name": "schools_customer_id_customers_customer_id_fk",
           "tableFrom": "schools",
+          "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "customer_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "schools_external_key_unique": {
           "name": "schools_external_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "schools_external_key_hash_unique": {
           "name": "schools_external_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -682,80 +729,80 @@
         "section_enrollments_section_id_sections_section_id_fk": {
           "name": "section_enrollments_section_id_sections_section_id_fk",
           "tableFrom": "section_enrollments",
+          "tableTo": "sections",
           "columnsFrom": [
             "section_id"
           ],
-          "tableTo": "sections",
           "columnsTo": [
             "section_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "section_enrollments_student_id_students_student_id_fk": {
           "name": "section_enrollments_student_id_students_student_id_fk",
           "tableFrom": "section_enrollments",
+          "tableTo": "students",
           "columnsFrom": [
             "student_id"
           ],
-          "tableTo": "students",
           "columnsTo": [
             "student_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "section_enrollments_term_id_terms_term_id_fk": {
           "name": "section_enrollments_term_id_terms_term_id_fk",
           "tableFrom": "section_enrollments",
+          "tableTo": "terms",
           "columnsFrom": [
             "term_id"
           ],
-          "tableTo": "terms",
           "columnsTo": [
             "term_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "section_enrollments_customer_id_customers_customer_id_fk": {
           "name": "section_enrollments_customer_id_customers_customer_id_fk",
           "tableFrom": "section_enrollments",
+          "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "customer_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "section_enrollments_external_key_unique": {
           "name": "section_enrollments_external_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "section_enrollments_external_key_hash_unique": {
           "name": "section_enrollments_external_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "section_enrollments_student_id_section_id_term_id_unique": {
           "name": "section_enrollments_student_id_section_id_term_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "student_id",
             "section_id",
             "term_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -876,45 +923,45 @@
         "sections_course_id_courses_course_id_fk": {
           "name": "sections_course_id_courses_course_id_fk",
           "tableFrom": "sections",
+          "tableTo": "courses",
           "columnsFrom": [
             "course_id"
           ],
-          "tableTo": "courses",
           "columnsTo": [
             "course_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "sections_customer_id_customers_customer_id_fk": {
           "name": "sections_customer_id_customers_customer_id_fk",
           "tableFrom": "sections",
+          "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "customer_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sections_external_key_unique": {
           "name": "sections_external_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "sections_external_key_hash_unique": {
           "name": "sections_external_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1107,84 +1154,84 @@
         "student_grades_student_id_students_student_id_fk": {
           "name": "student_grades_student_id_students_student_id_fk",
           "tableFrom": "student_grades",
+          "tableTo": "students",
           "columnsFrom": [
             "student_id"
           ],
-          "tableTo": "students",
           "columnsTo": [
             "student_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "student_grades_section_id_sections_section_id_fk": {
           "name": "student_grades_section_id_sections_section_id_fk",
           "tableFrom": "student_grades",
+          "tableTo": "sections",
           "columnsFrom": [
             "section_id"
           ],
-          "tableTo": "sections",
           "columnsTo": [
             "section_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "student_grades_term_id_terms_term_id_fk": {
           "name": "student_grades_term_id_terms_term_id_fk",
           "tableFrom": "student_grades",
+          "tableTo": "terms",
           "columnsFrom": [
             "term_id"
           ],
-          "tableTo": "terms",
           "columnsTo": [
             "term_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "student_grades_course_id_courses_course_id_fk": {
           "name": "student_grades_course_id_courses_course_id_fk",
           "tableFrom": "student_grades",
+          "tableTo": "courses",
           "columnsFrom": [
             "course_id"
           ],
-          "tableTo": "courses",
           "columnsTo": [
             "course_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "student_grades_customer_id_customers_customer_id_fk": {
           "name": "student_grades_customer_id_customers_customer_id_fk",
           "tableFrom": "student_grades",
+          "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "customer_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "student_grades_external_key_unique": {
           "name": "student_grades_external_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "student_grades_external_key_hash_unique": {
           "name": "student_grades_external_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1341,32 +1388,32 @@
         "students_customer_id_customers_customer_id_fk": {
           "name": "students_customer_id_customers_customer_id_fk",
           "tableFrom": "students",
+          "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "customer_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "students_external_key_unique": {
           "name": "students_external_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "students_external_key_hash_unique": {
           "name": "students_external_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1431,28 +1478,28 @@
         "school_student_link_student_id_students_student_id_fk": {
           "name": "school_student_link_student_id_students_student_id_fk",
           "tableFrom": "school_student_link",
+          "tableTo": "students",
           "columnsFrom": [
             "student_id"
           ],
-          "tableTo": "students",
           "columnsTo": [
             "student_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "school_student_link_school_id_schools_school_id_fk": {
           "name": "school_student_link_school_id_schools_school_id_fk",
           "tableFrom": "school_student_link",
+          "tableTo": "schools",
           "columnsFrom": [
             "school_id"
           ],
-          "tableTo": "schools",
           "columnsTo": [
             "school_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {
@@ -1577,58 +1624,58 @@
         "terms_school_id_schools_school_id_fk": {
           "name": "terms_school_id_schools_school_id_fk",
           "tableFrom": "terms",
+          "tableTo": "schools",
           "columnsFrom": [
             "school_id"
           ],
-          "tableTo": "schools",
           "columnsTo": [
             "school_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "terms_year_id_years_year_id_fk": {
           "name": "terms_year_id_years_year_id_fk",
           "tableFrom": "terms",
+          "tableTo": "years",
           "columnsFrom": [
             "year_id"
           ],
-          "tableTo": "years",
           "columnsTo": [
             "year_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         },
         "terms_customer_id_customers_customer_id_fk": {
           "name": "terms_customer_id_customers_customer_id_fk",
           "tableFrom": "terms",
+          "tableTo": "customers",
           "columnsFrom": [
             "customer_id"
           ],
-          "tableTo": "customers",
           "columnsTo": [
             "customer_id"
           ],
-          "onUpdate": "cascade",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "terms_external_key_unique": {
           "name": "terms_external_key_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "terms_external_key_hash_unique": {
           "name": "terms_external_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "external_key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1740,28 +1787,28 @@
         "user_school_memberships_user_id_users_user_id_fk": {
           "name": "user_school_memberships_user_id_users_user_id_fk",
           "tableFrom": "user_school_memberships",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "user_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "user_school_memberships_school_id_schools_school_id_fk": {
           "name": "user_school_memberships_school_id_schools_school_id_fk",
           "tableFrom": "user_school_memberships",
+          "tableTo": "schools",
           "columnsFrom": [
             "school_id"
           ],
-          "tableTo": "schools",
           "columnsTo": [
             "school_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1848,10 +1895,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
