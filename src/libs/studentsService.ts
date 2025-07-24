@@ -7,6 +7,7 @@ import { StudentTermGradeInfo } from '@/types/StudentTermGradeInfo';
 import { cookies } from 'next/headers';
 import { YearGradeInfo } from '@/types/YearGradeInfo';
 import { StudentGradeInfo } from '@/types/StudentGradeInfo';
+import { FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
 
 type StudentsRequest = {
   fetchWithCount?: boolean;
@@ -342,7 +343,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         const { data: gpaData, error: gpaError } = await supabase.rpc('calculate_gpa_for_students', {
           p_student_ids: studentIds,
           p_method: null,
-          p_grade_codes: ['Q1', 'Q2', 'Q3', 'Q4'], // Use quarterly grades only, consistent with grades page
+          p_grade_codes: FINALIZED_GRADE_CODES,
           p_credit_types: null,
           p_year_labels: null,
         });
@@ -612,10 +613,7 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
 
 const sortGradeCodes = (codes: string[]): string[] => {
   const order: { [key: string]: number } = {
-    'S1': 1, 'S2': 2, 'S3': 3, 'S4': 4,
-    'Q1': 5, 'Q2': 6, 'Q3': 7, 'Q4': 8,
-    'T1': 9, 'T2': 10, 'T3': 11, 'T4': 12,
-    'Y1': 13, 'F': 14
+    'Q1': 1, 'Q2': 2, 'S1': 3, 'Q3': 4, 'Q4': 5, 'S2': 6
   };
   
   return codes.sort((a, b) => {

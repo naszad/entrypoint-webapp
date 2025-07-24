@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/supabaseServer';
+import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES } from '@/utils/gradeCodes';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -123,30 +124,30 @@ async function getBulkGpaData(
 
   // Calculate multiple GPAs in parallel
   const gpaPromises = [
-    // Cumulative GPA (all years, quarters only to match chat behavior)
+    // Cumulative GPA (Finalized grades only)
     supabase.rpc('calculate_gpa_dispatch', {
       p_student_id: studentId,
       p_method: method,
-      p_grade_codes: ['Q1', 'Q2', 'Q3', 'Q4'],
+      p_grade_codes: FINALIZED_GRADE_CODES,
       p_credit_types: null,
       p_year_labels: null, // All years
     }),
     
-    // Current year GPA (quarters only to match chat behavior)
+    // Current year GPA (quarters only)
     supabase.rpc('calculate_gpa_dispatch', {
       p_student_id: studentId,
       p_method: method,
-      p_grade_codes: ['Q1', 'Q2', 'Q3', 'Q4'],
+      p_grade_codes: CURRENT_YEAR_GRADE_CODES,
       p_credit_types: null,
       p_year_labels: currentYearLabel ? [currentYearLabel] : null,
     }),
     
-    // Credit type GPAs using quarterly grades only (align with default behavior in get_student_gpa)
+    // Credit type GPAs using finalized grades only
     ...creditTypes.map(creditType =>
       supabase.rpc('calculate_gpa_dispatch', {
         p_student_id: studentId,
         p_method: method,
-        p_grade_codes: ['Q1', 'Q2', 'Q3', 'Q4'],
+        p_grade_codes: FINALIZED_GRADE_CODES,
         p_credit_types: [creditType],
         p_year_labels: null, // All years
       })

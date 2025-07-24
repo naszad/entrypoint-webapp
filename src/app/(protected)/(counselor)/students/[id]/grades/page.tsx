@@ -7,6 +7,7 @@ import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInf
 import { useParams } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ALL_GRADE_CODES, FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
 import React from 'react';
 
 // Types for the new bulk GPA API response
@@ -17,8 +18,7 @@ interface BulkGpaResponse {
   byCreditType: Record<string, number>;
 }
 
-const PAST_YEAR_GRADE_CODES = ['S1', 'S2'];
-const CURRENT_YEAR_GRADE_CODES = ['Q1', 'Q2', 'S1', 'Q3', 'Q4', 'S2'];
+
 
 const getGradeCodesStorageKey = (studentId: string) => {
   return `currentYearGradeCodes-${studentId}`;
@@ -278,7 +278,7 @@ const StudentGradesPage = () => {
                 {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
                   <React.Fragment key={year.label}>
                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap border-l border-gray-200">{year.label}</th>
-                    {PAST_YEAR_GRADE_CODES.map(code => (
+                    {FINALIZED_GRADE_CODES.map(code => (
                       <th key={code} className="text-center px-3 py-2 text-xs font-semibold text-gray-600 uppercase w-14 min-w-[3.5rem] max-w-[3.5rem]">{code}</th>
                     ))}
                   </React.Fragment>
@@ -291,7 +291,7 @@ const StudentGradesPage = () => {
                         <div className="flex items-center gap-2">
                           <span>{currentYear.label}</span>
                           <GradeCodeSelector
-                            allCodes={CURRENT_YEAR_GRADE_CODES}
+                            allCodes={[...ALL_GRADE_CODES]}
                             selectedCodes={currentCodes}
                             onChange={handleCurrentCodesChange}
                           />
@@ -322,7 +322,7 @@ const StudentGradesPage = () => {
                       {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
                         <React.Fragment key={year.label}>
                           <td className="border-l border-gray-200"></td>
-                          {PAST_YEAR_GRADE_CODES.map(code => (
+                          {FINALIZED_GRADE_CODES.map(code => (
                             <td key={code} className=""></td>
                           ))}
                         </React.Fragment>
@@ -372,7 +372,7 @@ const StudentGradesPage = () => {
                           <td className="px-3 py-2 text-left align-top font-medium text-gray-800 whitespace-nowrap border-l border-gray-200">
                             {course ? course.courseName : <span className="text-gray-300">—</span>}
                           </td>
-                          {PAST_YEAR_GRADE_CODES.map(code => (
+                          {FINALIZED_GRADE_CODES.map(code => (
                             <td
                               key={code}
                               className="px-3 py-2 text-center align-top w-14 min-w-[3.5rem] max-w-[3.5rem]"
@@ -427,7 +427,7 @@ const StudentGradesPage = () => {
                 {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
                   <React.Fragment key={`${year.label}-gpa`}>
                     <td className="px-3 py-2 text-gray-700 whitespace-nowrap border-l border-gray-200"></td>
-                    {PAST_YEAR_GRADE_CODES.map(code => (
+                    {FINALIZED_GRADE_CODES.map(code => (
                       <td
                         key={`${year.label}-${code}-gpa`}
                         className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]"

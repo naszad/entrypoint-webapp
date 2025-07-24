@@ -3,6 +3,7 @@ import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { z } from 'zod'
 import { cookies } from 'next/headers'
+import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES } from '@/utils/gradeCodes'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -10,7 +11,11 @@ export const maxDuration = 30
 export async function POST(req: Request) {
   const { messages }: { messages: CoreMessage[] } = await req.json()
 
-  const systemMessage = `You are a helpful AI assistant for school counselors. Your goal is to answer questions by querying the school's database or by helping the user navigate the application.
+  const systemMessage = `
+You are a helpful AI assistant for school counselors. Your goal is to answer questions by querying the school's database or by helping the user navigate the application.
+When the user asks about their "current year" (e.g., "current year GPA"), you must interpret this as the school year with is_current = true in the database and pass that year label to the get_student_gpa tool via the yearLabels parameter.
+
+Before constructing any SQL JOINs on columns like 'term_id' or other foreign-key-style fields, always inspect the relevant table schemas using the get_table_schema tool (or list_tables to discover table names) to identify intermediate tables and proper join paths.
 
 When a user asks a question, first determine their intent:
 1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool.
@@ -18,6 +23,8 @@ When a user asks a question, first determine their intent:
 3.  Are they asking for a **student's GPA or a filtered slice of their GPA** (e.g., cumulative or by subject)? If so, use the \`get_student_gpa\` tool with parameters \`studentName\`, \`method\`, \`gradeCodes\`, \`gradeLevels\`, \`creditTypes\`, and \`termIds\`.
 
 Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
+
+Do NOT include any intermediate attempts, error messages, or debugging commentary in your response. Only present the final answer message to the user.
 `
 
   const result = await streamText({
@@ -170,7 +177,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         },
       }),
       get_student_gpa: tool({
-        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by specific school years (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to quarterly grades (Q1, Q2, Q3, Q4).`,
+        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by specific school years (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to finalized semester grades (S1, S2) for data from past years, but uses current year quarterly grades (Q1, Q2, Q3, Q4) when filtering by current year.`,
         parameters: z.object({
           studentName: z.string().describe('Full name or part of the student\'s name'),
           method: z.string().optional().describe('GPA calculation method: simple, added_value, credit_hour_weighted'),
@@ -190,11 +197,44 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
             throw new Error('Student not found: ' + parsed.studentName);
           }
           const studentId = student.student_id;
-          // Default to quarterly grades if none provided (avoids including semester averages S1/S2)
-          const gradeCodesFilter = parsed.gradeCodes ?? ['Q1','Q2','Q3','Q4'];
-          const creditTypesFilter = parsed.creditTypes ?? null;
-          const yearLabelsFilter = parsed.yearLabels ?? null;
           
+          // ---------------------------------------------------------------------------------
+          // Step 1: Fetch the label of the current school year (e.g. "2024-2025")
+          // ---------------------------------------------------------------------------------
+          const { data: currentYearData } = await supabase
+            .from('school_years')
+            .select('name')
+            .eq('is_current', true)
+            .single();
+
+          const currentSchoolYearLabel: string | null = currentYearData?.name ?? null;
+
+          // ---------------------------------------------------------------------------------
+          // Step 2: Determine which grade codes to use
+          //   • Default to FINALIZED_GRADE_CODES (S1, S2) for past years
+          //   • Switch to CURRENT_YEAR_GRADE_CODES (quarters + semesters) when
+          //     the filter explicitly references the current school year OR the
+          //     special placeholder "current" / "current_year" is supplied.
+          // ---------------------------------------------------------------------------------
+          let yearLabelsFilter: string[] | null = parsed.yearLabels ? [...parsed.yearLabels] : null;
+          let defaultGradeCodes: readonly string[] = FINALIZED_GRADE_CODES;
+
+          if (yearLabelsFilter && yearLabelsFilter.length > 0) {
+            // Replace placeholder tokens with the actual current year label
+            const PLACEHOLDER_REGEX = /^(current|current_year)$/i;
+            yearLabelsFilter = yearLabelsFilter.map((label) =>
+              PLACEHOLDER_REGEX.test(label) && currentSchoolYearLabel ? currentSchoolYearLabel : label
+            );
+
+            // If, after replacement, the current school year label is in the filter -> use quarterly codes
+            if (currentSchoolYearLabel && yearLabelsFilter.includes(currentSchoolYearLabel)) {
+              defaultGradeCodes = CURRENT_YEAR_GRADE_CODES;
+            }
+          }
+
+          const gradeCodesFilter = parsed.gradeCodes ?? [...defaultGradeCodes];
+          const creditTypesFilter = parsed.creditTypes ?? null;
+
           console.log('Computed get_student_gpa filters:', { gradeCodesFilter, creditTypesFilter, yearLabelsFilter });
           const { data: gpa, error } = await supabase.rpc('calculate_gpa_dispatch', {
             p_student_id: studentId,
