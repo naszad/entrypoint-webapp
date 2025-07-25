@@ -6,6 +6,7 @@ export interface MeetingNoteInfo {
     notes: string;
     transcript: string;
     private: boolean;
+    createdAt: string;
     updatedAt: string;
     studentName: string;
     studentId: string;
