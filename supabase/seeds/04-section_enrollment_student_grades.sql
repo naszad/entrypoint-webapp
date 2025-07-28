@@ -304,23 +304,23 @@ BEGIN
   -- US History A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (emma_johnson_student_id, us_history_a_section_id, q1_2425_term_id, us_history_a_course_id, 'A-', 'Q1', 92.00, 3.70, 0.5, 0.5, 0, false, 'History', 'Final', 'Excellent work on Q1 project!', '11', 'StoredGrades', '2024-10-20', 'GRADE_EMMA_USHISTA_Q1_2425', 'G_EMMA_USHISTA_Q1_2425', encode(digest('GRADE_EMMA_USHISTA_Q1_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, us_history_a_section_id, q2_2425_term_id, us_history_a_course_id, 'D', 'Q2', 65.00, 1.00, 0.5, 0.5, 0, false, 'History', 'InProgress', 'Needs improvement.', '11', 'PGFinalGrades', '2024-12-15', 'GRADE_EMMA_USHISTA_Q2_2425', 'G_EMMA_USHISTA_Q2_2425', encode(digest('GRADE_EMMA_USHISTA_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, us_history_a_section_id, s1_2425_term_id, us_history_a_course_id, 'C', 'S1', 78.50, 2.35, 1.0, 1.0, 0, false, 'History', 'InProgress', 'Preliminary semester grade.', '11', 'PGFinalGrades', '2024-12-22', 'GRADE_EMMA_USHISTA_S1_2425', 'G_EMMA_USHISTA_S1_2425', encode(digest('GRADE_EMMA_USHISTA_S1_2425', 'sha256'), 'hex'), 'mock_source');
+  (emma_johnson_student_id, us_history_a_section_id, q2_2425_term_id, us_history_a_course_id, 'D', 'Q2', 65.00, 1.00, 0.5, 0.5, 0, false, 'History', 'Final', 'Needs improvement.', '11', 'PGFinalGrades', '2024-12-15', 'GRADE_EMMA_USHISTA_Q2_2425', 'G_EMMA_USHISTA_Q2_2425', encode(digest('GRADE_EMMA_USHISTA_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
+  (emma_johnson_student_id, us_history_a_section_id, s1_2425_term_id, us_history_a_course_id, 'C', 'S1', 78.50, 2.35, 1.0, 1.0, 0, false, 'History', 'Final', 'Preliminary semester grade.', '11', 'PGFinalGrades', '2024-12-22', 'GRADE_EMMA_USHISTA_S1_2425', 'G_EMMA_USHISTA_S1_2425', encode(digest('GRADE_EMMA_USHISTA_S1_2425', 'sha256'), 'hex'), 'mock_source');
   -- US History B (S2)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (emma_johnson_student_id, us_history_b_section_id, q3_2425_term_id, us_history_b_course_id, 'B', 'Q3', 85.00, 3.00, 0.5, 0.5, 0, false, 'History', 'InProgress', 'Solid effort.', '11', 'PGFinalGrades', '2025-03-16', 'GRADE_EMMA_USHISTB_Q3_2425', 'G_EMMA_USHISTB_Q3_2425', encode(digest('GRADE_EMMA_USHISTB_Q3_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, us_history_b_section_id, q4_2425_term_id, us_history_b_course_id, 'B+', 'Q4', 89.00, 3.30, 0.5, 0.5, 0, false, 'History', 'InProgress', 'Strong finish.', '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_USHISTB_Q4_2425', 'G_EMMA_USHISTB_Q4_2425', encode(digest('GRADE_EMMA_USHISTB_Q4_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, us_history_b_section_id, s2_2425_term_id, us_history_b_course_id, 'B+', 'S2', 87.00, 3.15, 1.0, 1.0, 0, false, 'History', 'InProgress', 'Keep up the good work.', '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_USHISTB_S2_2425', 'G_EMMA_USHISTB_S2_2425', encode(digest('GRADE_EMMA_USHISTB_S2_2425', 'sha256'), 'hex'), 'mock_source');
+  (emma_johnson_student_id, us_history_b_section_id, q3_2425_term_id, us_history_b_course_id, 'B', 'Q3', 85.00, 3.00, 0.5, 0.5, 0, false, 'History', 'Final', 'Solid effort.', '11', 'PGFinalGrades', '2025-03-16', 'GRADE_EMMA_USHISTB_Q3_2425', 'G_EMMA_USHISTB_Q3_2425', encode(digest('GRADE_EMMA_USHISTB_Q3_2425', 'sha256'), 'hex'), 'mock_source'),
+  (emma_johnson_student_id, us_history_b_section_id, q4_2425_term_id, us_history_b_course_id, 'B+', 'Q4', 89.00, 3.30, 0.5, 0.5, 0, false, 'History', 'Final', 'Strong finish.', '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_USHISTB_Q4_2425', 'G_EMMA_USHISTB_Q4_2425', encode(digest('GRADE_EMMA_USHISTB_Q4_2425', 'sha256'), 'hex'), 'mock_source'),
+  (emma_johnson_student_id, us_history_b_section_id, s2_2425_term_id, us_history_b_course_id, 'B+', 'S2', 87.00, 3.15, 1.0, 1.0, 0, false, 'History', 'Final', 'Keep up the good work.', '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_USHISTB_S2_2425', 'G_EMMA_USHISTB_S2_2425', encode(digest('GRADE_EMMA_USHISTB_S2_2425', 'sha256'), 'hex'), 'mock_source');
   -- English 11 A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (emma_johnson_student_id, english_11a_section_id, q1_2425_term_id, english_11a_course_id, 'A', 'Q1', 95.00, 4.00, 0.5, 0.5, 0, false, 'English', 'Final', 'Great analytical essays.', '11', 'StoredGrades', '2024-10-20', 'GRADE_EMMA_ENG11A_Q1_2425', 'G_EMMA_ENG11A_Q1_2425', encode(digest('GRADE_EMMA_ENG11A_Q1_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, english_11a_section_id, q2_2425_term_id, english_11a_course_id, 'A-', 'Q2', 91.00, 3.70, 0.5, 0.5, 0, false, 'English', 'InProgress', NULL, '11', 'PGFinalGrades', '2024-12-15', 'GRADE_EMMA_ENG11A_Q2_2425', 'G_EMMA_ENG11A_Q2_2425', encode(digest('GRADE_EMMA_ENG11A_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, english_11a_section_id, s1_2425_term_id, english_11a_course_id, 'A', 'S1', 93.00, 3.85, 1.0, 1.0, 0, false, 'English', 'InProgress', 'Preliminary semester grade.', '11', 'PGFinalGrades', '2024-12-22', 'GRADE_EMMA_ENG11A_S1_2425', 'G_EMMA_ENG11A_S1_2425', encode(digest('GRADE_EMMA_ENG11A_S1_2425', 'sha256'), 'hex'), 'mock_source');
+  (emma_johnson_student_id, english_11a_section_id, q2_2425_term_id, english_11a_course_id, 'A-', 'Q2', 91.00, 3.70, 0.5, 0.5, 0, false, 'English', 'Final', NULL, '11', 'PGFinalGrades', '2024-12-15', 'GRADE_EMMA_ENG11A_Q2_2425', 'G_EMMA_ENG11A_Q2_2425', encode(digest('GRADE_EMMA_ENG11A_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
+  (emma_johnson_student_id, english_11a_section_id, s1_2425_term_id, english_11a_course_id, 'A', 'S1', 93.00, 3.85, 1.0, 1.0, 0, false, 'English', 'Final', 'Preliminary semester grade.', '11', 'PGFinalGrades', '2024-12-22', 'GRADE_EMMA_ENG11A_S1_2425', 'G_EMMA_ENG11A_S1_2425', encode(digest('GRADE_EMMA_ENG11A_S1_2425', 'sha256'), 'hex'), 'mock_source');
   -- English 11 B (S2)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (emma_johnson_student_id, english_11b_section_id, q3_2425_term_id, english_11b_course_id, 'A-', 'Q3', 92.50, 3.70, 0.5, 0.5, 0, false, 'English', 'InProgress', 'Excellent contributions.', '11', 'PGFinalGrades', '2025-03-16', 'GRADE_EMMA_ENG11B_Q3_2425', 'G_EMMA_ENG11B_Q3_2425', encode(digest('GRADE_EMMA_ENG11B_Q3_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, english_11b_section_id, q4_2425_term_id, english_11b_course_id, 'A', 'Q4', 96.00, 4.00, 0.5, 0.5, 0, false, 'English', 'InProgress', 'Superb final paper.', '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_ENG11B_Q4_2425', 'G_EMMA_ENG11B_Q4_2425', encode(digest('GRADE_EMMA_ENG11B_Q4_2425', 'sha256'), 'hex'), 'mock_source'),
-  (emma_johnson_student_id, english_11b_section_id, s2_2425_term_id, english_11b_course_id, 'A-', 'S2', 94.25, 3.85, 1.0, 1.0, 0, false, 'English', 'InProgress', NULL, '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_ENG11B_S2_2425', 'G_EMMA_ENG11B_S2_2425', encode(digest('GRADE_EMMA_ENG11B_S2_2425', 'sha256'), 'hex'), 'mock_source');
+  (emma_johnson_student_id, english_11b_section_id, q3_2425_term_id, english_11b_course_id, 'A-', 'Q3', 92.50, 3.70, 0.5, 0.5, 0, false, 'English', 'Final', 'Excellent contributions.', '11', 'PGFinalGrades', '2025-03-16', 'GRADE_EMMA_ENG11B_Q3_2425', 'G_EMMA_ENG11B_Q3_2425', encode(digest('GRADE_EMMA_ENG11B_Q3_2425', 'sha256'), 'hex'), 'mock_source'),
+  (emma_johnson_student_id, english_11b_section_id, q4_2425_term_id, english_11b_course_id, 'A', 'Q4', 96.00, 4.00, 0.5, 0.5, 0, false, 'English', 'Final', 'Superb final paper.', '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_ENG11B_Q4_2425', 'G_EMMA_ENG11B_Q4_2425', encode(digest('GRADE_EMMA_ENG11B_Q4_2425', 'sha256'), 'hex'), 'mock_source'),
+  (emma_johnson_student_id, english_11b_section_id, s2_2425_term_id, english_11b_course_id, 'A-', 'S2', 94.25, 3.85, 1.0, 1.0, 0, false, 'English', 'Final', NULL, '11', 'PGFinalGrades', '2025-05-22', 'GRADE_EMMA_ENG11B_S2_2425', 'G_EMMA_ENG11B_S2_2425', encode(digest('GRADE_EMMA_ENG11B_S2_2425', 'sha256'), 'hex'), 'mock_source');
 
   -- Michael Chen's Grades
   -- Grade 9 (2023-2024)
@@ -348,13 +348,13 @@ BEGIN
   -- English 10A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (michael_chen_student_id, english_10a_section_id, q1_2425_term_id, english_10a_course_id, 'B', 'Q1', 85.00, 3.00, 0.5, 0.5, 0, false, 'English', 'Final', 'Good start to the year.', '10', 'StoredGrades', '2024-10-20', 'GRADE_MICHAEL_ENG10A_Q1_2425', 'G_MICHAEL_ENG10A_Q1_2425', encode(digest('GRADE_MICHAEL_ENG10A_Q1_2425', 'sha256'), 'hex'), 'mock_source'),
-  (michael_chen_student_id, english_10a_section_id, q2_2425_term_id, english_10a_course_id, 'B-', 'Q2', 81.50, 2.70, 0.5, 0.5, 0, false, 'English', 'InProgress', 'Needs to participate more in class discussions.', '10', 'PGFinalGrades', '2024-12-15', 'GRADE_MICHAEL_ENG10A_Q2_2425', 'G_MICHAEL_ENG10A_Q2_2425', encode(digest('GRADE_MICHAEL_ENG10A_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
-  (michael_chen_student_id, english_10a_section_id, s1_2425_term_id, english_10a_course_id, 'B-', 'S1', 83.25, 2.85, 1.0, 1.0, 0, false, 'English', 'InProgress', 'Preliminary semester grade.', '10', 'PGFinalGrades', '2024-12-22', 'GRADE_MICHAEL_ENG10A_S1_2425', 'G_MICHAEL_ENG10A_S1_2425', encode(digest('GRADE_MICHAEL_ENG10A_S1_2425', 'sha256'), 'hex'), 'mock_source');
+  (michael_chen_student_id, english_10a_section_id, q2_2425_term_id, english_10a_course_id, 'B-', 'Q2', 81.50, 2.70, 0.5, 0.5, 0, false, 'English', 'Final', 'Needs to participate more in class discussions.', '10', 'PGFinalGrades', '2024-12-15', 'GRADE_MICHAEL_ENG10A_Q2_2425', 'G_MICHAEL_ENG10A_Q2_2425', encode(digest('GRADE_MICHAEL_ENG10A_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
+  (michael_chen_student_id, english_10a_section_id, s1_2425_term_id, english_10a_course_id, 'B-', 'S1', 83.25, 2.85, 1.0, 1.0, 0, false, 'English', 'Final', 'Preliminary semester grade.', '10', 'PGFinalGrades', '2024-12-22', 'GRADE_MICHAEL_ENG10A_S1_2425', 'G_MICHAEL_ENG10A_S1_2425', encode(digest('GRADE_MICHAEL_ENG10A_S1_2425', 'sha256'), 'hex'), 'mock_source');
   -- Biology A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
   (michael_chen_student_id, biology_a_section_id, q1_2425_term_id, biology_a_course_id, 'B+', 'Q1', 89.00, 3.30, 0.5, 0.5, 0, false, 'Science', 'Final', NULL, '10', 'StoredGrades', '2024-10-20', 'GRADE_MICHAEL_BIO1A_Q1_2425', 'G_MICHAEL_BIO1A_Q1_2425', encode(digest('GRADE_MICHAEL_BIO1A_Q1_2425', 'sha256'), 'hex'), 'mock_source'),
-  (michael_chen_student_id, biology_a_section_id, q2_2425_term_id, biology_a_course_id, 'B', 'Q2', 86.00, 3.00, 0.5, 0.5, 0, false, 'Science', 'InProgress', 'Good lab work.', '10', 'PGFinalGrades', '2024-12-15', 'GRADE_MICHAEL_BIO1A_Q2_2425', 'G_MICHAEL_BIO1A_Q2_2425', encode(digest('GRADE_MICHAEL_BIO1A_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
-  (michael_chen_student_id, biology_a_section_id, s1_2425_term_id, biology_a_course_id, 'B+', 'S1', 87.50, 3.15, 1.0, 1.0, 0, false, 'Science', 'InProgress', 'Preliminary semester grade.', '10', 'PGFinalGrades', '2024-12-22', 'GRADE_MICHAEL_BIO1A_S1_2425', 'G_MICHAEL_BIO1A_S1_2425', encode(digest('GRADE_MICHAEL_BIO1A_S1_2425', 'sha256'), 'hex'), 'mock_source');
+  (michael_chen_student_id, biology_a_section_id, q2_2425_term_id, biology_a_course_id, 'B', 'Q2', 86.00, 3.00, 0.5, 0.5, 0, false, 'Science', 'Final', 'Good lab work.', '10', 'PGFinalGrades', '2024-12-15', 'GRADE_MICHAEL_BIO1A_Q2_2425', 'G_MICHAEL_BIO1A_Q2_2425', encode(digest('GRADE_MICHAEL_BIO1A_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
+  (michael_chen_student_id, biology_a_section_id, s1_2425_term_id, biology_a_course_id, 'B+', 'S1', 87.50, 3.15, 1.0, 1.0, 0, false, 'Science', 'Final', 'Preliminary semester grade.', '10', 'PGFinalGrades', '2024-12-22', 'GRADE_MICHAEL_BIO1A_S1_2425', 'G_MICHAEL_BIO1A_S1_2425', encode(digest('GRADE_MICHAEL_BIO1A_S1_2425', 'sha256'), 'hex'), 'mock_source');
   
   -- Sophia Rodriguez's Grades
   -- Grade 10 (2022-2023)
@@ -392,7 +392,7 @@ BEGIN
   -- Grade 12 (2024-2025)
   -- English 12A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (sophia_rodriguez_student_id, english_12a_section_id, q1_2425_term_id, english_12a_course_id, 'A', 'Q1', 96.00, 4.00, 0.5, 0.5, 0, false, 'English', 'InProgress', NULL, '12', 'PGFinalGrades', '2024-10-20', 'GRADE_SOPHIA_ENG12A_Q1_2425', 'G_SOPHIA_ENG12A_Q1_2425', encode(digest('GRADE_SOPHIA_ENG12A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (sophia_rodriguez_student_id, english_12a_section_id, q1_2425_term_id, english_12a_course_id, 'A', 'Q1', 96.00, 4.00, 0.5, 0.5, 0, false, 'English', 'Final', NULL, '12', 'PGFinalGrades', '2024-10-20', 'GRADE_SOPHIA_ENG12A_Q1_2425', 'G_SOPHIA_ENG12A_Q1_2425', encode(digest('GRADE_SOPHIA_ENG12A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
 
   -- Noah Miller (Grade 12)
   -- Grade 10 (22-23)
@@ -410,7 +410,7 @@ BEGIN
   -- Grade 12 (24-25)
   -- English 12A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (noah_miller_student_id, english_12a_section_id, q1_2425_term_id, english_12a_course_id, 'B', 'Q1', 85.00, 3.00, 0.5, 0.5, 0, false, 'English', 'InProgress', NULL, '12', 'PGFinalGrades', '2024-10-20', 'GRADE_NOAH_ENG12A_Q1_2425', 'G_NOAH_ENG12A_Q1_2425', encode(digest('GRADE_NOAH_ENG12A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (noah_miller_student_id, english_12a_section_id, q1_2425_term_id, english_12a_course_id, 'B', 'Q1', 85.00, 3.00, 0.5, 0.5, 0, false, 'English', 'Final', NULL, '12', 'PGFinalGrades', '2024-10-20', 'GRADE_NOAH_ENG12A_Q1_2425', 'G_NOAH_ENG12A_Q1_2425', encode(digest('GRADE_NOAH_ENG12A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
   
   -- Isabella Garcia (Grade 12)
   -- Grade 11 (23-24)
@@ -422,7 +422,7 @@ BEGIN
   -- Grade 12 (24-25)
   -- English 12A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (isabella_garcia_student_id, english_12a_section_id, q1_2425_term_id, english_12a_course_id, 'A-', 'Q1', 92.00, 3.70, 0.5, 0.5, 0, false, 'English', 'InProgress', NULL, '12', 'PGFinalGrades', '2024-10-20', 'GRADE_ISABELLA_ENG12A_Q1_2425', 'G_ISABELLA_ENG12A_Q1_2425', encode(digest('GRADE_ISABELLA_ENG12A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (isabella_garcia_student_id, english_12a_section_id, q1_2425_term_id, english_12a_course_id, 'A-', 'Q1', 92.00, 3.70, 0.5, 0.5, 0, false, 'English', 'Final', NULL, '12', 'PGFinalGrades', '2024-10-20', 'GRADE_ISABELLA_ENG12A_Q1_2425', 'G_ISABELLA_ENG12A_Q1_2425', encode(digest('GRADE_ISABELLA_ENG12A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
 
   -- Lucas Martinez (Grade 11)
   -- Grade 10 (23-24)
@@ -434,7 +434,7 @@ BEGIN
   -- Grade 11 (24-25)
   -- English 11A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (lucas_martinez_student_id, english_11a_section_id, q1_2425_term_id, english_11a_course_id, 'C', 'Q1', 75.00, 2.00, 0.5, 0.5, 0, false, 'English', 'InProgress', 'Showing more effort.', '11', 'PGFinalGrades', '2024-10-20', 'GRADE_LUCAS_ENG11A_Q1_2425', 'G_LUCAS_ENG11A_Q1_2425', encode(digest('GRADE_LUCAS_ENG11A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (lucas_martinez_student_id, english_11a_section_id, q1_2425_term_id, english_11a_course_id, 'C', 'Q1', 75.00, 2.00, 0.5, 0.5, 0, false, 'English', 'Final', 'Showing more effort.', '11', 'PGFinalGrades', '2024-10-20', 'GRADE_LUCAS_ENG11A_Q1_2425', 'G_LUCAS_ENG11A_Q1_2425', encode(digest('GRADE_LUCAS_ENG11A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
   
   -- Charlotte Davis (Grade 11)
   -- Grade 10 (23-24)
@@ -446,7 +446,7 @@ BEGIN
   -- Grade 11 (24-25)
   -- US History A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (charlotte_davis_student_id, us_history_a_section_id, q1_2425_term_id, us_history_a_course_id, 'B+', 'Q1', 88.00, 3.30, 0.5, 0.5, 0, false, 'History', 'InProgress', NULL, '11', 'PGFinalGrades', '2024-10-20', 'GRADE_CHARLOTTE_USHISTA_Q1_2425', 'G_CHARLOTTE_USHISTA_Q1_2425', encode(digest('GRADE_CHARLOTTE_USHISTA_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (charlotte_davis_student_id, us_history_a_section_id, q1_2425_term_id, us_history_a_course_id, 'B+', 'Q1', 88.00, 3.30, 0.5, 0.5, 0, false, 'History', 'Final', NULL, '11', 'PGFinalGrades', '2024-10-20', 'GRADE_CHARLOTTE_USHISTA_Q1_2425', 'G_CHARLOTTE_USHISTA_Q1_2425', encode(digest('GRADE_CHARLOTTE_USHISTA_Q1_2425', 'sha256'), 'hex'), 'mock_source');
 
   -- Benjamin Wilson (Grade 10)
   -- Grade 9 (23-24)
@@ -458,7 +458,7 @@ BEGIN
   -- Grade 10 (24-25)
   -- English 10A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (benjamin_wilson_student_id, english_10a_section_id, q1_2425_term_id, english_10a_course_id, 'B+', 'Q1', 89.00, 3.30, 0.5, 0.5, 0, false, 'English', 'InProgress', NULL, '10', 'PGFinalGrades', '2024-10-20', 'GRADE_BENJAMIN_ENG10A_Q1_2425', 'G_BENJAMIN_ENG10A_Q1_2425', encode(digest('GRADE_BENJAMIN_ENG10A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (benjamin_wilson_student_id, english_10a_section_id, q1_2425_term_id, english_10a_course_id, 'B+', 'Q1', 89.00, 3.30, 0.5, 0.5, 0, false, 'English', 'Final', NULL, '10', 'PGFinalGrades', '2024-10-20', 'GRADE_BENJAMIN_ENG10A_Q1_2425', 'G_BENJAMIN_ENG10A_Q1_2425', encode(digest('GRADE_BENJAMIN_ENG10A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
 
   -- Amelia Taylor (Grade 10)
   -- Grade 9 (23-24)
@@ -470,15 +470,15 @@ BEGIN
   -- Grade 10 (24-25)
   -- Biology A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (amelia_taylor_student_id, biology_a_section_id, q1_2425_term_id, biology_a_course_id, 'C-', 'Q1', 71.00, 1.70, 0.5, 0.5, 0, false, 'Science', 'InProgress', NULL, '10', 'PGFinalGrades', '2024-10-20', 'GRADE_AMELIA_BIOA_Q1_2425', 'G_AMELIA_BIOA_Q1_2425', encode(digest('GRADE_AMELIA_BIOA_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (amelia_taylor_student_id, biology_a_section_id, q1_2425_term_id, biology_a_course_id, 'C-', 'Q1', 71.00, 1.70, 0.5, 0.5, 0, false, 'Science', 'Final', NULL, '10', 'PGFinalGrades', '2024-10-20', 'GRADE_AMELIA_BIOA_Q1_2425', 'G_AMELIA_BIOA_Q1_2425', encode(digest('GRADE_AMELIA_BIOA_Q1_2425', 'sha256'), 'hex'), 'mock_source');
   
   -- Ethan Anderson (Grade 9)
   -- Grade 9 (24-25)
   -- English 9A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (ethan_anderson_student_id, english_9a_section_id, q1_2425_term_id, english_9a_course_id, 'B', 'Q1', 86.00, 3.00, 0.5, 0.5, 0, false, 'English', 'InProgress', 'Good start to high school.', '09', 'PGFinalGrades', '2024-10-20', 'GRADE_ETHAN_ENG9A_Q1_2425', 'G_ETHAN_ENG9A_Q1_2425', encode(digest('GRADE_ETHAN_ENG9A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (ethan_anderson_student_id, english_9a_section_id, q1_2425_term_id, english_9a_course_id, 'B', 'Q1', 86.00, 3.00, 0.5, 0.5, 0, false, 'English', 'Final', 'Good start to high school.', '09', 'PGFinalGrades', '2024-10-20', 'GRADE_ETHAN_ENG9A_Q1_2425', 'G_ETHAN_ENG9A_Q1_2425', encode(digest('GRADE_ETHAN_ENG9A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
   -- Algebra I A (S1)
   INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source) VALUES
-  (ethan_anderson_student_id, algebra_1a_section_id, q1_2425_term_id, algebra_1a_course_id, 'B-', 'Q1', 82.00, 2.70, 0.5, 0.5, 0, false, 'Math', 'InProgress', NULL, '09', 'PGFinalGrades', '2024-10-20', 'GRADE_ETHAN_ALG1A_Q1_2425', 'G_ETHAN_ALG1A_Q1_2425', encode(digest('GRADE_ETHAN_ALG1A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
+  (ethan_anderson_student_id, algebra_1a_section_id, q1_2425_term_id, algebra_1a_course_id, 'B-', 'Q1', 82.00, 2.70, 0.5, 0.5, 0, false, 'Math', 'Final', NULL, '09', 'PGFinalGrades', '2024-10-20', 'GRADE_ETHAN_ALG1A_Q1_2425', 'G_ETHAN_ALG1A_Q1_2425', encode(digest('GRADE_ETHAN_ALG1A_Q1_2425', 'sha256'), 'hex'), 'mock_source');
 
 END $$;

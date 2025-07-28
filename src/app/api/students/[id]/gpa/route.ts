@@ -117,7 +117,7 @@ async function getBulkGpaData(
     .from('student_grades')
     .select('credit_type')
     .eq('student_id', studentId)
-    .eq('grade_status', 'Final')
+    .in('grade_code', FINALIZED_GRADE_CODES)
     .not('credit_type', 'is', null);
   
   const creditTypes = [...new Set(creditTypesData?.map((ct: { credit_type: string }) => ct.credit_type) || [])];

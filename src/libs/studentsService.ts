@@ -3,11 +3,11 @@
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { StudentInfo } from '@/types/StudentInfo';
-import { StudentTermGradeInfo } from '@/types/StudentTermGradeInfo';
 import { cookies } from 'next/headers';
 import { YearGradeInfo } from '@/types/YearGradeInfo';
 import { StudentGradeInfo } from '@/types/StudentGradeInfo';
 import { FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
+import { StudentCurrentGrades } from '@/types/StudentCurrentGrades';
 
 type StudentsRequest = {
   fetchWithCount?: boolean;
@@ -54,27 +54,6 @@ type StudentSchoolLink = {
     homeroom_name: string;
     customer_id: string;
   }
-};
-
-type GradeData = {
-  course: {
-    name: string;
-    course_id: string;
-    local_course_code: string;
-  };
-  grade_letter: string;
-  grade_percent: number;
-  gpa_points: number;
-  updated_at: Date;
-  grade_status: string;
-};
-
-type TermGradeData = {
-  term: {
-    term_id: string;
-    abbreviation: string;
-    term_grades: GradeData[];
-  };
 };
 
 const getColumnName = (key: string) => {
@@ -521,104 +500,50 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
   }
 }
 
-export async function fetchStudentCurrentGrades(studentId: string): Promise<StudentTermGradeInfo> {
+export async function fetchStudentCurrentGrades(studentId: string): Promise<StudentCurrentGrades> {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
 
-    const { data, error } = await supabase
-      .from('section_enrollments')
-      .select(`
-        term_id,
-        term:terms (
-          term_id,
-          abbreviation,
-          term_grades:student_grades (
-            grade_id,
-            grade_letter,
-            grade_percent,
-            gpa_points,
-            updated_at,
-            grade_status,
-            course:courses (
-              course_id,
-              name,
-              local_course_code
-            )
-          )
-        )
-      `)
-      .eq('student_id', studentId)
-      .eq('term.term_grades.student_id', studentId)
-      .or('start_date.is.null,start_date.lt.now()')
-      .or('end_date.is.null,end_date.gt.now()');
+    // Call the new Postgres function to retrieve current grades
+    const { data, error } = await supabase.rpc('get_current_student_grades', {
+      p_student_id: studentId,
+    });
 
     if (error) {
-      throw new Error(`Failed to fetch section enrollments: ${error.message}`);
+      throw new Error(`Failed to fetch current grades: ${error.message}`);
     }
 
-    // Filter to only in-progress grades
-    const refinedData: TermGradeData[] = (data as unknown as TermGradeData[]).map(termData => {
-      // Only include grades that are still in progress
-      const filteredGrades = termData.term.term_grades.filter(
-        (g: GradeData & { grade_status?: string }) => g.grade_status === 'InProgress'
-      );
-      return {
-        term: {
-          ...termData.term,
-          term_grades: filteredGrades
-        }
-      };
-    });
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      return { currentTerm: null, courses: [] };
+    }
 
-    const termsData = refinedData
-      .map((d: TermGradeData) => ({
-        termId: d.term.term_id,
-        abbreviation: d.term.abbreviation
-      }))
-      .filter((term, index, self) => 
-        index === self.findIndex(t => t.termId === term.termId)
-      );
+    type RpcRow = {
+      course_id: string;
+      course_name: string;
+      course_number: string;
+      grade_letter: string | null;
+      grade_percent: number | null;
+      updated_at: string | null;
+      term_abbreviation: string | null;
+    };
 
-    const courseMap = new Map();
-    const courseGradesMap = new Map<string, { [termId: string]: { gradeLetter: string; gradePercentage: number; gradePoints: number; updatedAt: string } }>();
-    
-    refinedData.forEach((termData: TermGradeData) => {
-      const termId = termData.term.term_id;
-      
-      termData.term.term_grades.forEach((grade: GradeData) => {
-        const courseId = grade.course.course_id;
-        
-        if (!courseMap.has(courseId)) {
-          courseMap.set(courseId, {
-            courseId: courseId,
-            courseName: grade.course.name,
-            courseNumber: grade.course.local_course_code
-          });
-        }
-        
-        if (!courseGradesMap.has(courseId)) {
-          courseGradesMap.set(courseId, {});
-        }
-        
-        courseGradesMap.get(courseId)![termId] = {
-          gradeLetter: grade.grade_letter || '',
-          gradePercentage: grade.grade_percent || 0,
-          gradePoints: grade.gpa_points || 0,
-          updatedAt: grade.updated_at ? new Date(grade.updated_at).toISOString() : ''
-        };
-      });
-    });
+    const rows = data as RpcRow[];
 
-    const coursesData = Array.from(courseMap.values()).map((gradeData: { courseId: string; courseName: string; courseNumber: string }) => ({
-      courseId: gradeData.courseId,
-      courseName: gradeData.courseName,
-      courseNumber: gradeData.courseNumber || '',
-      grades: courseGradesMap.get(gradeData.courseId) || {}
+    // Assuming all rows belong to the same current term
+    const currentTerm = rows.length > 0 ? rows[0].term_abbreviation : null;
+
+    const courses = rows.map((row) => ({
+      courseId: row.course_id,
+      courseName: row.course_name,
+      courseNumber: row.course_number,
+      gradeLetter: row.grade_letter,
+      gradePercentage: row.grade_percent,
+      updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
     }));
 
     return {
-      terms: termsData,
-      courses: coursesData
+      currentTerm,
+      courses,
     };
   } catch (err) {
     throw new Error(`Failed to fetch student current grades: ${err}`);
