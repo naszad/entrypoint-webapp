@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from "react-markdown";
 import { MessagesSquare, Send, X, MoveDown, Trash2 } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
@@ -287,13 +288,13 @@ export function ChatAssistant() {
               <div
                 key={message.id}
                 className={cn(
-                  "whitespace-pre-wrap p-2 rounded-lg mb-2 max-w-[85%]",
+                  "p-2 rounded-lg mb-2 max-w-[85%]",
                   message.role === 'user'
                     ? "ml-auto bg-blue-100"
                     : "mr-auto bg-gray-100"
                 )}
               >
-                {message.content}
+                <ReactMarkdown>{message.content || ''}</ReactMarkdown>
                 {toolResult?.url && (
                   <div className="mt-2">
                     <Button asChild variant="action" size="sm" className="h-auto">
