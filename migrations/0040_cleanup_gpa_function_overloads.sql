@@ -9,6 +9,11 @@ DROP FUNCTION IF EXISTS calculate_credit_hour_weighted_gpa(uuid, text[], integer
 DROP FUNCTION IF EXISTS calculate_credit_hour_weighted_gpa(uuid, text[], integer[], text[], text);
 DROP FUNCTION IF EXISTS calculate_gpa_dispatch(uuid, text, text[], integer[], text[], uuid[]);
 DROP FUNCTION IF EXISTS calculate_gpa_dispatch(uuid, text, text[], integer[], text[], text);
+DROP FUNCTION IF EXISTS calculate_simple_gpa(uuid, text[], text[], text[]);
+DROP FUNCTION IF EXISTS calculate_added_value_gpa(uuid, text[], text[], text[]);
+DROP FUNCTION IF EXISTS calculate_credit_hour_weighted_gpa(uuid, text[], text[], text[]);
+DROP FUNCTION IF EXISTS calculate_gpa_dispatch(uuid, text, text[], text[], text[]);
+DROP FUNCTION IF EXISTS calculate_gpa_for_students(uuid[], text, text[], text[], text[]);
 
 -- Recreate latest functions with correct bodies
 
@@ -17,7 +22,8 @@ CREATE OR REPLACE FUNCTION calculate_simple_gpa(
   p_student_id   UUID,
   p_grade_codes  TEXT[]  DEFAULT NULL,
   p_credit_types TEXT[]  DEFAULT NULL,
-  p_year_labels  TEXT[]  DEFAULT NULL
+  p_year_labels  TEXT[]  DEFAULT NULL,
+  p_grade_levels INTEGER[]  DEFAULT NULL
 ) RETURNS NUMERIC AS
 $$
 DECLARE
@@ -43,7 +49,8 @@ BEGIN
     AND sg.grade_status = 'Final'
     AND (p_grade_codes  IS NULL OR sg.grade_code   = ANY(p_grade_codes))
     AND (p_credit_types IS NULL OR sg.credit_type  = ANY(p_credit_types))
-    AND (p_year_labels  IS NULL OR sg.term_id      = ANY(term_ids_for_years));
+    AND (p_year_labels  IS NULL OR sg.term_id      = ANY(term_ids_for_years))
+    AND (p_grade_levels IS NULL OR sg.grade_level::integer = ANY(p_grade_levels));
 
   IF course_count > 0 THEN
     gpa := total_points / course_count;
@@ -58,7 +65,8 @@ CREATE OR REPLACE FUNCTION calculate_added_value_gpa(
   p_student_id   UUID,
   p_grade_codes  TEXT[]  DEFAULT NULL,
   p_credit_types TEXT[]  DEFAULT NULL,
-  p_year_labels  TEXT[]  DEFAULT NULL
+  p_year_labels  TEXT[]  DEFAULT NULL,
+  p_grade_levels INTEGER[]  DEFAULT NULL
 ) RETURNS NUMERIC AS
 $$
 DECLARE
@@ -87,7 +95,8 @@ BEGIN
     AND sg.exclude_from_gpa IS NOT TRUE
     AND (p_grade_codes  IS NULL OR sg.grade_code   = ANY(p_grade_codes))
     AND (p_credit_types IS NULL OR sg.credit_type  = ANY(p_credit_types))
-    AND (p_year_labels  IS NULL OR sg.term_id      = ANY(term_ids_for_years));
+    AND (p_year_labels  IS NULL OR sg.term_id      = ANY(term_ids_for_years))
+    AND (p_grade_levels IS NULL OR sg.grade_level::integer = ANY(p_grade_levels));
 
   IF course_count > 0 THEN
     gpa := total_points / course_count;
@@ -102,7 +111,8 @@ CREATE OR REPLACE FUNCTION calculate_credit_hour_weighted_gpa(
   p_student_id   UUID,
   p_grade_codes  TEXT[]  DEFAULT NULL,
   p_credit_types TEXT[]  DEFAULT NULL,
-  p_year_labels  TEXT[]  DEFAULT NULL
+  p_year_labels  TEXT[]  DEFAULT NULL,
+  p_grade_levels INTEGER[]  DEFAULT NULL
 ) RETURNS NUMERIC AS
 $$
 DECLARE
@@ -131,7 +141,8 @@ BEGIN
     AND sg.exclude_from_gpa IS NOT TRUE
     AND (p_grade_codes  IS NULL OR sg.grade_code   = ANY(p_grade_codes))
     AND (p_credit_types IS NULL OR sg.credit_type  = ANY(p_credit_types))
-    AND (p_year_labels  IS NULL OR sg.term_id      = ANY(term_ids_for_years));
+    AND (p_year_labels  IS NULL OR sg.term_id      = ANY(term_ids_for_years))
+    AND (p_grade_levels IS NULL OR sg.grade_level::integer = ANY(p_grade_levels));
 
   IF total_credits > 0 THEN
     gpa := total_points / total_credits;
@@ -147,7 +158,8 @@ CREATE OR REPLACE FUNCTION calculate_gpa_dispatch(
   p_method       TEXT    DEFAULT NULL,
   p_grade_codes  TEXT[]  DEFAULT NULL,
   p_credit_types TEXT[]  DEFAULT NULL,
-  p_year_labels  TEXT[]  DEFAULT NULL
+  p_year_labels  TEXT[]  DEFAULT NULL,
+  p_grade_levels INTEGER[]  DEFAULT NULL
 ) RETURNS NUMERIC AS
 $$
 DECLARE
@@ -186,21 +198,24 @@ BEGIN
         p_student_id,
         p_grade_codes,
         p_credit_types,
-        p_year_labels
+        p_year_labels,
+        p_grade_levels
       ) INTO gpa;
     WHEN 'added_value' THEN
       SELECT calculate_added_value_gpa(
         p_student_id,
         p_grade_codes,
         p_credit_types,
-        p_year_labels
+        p_year_labels,
+        p_grade_levels
       ) INTO gpa;
     WHEN 'credit_hour_weighted' THEN
       SELECT calculate_credit_hour_weighted_gpa(
         p_student_id,
         p_grade_codes,
         p_credit_types,
-        p_year_labels
+        p_year_labels,
+        p_grade_levels
       ) INTO gpa;
     ELSE
       RAISE EXCEPTION 'Unknown GPA calculation method: %', resolved_method;
@@ -216,7 +231,8 @@ CREATE OR REPLACE FUNCTION calculate_gpa_for_students(
   p_method       TEXT    DEFAULT NULL,
   p_grade_codes  TEXT[]  DEFAULT NULL,
   p_credit_types TEXT[]  DEFAULT NULL,
-  p_year_labels  TEXT[]  DEFAULT NULL
+  p_year_labels  TEXT[]  DEFAULT NULL,
+  p_grade_levels INTEGER[]  DEFAULT NULL
 )
 RETURNS TABLE(student_id UUID, gpa NUMERIC) AS $$
 DECLARE
@@ -250,7 +266,8 @@ BEGIN
             resolved_method, 
             p_grade_codes, 
             p_credit_types, 
-            p_year_labels
+            p_year_labels,
+            p_grade_levels
         ) as gpa
     FROM
         unnest(p_student_ids) AS s(id);

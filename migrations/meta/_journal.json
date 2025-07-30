@@ -192,45 +192,10 @@
       "breakpoints": true
     },
     {
-      "idx": 27,
-      "version": "7",
-      "when": 1751920001719,
-      "tag": "0027_create_simple_gpa_function",
-      "breakpoints": true
-    },
-    {
-      "idx": 28,
-      "version": "7",
-      "when": 1751920063355,
-      "tag": "0028_create_gpa_dispatch_function",
-      "breakpoints": true
-    },
-    {
-      "idx": 29,
-      "version": "7",
-      "when": 1752121965664,
-      "tag": "0029_create_added_value_gpa_function",
-      "breakpoints": true
-    },
-    {
-      "idx": 30,
-      "version": "7",
-      "when": 1752121988541,
-      "tag": "0030_create_credit_hour_weighted_gpa_function",
-      "breakpoints": true
-    },
-    {
       "idx": 31,
       "version": "7",
       "when": 1752267217876,
       "tag": "0031_motionless_swordsman",
-      "breakpoints": true
-    },
-    {
-      "idx": 32,
-      "version": "7",
-      "when": 1752685316683,
-      "tag": "0032_create_bulk_gpa_function",
       "breakpoints": true
     },
     {
@@ -252,27 +217,6 @@
       "version": "7",
       "when": 1753205985629,
       "tag": "0035_warm_slipstream",
-      "breakpoints": true
-    },
-    {
-      "idx": 36,
-      "version": "7",
-      "when": 1753365577191,
-      "tag": "0036_update_gpa_functions_to_use_year",
-      "breakpoints": true
-    },
-    {
-      "idx": 37,
-      "version": "7",
-      "when": 1753365637503,
-      "tag": "0037_gpa_functions_accept_year_array",
-      "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "7",
-      "when": 1753365669336,
-      "tag": "0038_drop_old_gpa_function",
       "breakpoints": true
     },
     {

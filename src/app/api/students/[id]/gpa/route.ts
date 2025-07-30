@@ -73,6 +73,12 @@ async function getBulkGpaData(
   const gradeCodesParam = searchParams.get('gradeCodes');
   const gradeCodes = gradeCodesParam?.split(',').map(s => s.trim()).filter(Boolean) || defaultGradeCodes;
   
+  // Parse grade levels filter
+  const gradeLevelsParam = searchParams.get('gradeLevels');
+  const gradeLevels = gradeLevelsParam
+    ? gradeLevelsParam.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+    : null;
+  
   // Get current year label for default calculations
   const { data: schoolLinkData } = await supabase
     .from('school_student_link')
@@ -131,15 +137,17 @@ async function getBulkGpaData(
       p_grade_codes: FINALIZED_GRADE_CODES,
       p_credit_types: null,
       p_year_labels: null, // All years
+      p_grade_levels: gradeLevels,
     }),
     
-    // Current year GPA (quarters only)
+    // Current year GPA (gradecodes only)
     supabase.rpc('calculate_gpa_dispatch', {
       p_student_id: studentId,
       p_method: method,
       p_grade_codes: CURRENT_YEAR_GRADE_CODES,
       p_credit_types: null,
       p_year_labels: currentYearLabel ? [currentYearLabel] : null,
+      p_grade_levels: gradeLevels,
     }),
     
     // Credit type GPAs using finalized grades only
@@ -150,10 +158,11 @@ async function getBulkGpaData(
         p_grade_codes: FINALIZED_GRADE_CODES,
         p_credit_types: [creditType],
         p_year_labels: null, // All years
+        p_grade_levels: gradeLevels,
       })
     ),
     
-    // Individual quarter GPAs for each year
+    // Individual gradecode GPAs for each year
     ...allYearNames.flatMap(yearName => 
       gradeCodes.map(code => 
         supabase.rpc('calculate_gpa_dispatch', {
@@ -162,6 +171,7 @@ async function getBulkGpaData(
           p_grade_codes: [code],
           p_credit_types: null,
           p_year_labels: [yearName],
+          p_grade_levels: gradeLevels,
         })
       )
     )
@@ -185,7 +195,7 @@ async function getBulkGpaData(
     cumulative: { gpa: cumulativeGpa, method },
     currentYear: { gpa: currentYearGpa, method },
     byCreditType: {} as Record<string, number>,
-    byYearAndQuarter: {} as Record<string, Record<string, number>>
+    byYearAndGradeCode: {} as Record<string, Record<string, number>>
   };
 
   // Map credit type results
@@ -197,15 +207,15 @@ async function getBulkGpaData(
     }
   });
 
-  // Map year/quarter results
+  // Map year/gradecode results
   let resultIndex = 2 + creditTypes.length;
   allYearNames.forEach(yearName => {
-    response.byYearAndQuarter[yearName] = {};
+    response.byYearAndGradeCode[yearName] = {};
     gradeCodes.forEach(code => {
       const result = results[resultIndex++];
       if (!result.error && result.data !== null) {
         const raw = result.data as number;
-        response.byYearAndQuarter[yearName][code] = typeof raw === 'number' ? Number(raw.toFixed(2)) : raw;
+        response.byYearAndGradeCode[yearName][code] = typeof raw === 'number' ? Number(raw.toFixed(2)) : raw;
       }
     });
   });
@@ -224,10 +234,12 @@ async function getSingleGpa(
   const creditTypesParam = searchParams.get('creditTypes');
   const yearLabelsParam = searchParams.get('yearLabels');
   const yearLabelParam = searchParams.get('yearLabel'); // legacy support
-  
+  const gradeLevelsParam = searchParams.get('gradeLevels');
   const gradeCodes = gradeCodesParam?.split(',').map(s => s.trim()).filter(Boolean) || null;
   const creditTypes = creditTypesParam?.split(',').map(s => s.trim()).filter(Boolean) || null;
-  
+  const gradeLevels = gradeLevelsParam
+    ? gradeLevelsParam.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+    : null;
   // Support both yearLabels array and single yearLabel (legacy)
   let yearLabels: string[] | null = null;
   if (yearLabelsParam) {
@@ -242,6 +254,7 @@ async function getSingleGpa(
     p_grade_codes: gradeCodes,
     p_credit_types: creditTypes,
     p_year_labels: yearLabels,
+    p_grade_levels: gradeLevels,
   });
 
   console.log('Single GPA calculation for student:', studentId);

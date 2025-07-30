@@ -181,16 +181,17 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         },
       }),
       get_student_gpa: tool({
-        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by specific school years (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to finalized semester grades (S1, S2) for data from past years, but uses current year quarterly grades (Q1, Q2, Q3, Q4) when filtering by current year.`,
+        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by specific school years (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to finalized semester grades (S1, S2) for data from past years, but uses current year gradecodely grades (Q1, Q2, Q3, Q4) when filtering by current year.`,
         parameters: z.object({
           studentName: z.string().describe('Full name or part of the student\'s name'),
           method: z.string().optional().describe('GPA calculation method: simple, added_value, credit_hour_weighted'),
           gradeCodes: z.array(z.string()).optional().describe('Filter by grade codes (e.g., Q1, Q2, S1)'),
           creditTypes: z.array(z.string()).optional().describe('Filter by course subject(s), matching the credit_type in grade records (e.g., ["English", "Math"])'),
           yearLabels: z.array(z.string()).optional().describe('Filter by school year labels (e.g., ["2022-2023", "2023-2024"])'),
+          gradeLevels: z.array(z.number()).optional().describe('Filter by grade levels (e.g., ["9", "10", "11", "12"])'),
         }),
         execute: async (parsed) => {
-          console.log(`Executing get_student_gpa tool with parsed params: studentName="${parsed.studentName}", method="${parsed.method ?? 'simple'}", gradeCodes=${JSON.stringify(parsed.gradeCodes)}, creditTypes=${JSON.stringify(parsed.creditTypes)}, yearLabels=${JSON.stringify(parsed.yearLabels)}`);
+          console.log(`Executing get_student_gpa tool with parsed params: studentName="${parsed.studentName}", method="${parsed.method ?? 'simple'}", gradeCodes=${JSON.stringify(parsed.gradeCodes)}, creditTypes=${JSON.stringify(parsed.creditTypes)}, yearLabels=${JSON.stringify(parsed.yearLabels)}, gradeLevels=${JSON.stringify(parsed.gradeLevels)}`);
           const supabase = await createClient();
           const { data: student, error: studentError } = await supabase
             .from('students')
@@ -216,11 +217,12 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           // ---------------------------------------------------------------------------------
           // Step 2: Determine which grade codes to use
           //   • Default to FINALIZED_GRADE_CODES (S1, S2) for past years
-          //   • Switch to CURRENT_YEAR_GRADE_CODES (quarters + semesters) when
+          //   • Switch to CURRENT_YEAR_GRADE_CODES (gradecodes + semesters) when
           //     the filter explicitly references the current school year OR the
           //     special placeholder "current" / "current_year" is supplied.
           // ---------------------------------------------------------------------------------
           let yearLabelsFilter: string[] | null = parsed.yearLabels ? [...parsed.yearLabels] : null;
+          const gradeLevelsFilter: number[] | null = parsed.gradeLevels ?? null;
           let defaultGradeCodes: readonly string[] = FINALIZED_GRADE_CODES;
 
           if (yearLabelsFilter && yearLabelsFilter.length > 0) {
@@ -230,7 +232,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
               PLACEHOLDER_REGEX.test(label) && currentSchoolYearLabel ? currentSchoolYearLabel : label
             );
 
-            // If, after replacement, the current school year label is in the filter -> use quarterly codes
+            // If, after replacement, the current school year label is in the filter -> use gradecodely codes
             if (currentSchoolYearLabel && yearLabelsFilter.includes(currentSchoolYearLabel)) {
               defaultGradeCodes = CURRENT_YEAR_GRADE_CODES;
             }
@@ -246,6 +248,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
             p_grade_codes: gradeCodesFilter,
             p_credit_types: creditTypesFilter,
             p_year_labels: yearLabelsFilter,
+            p_grade_levels: gradeLevelsFilter,
           });
           if (error) {
             throw new Error(error.message);

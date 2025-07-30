@@ -14,7 +14,7 @@ import React from 'react';
 interface BulkGpaResponse {
   cumulative: { gpa: number; method: string };
   currentYear: { gpa: number; method: string };
-  byYearAndQuarter: Record<string, Record<string, number>>;
+  byYearAndGradeCode: Record<string, Record<string, number>>;
   byCreditType: Record<string, number>;
 }
 
@@ -136,10 +136,10 @@ const StudentGradesPage = () => {
     return ct ? ct.courses : [];
   };
 
-  // Get GPA for a specific quarter in a specific year
-  const getQuarterGpa = (yearLabel: string, quarter: string): string => {
-    if (!gpaData?.byYearAndQuarter || !gpaData.byYearAndQuarter[yearLabel] || gpaData.byYearAndQuarter[yearLabel][quarter] === undefined) return '-';
-    return gpaData.byYearAndQuarter[yearLabel][quarter].toFixed(2);
+  // Get GPA for a specific gradecode in a specific year
+  const getGradeCodeGpa = (yearLabel: string, gradecode: string): string => {
+    if (!gpaData?.byYearAndGradeCode || !gpaData.byYearAndGradeCode[yearLabel] || gpaData.byYearAndGradeCode[yearLabel][gradecode] === undefined) return '-';
+    return gpaData.byYearAndGradeCode[yearLabel][gradecode].toFixed(2);
   };
 
   // Get GPA for a specific credit type (from bulk data)
@@ -432,7 +432,7 @@ const StudentGradesPage = () => {
                         key={`${year.label}-${code}-gpa`}
                         className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]"
                       >
-                        {getQuarterGpa(year.label, code)}
+                        {getGradeCodeGpa(year.label, code)}
                       </td>
                     ))}
                   </React.Fragment>
@@ -447,7 +447,7 @@ const StudentGradesPage = () => {
                           key={`${currentYear.label}-${code}-gpa`}
                           className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]"
                         >
-                          {getQuarterGpa(currentYear.label, code)}
+                          {getGradeCodeGpa(currentYear.label, code)}
                         </td>
                       ))}
                     </React.Fragment>
