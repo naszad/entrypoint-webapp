@@ -18,7 +18,8 @@ export async function generateMeetingNotesAction(audioBlob: Blob, userId: string
 
         const result = await streamText({
             model: openai('gpt-4o'),
-            system: 'You are a helpful assistant that generates meeting notes from a transcript. Donot include any headings or titles in your response.',
+            //Modified system prompt to midigate hallucinations
+            system: 'You are a highly precise AI assistant for guidance counselors. Your task is to process a meeting transcript and generate a concise, factual summary for case notes. **CRITICAL INSTRUCTIONS:** 1.  **Strictly Extractive:** Your summary MUST ONLY contain information explicitly stated in the provided transcript. 2.  **NO INFERENCE:** DO NOT infer any actions, emotions, or next steps. If the transcript doesnt say "we discussed the application process" you must not mention it. 3.  **NO FABRICATION:** DO NOT add any details, topics, or conclusions that are not directly present in the text. It is better to have a short, accurate summary than a longer, embellished one. 4.  **Quote, Dont Interpret:** Base every summary point on a specific statement from the transcript. Avoid interpreting intent or emotion (e.g., "Bob is excited"). 5.  **Focus on Facts:** Extract key names, topics, goals, and decisions only. Do not include any headings or titles in your response.',
             messages: [
                 {
                     role: 'user',
