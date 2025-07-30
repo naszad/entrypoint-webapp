@@ -3,7 +3,7 @@ import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { z } from 'zod'
 import { cookies } from 'next/headers'
-import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES } from '@/utils/gradeCodes'
+import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -181,11 +181,11 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         },
       }),
       get_student_gpa: tool({
-        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by specific school years (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to finalized semester grades (S1, S2) for data from past years, but uses current year gradecodely grades (Q1, Q2, Q3, Q4) when filtering by current year.`,
+        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by school year labels (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to finalized grades (${FINALIZED_GRADE_CODES.join(', ')}) for data from past years, but uses current year grades by grade code (${CURRENT_YEAR_GRADE_CODES.join(', ')}) when filtering by current year.`,
         parameters: z.object({
           studentName: z.string().describe('Full name or part of the student\'s name'),
           method: z.string().optional().describe('GPA calculation method: simple, added_value, credit_hour_weighted'),
-          gradeCodes: z.array(z.string()).optional().describe('Filter by grade codes (e.g., Q1, Q2, S1)'),
+          gradeCodes: z.array(z.string()).optional().describe(`Filter by grade codes (${ALL_GRADE_CODES.join(', ')});`),
           creditTypes: z.array(z.string()).optional().describe('Filter by course subject(s), matching the credit_type in grade records (e.g., ["English", "Math"])'),
           yearLabels: z.array(z.string()).optional().describe('Filter by school year labels (e.g., ["2022-2023", "2023-2024"])'),
           gradeLevels: z.array(z.number()).optional().describe('Filter by grade levels (e.g., ["9", "10", "11", "12"])'),
@@ -216,8 +216,8 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 
           // ---------------------------------------------------------------------------------
           // Step 2: Determine which grade codes to use
-          //   • Default to FINALIZED_GRADE_CODES (S1, S2) for past years
-          //   • Switch to CURRENT_YEAR_GRADE_CODES (gradecodes + semesters) when
+          //   • Default to FINALIZED_GRADE_CODES for past years
+          //   • Switch to CURRENT_YEAR_GRADE_CODES when
           //     the filter explicitly references the current school year OR the
           //     special placeholder "current" / "current_year" is supplied.
           // ---------------------------------------------------------------------------------
@@ -232,7 +232,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
               PLACEHOLDER_REGEX.test(label) && currentSchoolYearLabel ? currentSchoolYearLabel : label
             );
 
-            // If, after replacement, the current school year label is in the filter -> use gradecodely codes
+            // If, after replacement, the current school year label is in the filter -> use current year grade codes
             if (currentSchoolYearLabel && yearLabelsFilter.includes(currentSchoolYearLabel)) {
               defaultGradeCodes = CURRENT_YEAR_GRADE_CODES;
             }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/supabaseServer';
-import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES } from '@/utils/gradeCodes';
+import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -69,7 +69,7 @@ async function getBulkGpaData(
   searchParams: URLSearchParams
 ) {
   // Allow customization via search params, default to all relevant codes
-  const defaultGradeCodes = ['Q1', 'Q2', 'S1', 'Q3', 'Q4', 'S2'];
+  const defaultGradeCodes = [...ALL_GRADE_CODES];
   const gradeCodesParam = searchParams.get('gradeCodes');
   const gradeCodes = gradeCodesParam?.split(',').map(s => s.trim()).filter(Boolean) || defaultGradeCodes;
   

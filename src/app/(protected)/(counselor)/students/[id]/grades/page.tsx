@@ -7,7 +7,7 @@ import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInf
 import { useParams } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ALL_GRADE_CODES, FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
+import { ALL_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
 import React from 'react';
 
 // Types for the new bulk GPA API response
@@ -116,8 +116,8 @@ const StudentGradesPage = () => {
         }
       } catch {}
     } else if (currentCodes.length === 0) {
-      // Default to Q1-Q4 for current year
-      const defaultCodes = ['Q1', 'Q2', 'Q3', 'Q4'];
+      // Default to current year grade codes
+      const defaultCodes = [...CURRENT_YEAR_GRADE_CODES];
       localStorage.setItem(getGradeCodesStorageKey(params.id as string), JSON.stringify(defaultCodes));
       setCurrentCodes(defaultCodes);
     }

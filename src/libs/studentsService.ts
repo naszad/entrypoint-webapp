@@ -6,7 +6,7 @@ import { StudentInfo } from '@/types/StudentInfo';
 import { cookies } from 'next/headers';
 import { YearGradeInfo } from '@/types/YearGradeInfo';
 import { StudentGradeInfo } from '@/types/StudentGradeInfo';
-import { FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
+import { FINALIZED_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes';
 import { StudentCurrentGrades } from '@/types/StudentCurrentGrades';
 
 type StudentsRequest = {
@@ -551,14 +551,12 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
 }
 
 const sortGradeCodes = (codes: string[]): string[] => {
-  const order: { [key: string]: number } = {
-    'Q1': 1, 'Q2': 2, 'S1': 3, 'Q3': 4, 'Q4': 5, 'S2': 6
-  };
-  
-  return codes.sort((a, b) => {
-    const orderA = order[a] || 999;
-    const orderB = order[b] || 999;
-    return orderA - orderB;
+  return [...codes].sort((a, b) => {
+    const idxA = ALL_GRADE_CODES.findIndex(code => code === a);
+    const idxB = ALL_GRADE_CODES.findIndex(code => code === b);
+    const posA = idxA === -1 ? ALL_GRADE_CODES.length : idxA;
+    const posB = idxB === -1 ? ALL_GRADE_CODES.length : idxB;
+    return posA - posB;
   });
 };
 
