@@ -3,10 +3,11 @@
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { StudentInfo } from '@/types/StudentInfo';
-import { StudentTermGradeInfo } from '@/types/StudentTermGradeInfo';
 import { cookies } from 'next/headers';
 import { YearGradeInfo } from '@/types/YearGradeInfo';
 import { StudentGradeInfo } from '@/types/StudentGradeInfo';
+import { FINALIZED_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes';
+import { StudentCurrentGrades } from '@/types/StudentCurrentGrades';
 
 type StudentsRequest = {
   fetchWithCount?: boolean;
@@ -53,26 +54,6 @@ type StudentSchoolLink = {
     homeroom_name: string;
     customer_id: string;
   }
-};
-
-type GradeData = {
-  course: {
-    name: string;
-    course_id: string;
-    local_course_code: string;
-  };
-  grade_letter: string;
-  grade_percent: number;
-  gpa_points: number;
-  updated_at: Date;
-};
-
-type TermGradeData = {
-  term: {
-    term_id: string;
-    abbreviation: string;
-    term_grades: GradeData[];
-  };
 };
 
 const getColumnName = (key: string) => {
@@ -341,6 +322,10 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       try {
         const { data: gpaData, error: gpaError } = await supabase.rpc('calculate_gpa_for_students', {
           p_student_ids: studentIds,
+          p_method: null,
+          p_grade_codes: FINALIZED_GRADE_CODES,
+          p_credit_types: null,
+          p_year_labels: null,
         });
 
         if (gpaError) {
@@ -515,91 +500,50 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
   }
 }
 
-export async function fetchStudentCurrentGrades(studentId: string): Promise<StudentTermGradeInfo> {
+export async function fetchStudentCurrentGrades(studentId: string): Promise<StudentCurrentGrades> {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
 
-    const { data, error } = await supabase
-      .from('section_enrollments')
-      .select(`
-        term_id,
-        term:terms (
-          term_id,
-          abbreviation,
-          term_grades:student_grades (
-            grade_id,
-            grade_letter,
-            grade_percent,
-            gpa_points,
-            updated_at,
-            course:courses (
-              course_id,
-              name,
-              local_course_code
-            )
-          )
-        )
-      `)
-      .eq('student_id', studentId)
-      .eq('term.term_grades.student_id', studentId)
-      .or('start_date.is.null,start_date.lt.now()')
-      .or('end_date.is.null,end_date.gt.now()');
-
-    if (error) {
-      throw new Error(`Failed to fetch section enrollments: ${error.message}`);
-    }
-
-    const refinedData = data as unknown as TermGradeData[];
-
-    const termsData = refinedData
-      .map((d: TermGradeData) => ({
-        termId: d.term.term_id,
-        abbreviation: d.term.abbreviation
-      }))
-      .filter((term, index, self) => 
-        index === self.findIndex(t => t.termId === term.termId)
-      );
-
-    const courseMap = new Map();
-    const courseGradesMap = new Map<string, { [termId: string]: { gradeLetter: string; gradePercentage: number; gradePoints: number; updatedAt: string } }>();
-    
-    refinedData.forEach((termData: TermGradeData) => {
-      const termId = termData.term.term_id;
-      
-      termData.term.term_grades.forEach((grade: GradeData) => {
-        const courseId = grade.course.course_id;
-        
-        if (!courseMap.has(courseId)) {
-          courseMap.set(courseId, {
-            courseId: courseId,
-            courseName: grade.course.name,
-            courseNumber: grade.course.local_course_code
-          });
-        }
-        
-        if (!courseGradesMap.has(courseId)) {
-          courseGradesMap.set(courseId, {});
-        }
-        
-        courseGradesMap.get(courseId)![termId] = {
-          gradeLetter: grade.grade_letter || '',
-          gradePercentage: grade.grade_percent || 0,
-          gradePoints: grade.gpa_points || 0,
-          updatedAt: grade.updated_at ? new Date(grade.updated_at).toISOString() : ''
-        };
-      });
+    // Call the new Postgres function to retrieve current grades
+    const { data, error } = await supabase.rpc('get_current_student_grades', {
+      p_student_id: studentId,
     });
 
-    const coursesData = Array.from(courseMap.values()).map((gradeData: { courseId: string; courseName: string; courseNumber: string }) => ({
-      courseId: gradeData.courseId,
-      courseName: gradeData.courseName,
-      courseNumber: gradeData.courseNumber || '',
-      grades: courseGradesMap.get(gradeData.courseId) || {}
+    if (error) {
+      throw new Error(`Failed to fetch current grades: ${error.message}`);
+    }
+
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      return { currentTerm: null, courses: [] };
+    }
+
+    type RpcRow = {
+      course_id: string;
+      course_name: string;
+      course_number: string;
+      grade_letter: string | null;
+      grade_percent: number | null;
+      updated_at: string | null;
+      term_abbreviation: string | null;
+    };
+
+    const rows = data as RpcRow[];
+
+    // Assuming all rows belong to the same current term
+    const currentTerm = rows.length > 0 ? rows[0].term_abbreviation : null;
+
+    const courses = rows.map((row) => ({
+      courseId: row.course_id,
+      courseName: row.course_name,
+      courseNumber: row.course_number,
+      gradeLetter: row.grade_letter,
+      gradePercentage: row.grade_percent,
+      updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
     }));
 
     return {
-      terms: termsData,
-      courses: coursesData
+      currentTerm,
+      courses,
     };
   } catch (err) {
     throw new Error(`Failed to fetch student current grades: ${err}`);
@@ -607,17 +551,12 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
 }
 
 const sortGradeCodes = (codes: string[]): string[] => {
-  const order: { [key: string]: number } = {
-    'S1': 1, 'S2': 2, 'S3': 3, 'S4': 4,
-    'Q1': 5, 'Q2': 6, 'Q3': 7, 'Q4': 8,
-    'T1': 9, 'T2': 10, 'T3': 11, 'T4': 12,
-    'Y1': 13, 'F': 14
-  };
-  
-  return codes.sort((a, b) => {
-    const orderA = order[a] || 999;
-    const orderB = order[b] || 999;
-    return orderA - orderB;
+  return [...codes].sort((a, b) => {
+    const idxA = ALL_GRADE_CODES.findIndex(code => code === a);
+    const idxB = ALL_GRADE_CODES.findIndex(code => code === b);
+    const posA = idxA === -1 ? ALL_GRADE_CODES.length : idxA;
+    const posB = idxB === -1 ? ALL_GRADE_CODES.length : idxB;
+    return posA - posB;
   });
 };
 
@@ -644,11 +583,11 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
         term:terms (
           term_id,
           abbreviation,
-          year:years (
-            year_id,
+          school_year:school_years (
+            school_year_id,
             name,
-            year_start,
-            year_end
+            start_year,
+            end_year
           )
         )
       `)
@@ -666,44 +605,44 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
     const typedData = data as any[];
 
     const validGrades = typedData.filter(grade => 
-      grade.term && grade.term.year && grade.course
+      grade.term && grade.term.school_year && grade.course
     );
 
     if (validGrades.length === 0) {
       return [];
     }
 
-    const allYears = validGrades.map(grade => grade.term.year);
-    const uniqueYears = allYears.filter((year, index, self) => 
-      index === self.findIndex(y => y.year_id === year.year_id)
+    const allSchoolYears = validGrades.map(grade => grade.term.school_year);
+    const uniqueSchoolYears = allSchoolYears.filter((schoolYear, index, self) => 
+      index === self.findIndex(y => y.school_year_id === schoolYear.school_year_id)
     );
-    const currentYear = uniqueYears.reduce((latest, current) => 
-      current.year_start > latest.year_start ? current : latest
+    const currentSchoolYear = uniqueSchoolYears.reduce((latest, current) => 
+      current.start_year > latest.start_year ? current : latest
     );
 
     const yearMap = new Map<string, YearGradeInfo>();
     const finalGradeCodesByYear = new Map<string, Set<string>>();
 
     validGrades.forEach((grade) => {
-      const yearId = grade.term.year.year_id;
-      const yearName = grade.term.year.name;
-      const isCurrentYear = yearId === currentYear.year_id;
+      const schoolYearId = grade.term.school_year.school_year_id;
+      const schoolYearName = grade.term.school_year.name;
+      const isCurrentYear = schoolYearId === currentSchoolYear.school_year_id;
       
-      if (!yearMap.has(yearId)) {
-        yearMap.set(yearId, {
-          yearId,
-          label: yearName,
+      if (!yearMap.has(schoolYearId)) {
+        yearMap.set(schoolYearId, {
+          yearId: schoolYearId,
+          label: schoolYearName,
           isCurrent: isCurrentYear,
           gradeCodes: [],
           creditTypes: []
         });
       }
 
-      if (!finalGradeCodesByYear.has(yearId)) {
-        finalGradeCodesByYear.set(yearId, new Set<string>());
+      if (!finalGradeCodesByYear.has(schoolYearId)) {
+        finalGradeCodesByYear.set(schoolYearId, new Set<string>());
       }
 
-      const yearData = yearMap.get(yearId)!;
+      const yearData = yearMap.get(schoolYearId)!;
       const gradeCode = grade.grade_code;
       const creditType = grade.credit_type || 'Other';
 
@@ -712,7 +651,7 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
       }
 
       if (!isCurrentYear && grade.grade_status === 'Final') {
-        finalGradeCodesByYear.get(yearId)!.add(gradeCode);
+        finalGradeCodesByYear.get(schoolYearId)!.add(gradeCode);
       }
 
       let creditTypeData = yearData.creditTypes.find(ct => ct.creditType === creditType);
@@ -764,9 +703,9 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
     });
 
     yearGradeInfoArray.sort((a, b) => {
-      const yearA = uniqueYears.find(y => y.year_id === a.yearId);
-      const yearB = uniqueYears.find(y => y.year_id === b.yearId);
-      return (yearA?.year_start || 0) - (yearB?.year_start || 0);
+      const yearA = uniqueSchoolYears.find(y => y.school_year_id === a.yearId);
+      const yearB = uniqueSchoolYears.find(y => y.school_year_id === b.yearId);
+      return (yearA?.start_year || 0) - (yearB?.start_year || 0);
     });
 
     return yearGradeInfoArray;

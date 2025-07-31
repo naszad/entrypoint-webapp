@@ -2,11 +2,13 @@
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { StudentTermGradeInfo } from "@/types/StudentTermGradeInfo";
+import { StudentCurrentGrades } from "@/types/StudentCurrentGrades";
 import { useParams } from "next/navigation";
 import { gradeColors } from "@/utils/gradeColors";
 import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
+
 
 
 const formatDate = (dateStr: string) => {
@@ -19,13 +21,13 @@ const StudentProfilePage = () => {
   const params = useParams();
 
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
-  const [studentTermGradeInfo, setStudentTermGradeInfo] = useState<StudentTermGradeInfo | null>(null);
+  const [currentGrades, setCurrentGrades] = useState<StudentCurrentGrades | null>(null);
   const [gpaInfo, setGpaInfo] = useState<{ value: number; method: string; } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStudentCurrentGrades = useCallback(async ( studentId: string ) => {
     try {
-      const url = `/api/students/grades?studentId=${studentId}`;
+      const url = `/api/students/${studentId}/grades?current=true`;
       const response = await fetch(url);
       const data = await response.json();
       
@@ -37,7 +39,7 @@ const StudentProfilePage = () => {
         return;
       }
 
-      setStudentTermGradeInfo(data.studentTermGradeInfo);
+      setCurrentGrades(data.currentGrades);
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
@@ -48,7 +50,7 @@ const StudentProfilePage = () => {
 
   const fetchGpa = useCallback(async (studentId: string) => {
     try {
-      const url = `/api/students/${studentId}/gpa`;
+      const url = `/api/students/${studentId}/gpa?gradeCodes=${FINALIZED_GRADE_CODES.join(',')}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -74,10 +76,7 @@ const StudentProfilePage = () => {
     if (studentId) {
       const loadData = async () => {
         setIsLoading(true);
-        await Promise.all([
-          fetchStudentCurrentGrades(studentId),
-          fetchGpa(studentId)
-        ]);
+        await Promise.all([fetchStudentCurrentGrades(studentId), fetchGpa(studentId)]);
         setIsLoading(false);
       };
       loadData();
@@ -94,7 +93,9 @@ const StudentProfilePage = () => {
         )}
         
         <div className="flex justify-between items-start mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Current Grades</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {`Current Grades${currentGrades && currentGrades.currentTerm ? ` (${currentGrades.currentTerm})` : ''}`}
+          </h3>
           {isLoading ? (
             <div className="text-right">
               <Skeleton className="h-4 w-20 mb-1" />
@@ -137,58 +138,43 @@ const StudentProfilePage = () => {
               ))}
             </div>
           </div>
-        ) : studentTermGradeInfo && studentTermGradeInfo.courses.length > 0 ? (
-          <div className="overflow-x-auto">
-            <div className="flex flex-row">
-              {/* Course names column */}
-                <div className="border-r w-2/5">
-                  <div className="px-4 py-2 text-xs font-bold text-gray-600">
-                    COURSE
-                  </div>
-                  {studentTermGradeInfo.courses.map((course, index) => (
-                    <div key={course.courseId} className={`px-4 py-2 text-sm text-gray-700 h-10 ${index % 2 === 1 ? 'bg-white' : 'bg-gray-100'}`}>
-                      {course.courseName} ({course.courseNumber})
-                    </div>
-                  ))}
-                </div>
-
-                {/* Term columns */}
-                {studentTermGradeInfo.terms.map((term) => (
-                  <div key={term.termId} className="border-r flex-1">
-                    <div className="px-4 py-2 text-xs font-bold text-gray-600 text-center">
-                      {term.abbreviation}
-                    </div>
-                    {studentTermGradeInfo.courses.map((course, index) => {
-                      const grade = course.grades[term.termId];
-                      return (
-                        <div key={course.courseId} className={`px-4 py-2 text-center h-10 ${index % 2 === 1 ? 'bg-white' : 'bg-gray-100'}`}>
-                          {grade ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span
-                                  className={`px-3 py-1 rounded-full font-semibold text-sm cursor-pointer ${gradeColors[grade.gradeLetter]}`}
-                                >
-                                  {grade.gradeLetter}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="flex flex-col items-center">
-                                  <span>{grade.gradePercentage}%</span>
-                                  <span className="text-xs text-gray-400">Updated: {formatDate(grade.updatedAt)}</span>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className="text-gray-400">-</span>
+        ) : currentGrades && currentGrades.courses.length > 0 ? (
+          <div className="divide-y rounded-md border">
+            {currentGrades.courses.map((course, index) => (
+              <div
+                key={course.courseId}
+                className={`grid grid-cols-2 items-center px-4 py-2 text-sm ${index % 2 === 1 ? 'bg-white' : 'bg-gray-50'}`}
+              >
+                <div>{`${course.courseName} (${course.courseNumber})`}</div>
+                <div className="text-right">
+                  {course.gradeLetter ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={`px-3 py-1 rounded-full font-semibold text-sm cursor-pointer ${gradeColors[course.gradeLetter]}`}
+                        >
+                          {course.gradeLetter}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="flex flex-col items-center">
+                          {course.gradePercentage !== null && (
+                            <span>{course.gradePercentage}%</span>
+                          )}
+                          {course.updatedAt && (
+                            <span className="text-xs text-gray-400">Updated: {formatDate(course.updatedAt)}</span>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
+            ))}
+          </div>
+        ) : (
             <div className="text-center text-gray-500 py-8">
               No current grades available for this student.
             </div>

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, integer, pgPolicy, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, pgPolicy, timestamp, jsonb } from 'drizzle-orm/pg-core';
 import { customers } from '@/models/Customers';
 
 export const schools = pgTable('schools', {
@@ -25,6 +25,9 @@ export const schools = pgTable('schools', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   customerId: uuid('customer_id').references(() => customers.customerId, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  
+  // GPA configuration for the school
+  gpaConfig: jsonb('gpa_config').$type<{ default_method?: string }>(),
 }, 
 (table) => [
   pgPolicy('Allow Reading of Schools', {

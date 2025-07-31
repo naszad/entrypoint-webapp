@@ -1,6 +1,6 @@
 {
-  "id": "84ed9d9f-34fa-478a-8820-8bae7a0b3b31",
-  "prevId": "474fb3dc-56c9-4c6c-a5b5-6d8f5e1a5f49",
+  "id": "11b57f78-3bc9-4051-afde-86d6563225a2",
+  "prevId": "d27cb253-9c78-4fb9-9a38-e93190721382",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -196,6 +196,164 @@
         }
       },
       "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.meeting_notes": {
+      "name": "meeting_notes",
+      "schema": "",
+      "columns": {
+        "meeting_note_id": {
+          "name": "meeting_note_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "update_log": {
+          "name": "update_log",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "private": {
+          "name": "private",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "transcript": {
+          "name": "transcript",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "created_by",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "meeting_notes_user_id_users_user_id_fk": {
+          "name": "meeting_notes_user_id_users_user_id_fk",
+          "tableFrom": "meeting_notes",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "meeting_notes_student_id_students_student_id_fk": {
+          "name": "meeting_notes_student_id_students_student_id_fk",
+          "tableFrom": "meeting_notes",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "tableTo": "students",
+          "columnsTo": [
+            "student_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "Allow Access to Own Notes": {
+          "name": "Allow Access to Own Notes",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Access to Non-Private Notes for Students in User Schools": {
+          "name": "Allow Access to Non-Private Notes for Students in User Schools",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"private\" = false\n      AND EXISTS (\n        SELECT 1\n        FROM user_school_memberships AS usm\n        JOIN school_student_link AS ssl\n          ON usm.school_id = ssl.school_id\n        WHERE usm.user_id = auth.uid()\n          AND ssl.student_id = \"meeting_notes\".\"student_id\"\n      )\n    "
+        },
+        "Allow Insert Own Notes": {
+          "name": "Allow Insert Own Notes",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Update Own Notes": {
+          "name": "Allow Update Own Notes",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    ",
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Delete Own Notes": {
+          "name": "Allow Delete Own Notes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     },
@@ -873,8 +1031,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "grade_points": {
-          "name": "grade_points",
+        "gpa_points": {
+          "name": "gpa_points",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -882,6 +1040,24 @@
         "credit_hours_earned": {
           "name": "credit_hours_earned",
           "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "potential_credit_hours": {
+          "name": "potential_credit_hours",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gpa_added_value": {
+          "name": "gpa_added_value",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exclude_from_gpa": {
+          "name": "exclude_from_gpa",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": false
         },
@@ -1708,7 +1884,16 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.created_by": {
+      "name": "created_by",
+      "schema": "public",
+      "values": [
+        "agent",
+        "user"
+      ]
+    }
+  },
   "schemas": {},
   "views": {},
   "sequences": {},

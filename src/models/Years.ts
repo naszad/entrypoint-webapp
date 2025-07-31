@@ -1,13 +1,5 @@
-import { pgTable, uuid, text, timestamp, integer } from 'drizzle-orm/pg-core';
+// This file now re-exports the universal SchoolYears model for backward compatibility
+// The old school-specific Years table has been replaced with universal SchoolYears
 
-export const years = pgTable('years', {
-  yearId: uuid('year_id').primaryKey().defaultRandom(),
-  yearStart: integer('year_start').notNull(),
-  yearEnd: integer('year_end').notNull(),
-  yearExternalId: text('year_external_id').notNull(),
-  name: text('name').notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
-
-export type Year = typeof years.$inferSelect;
+export { schoolYears as years } from './SchoolYears';
+export type { SchoolYear as Year } from './SchoolYears';
