@@ -36,7 +36,7 @@ BEGIN
   IF p_year_labels IS NOT NULL THEN
     SELECT ARRAY_AGG(DISTINCT t.term_id) INTO term_ids_for_years
     FROM terms t
-    JOIN school_years sy ON t.school_year_id = sy.school_year_id
+    JOIN years sy ON t.year_id = sy.year_id
     WHERE sy.name = ANY(p_year_labels);
   END IF;
 
@@ -79,7 +79,7 @@ BEGIN
   IF p_year_labels IS NOT NULL THEN
     SELECT ARRAY_AGG(DISTINCT t.term_id) INTO term_ids_for_years
     FROM terms t
-    JOIN school_years sy ON t.school_year_id = sy.school_year_id
+    JOIN years sy ON t.year_id = sy.year_id
     WHERE sy.name = ANY(p_year_labels);
   END IF;
 
@@ -125,7 +125,7 @@ BEGIN
   IF p_year_labels IS NOT NULL THEN
     SELECT ARRAY_AGG(DISTINCT t.term_id) INTO term_ids_for_years
     FROM terms t
-    JOIN school_years sy ON t.school_year_id = sy.school_year_id
+    JOIN years sy ON t.year_id = sy.year_id
     WHERE sy.name = ANY(p_year_labels);
   END IF;
 
@@ -283,7 +283,7 @@ BEGIN
     SELECT ARRAY_AGG(DISTINCT sy.name ORDER BY sy.name DESC) INTO year_labels
     FROM student_grades sg
     JOIN terms t ON sg.term_id = t.term_id
-    JOIN school_years sy ON t.school_year_id = sy.school_year_id
+    JOIN years sy ON t.year_id = sy.year_id
     WHERE sg.student_id = p_student_id;
     
     RETURN year_labels;

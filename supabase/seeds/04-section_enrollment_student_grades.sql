@@ -78,39 +78,39 @@ BEGIN
   SELECT student_id INTO ethan_anderson_student_id FROM students WHERE email = 'ethan.anderson@student.edu' LIMIT 1;
 
   -- Get School Year IDs
-  SELECT school_year_id INTO year_2122_id FROM school_years WHERE name = '2021-2022' LIMIT 1;
-  SELECT school_year_id INTO year_2223_id FROM school_years WHERE name = '2022-2023' LIMIT 1;
-  SELECT school_year_id INTO year_2324_id FROM school_years WHERE name = '2023-2024' LIMIT 1;
-  SELECT school_year_id INTO year_2425_id FROM school_years WHERE name = '2024-2025' LIMIT 1;
+  SELECT year_id INTO year_2122_id FROM years WHERE name = '2021-2022' LIMIT 1;
+  SELECT year_id INTO year_2223_id FROM years WHERE name = '2022-2023' LIMIT 1;
+  SELECT year_id INTO year_2324_id FROM years WHERE name = '2023-2024' LIMIT 1;
+  SELECT year_id INTO year_2425_id FROM years WHERE name = '2024-2025' LIMIT 1;
 
   -- Get Term IDs
-  SELECT term_id INTO q1_2425_term_id FROM terms WHERE abbreviation = 'Q1' AND school_year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO q2_2425_term_id FROM terms WHERE abbreviation = 'Q2' AND school_year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO q3_2425_term_id FROM terms WHERE abbreviation = 'Q3' AND school_year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO q4_2425_term_id FROM terms WHERE abbreviation = 'Q4' AND school_year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO s1_2425_term_id FROM terms WHERE abbreviation = 'S1' AND school_year_id = year_2425_id LIMIT 1;
-  SELECT term_id INTO s2_2425_term_id FROM terms WHERE abbreviation = 'S2' AND school_year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q1_2425_term_id FROM terms WHERE abbreviation = 'Q1' AND year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q2_2425_term_id FROM terms WHERE abbreviation = 'Q2' AND year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q3_2425_term_id FROM terms WHERE abbreviation = 'Q3' AND year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q4_2425_term_id FROM terms WHERE abbreviation = 'Q4' AND year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO s1_2425_term_id FROM terms WHERE abbreviation = 'S1' AND year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO s2_2425_term_id FROM terms WHERE abbreviation = 'S2' AND year_id = year_2425_id LIMIT 1;
 
-  SELECT term_id INTO q1_2324_term_id FROM terms WHERE abbreviation = 'Q1' AND school_year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO q2_2324_term_id FROM terms WHERE abbreviation = 'Q2' AND school_year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO q3_2324_term_id FROM terms WHERE abbreviation = 'Q3' AND school_year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO q4_2324_term_id FROM terms WHERE abbreviation = 'Q4' AND school_year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO s1_2324_term_id FROM terms WHERE abbreviation = 'S1' AND school_year_id = year_2324_id LIMIT 1;
-  SELECT term_id INTO s2_2324_term_id FROM terms WHERE abbreviation = 'S2' AND school_year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q1_2324_term_id FROM terms WHERE abbreviation = 'Q1' AND year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q2_2324_term_id FROM terms WHERE abbreviation = 'Q2' AND year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q3_2324_term_id FROM terms WHERE abbreviation = 'Q3' AND year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO q4_2324_term_id FROM terms WHERE abbreviation = 'Q4' AND year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO s1_2324_term_id FROM terms WHERE abbreviation = 'S1' AND year_id = year_2324_id LIMIT 1;
+  SELECT term_id INTO s2_2324_term_id FROM terms WHERE abbreviation = 'S2' AND year_id = year_2324_id LIMIT 1;
   
-  SELECT term_id INTO q1_2223_term_id FROM terms WHERE abbreviation = 'Q1' AND school_year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO q2_2223_term_id FROM terms WHERE abbreviation = 'Q2' AND school_year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO q3_2223_term_id FROM terms WHERE abbreviation = 'Q3' AND school_year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO q4_2223_term_id FROM terms WHERE abbreviation = 'Q4' AND school_year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO s1_2223_term_id FROM terms WHERE abbreviation = 'S1' AND school_year_id = year_2223_id LIMIT 1;
-  SELECT term_id INTO s2_2223_term_id FROM terms WHERE abbreviation = 'S2' AND school_year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q1_2223_term_id FROM terms WHERE abbreviation = 'Q1' AND year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q2_2223_term_id FROM terms WHERE abbreviation = 'Q2' AND year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q3_2223_term_id FROM terms WHERE abbreviation = 'Q3' AND year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO q4_2223_term_id FROM terms WHERE abbreviation = 'Q4' AND year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO s1_2223_term_id FROM terms WHERE abbreviation = 'S1' AND year_id = year_2223_id LIMIT 1;
+  SELECT term_id INTO s2_2223_term_id FROM terms WHERE abbreviation = 'S2' AND year_id = year_2223_id LIMIT 1;
   
-  SELECT term_id INTO q1_2122_term_id FROM terms WHERE abbreviation = 'Q1' AND school_year_id = year_2122_id LIMIT 1;
-  SELECT term_id INTO q2_2122_term_id FROM terms WHERE abbreviation = 'Q2' AND school_year_id = year_2122_id LIMIT 1;
-  SELECT term_id INTO q3_2122_term_id FROM terms WHERE abbreviation = 'Q3' AND school_year_id = year_2122_id LIMIT 1;
-  SELECT term_id INTO q4_2122_term_id FROM terms WHERE abbreviation = 'Q4' AND school_year_id = year_2122_id LIMIT 1;
-  SELECT term_id INTO s1_2122_term_id FROM terms WHERE abbreviation = 'S1' AND school_year_id = year_2122_id LIMIT 1;
-  SELECT term_id INTO s2_2122_term_id FROM terms WHERE abbreviation = 'S2' AND school_year_id = year_2122_id LIMIT 1;
+  SELECT term_id INTO q1_2122_term_id FROM terms WHERE abbreviation = 'Q1' AND year_id = year_2122_id LIMIT 1;
+  SELECT term_id INTO q2_2122_term_id FROM terms WHERE abbreviation = 'Q2' AND year_id = year_2122_id LIMIT 1;
+  SELECT term_id INTO q3_2122_term_id FROM terms WHERE abbreviation = 'Q3' AND year_id = year_2122_id LIMIT 1;
+  SELECT term_id INTO q4_2122_term_id FROM terms WHERE abbreviation = 'Q4' AND year_id = year_2122_id LIMIT 1;
+  SELECT term_id INTO s1_2122_term_id FROM terms WHERE abbreviation = 'S1' AND year_id = year_2122_id LIMIT 1;
+  SELECT term_id INTO s2_2122_term_id FROM terms WHERE abbreviation = 'S2' AND year_id = year_2122_id LIMIT 1;
 
   -- Get Course IDs
   SELECT course_id INTO english_9a_course_id FROM courses WHERE name = 'English 9 A' LIMIT 1;

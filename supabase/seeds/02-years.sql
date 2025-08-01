@@ -1,4 +1,4 @@
-INSERT INTO school_years (start_year, end_year, name, is_current)
+INSERT INTO years (start_year, end_year, name, is_current)
 VALUES
   (2000, 2001, '2000-2001', false),
   (2001, 2002, '2001-2002', false),

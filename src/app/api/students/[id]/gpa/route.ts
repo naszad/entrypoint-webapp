@@ -91,7 +91,7 @@ async function getBulkGpaData(
   let currentYearLabel: string | null = null;
   if (schoolLinkData) {
     const { data: currentYearData } = await supabase
-      .from('school_years')
+      .from('years')
       .select('name')
       .eq('is_current', true)
       .limit(1)
@@ -104,19 +104,19 @@ async function getBulkGpaData(
   // Get all years for this student
   const { data: allYearsData } = await supabase
     .from('student_grades')
-    .select('term:terms!inner(school_year:school_years!inner(name))')
+    .select('term:terms!inner(year:years!inner(name))')
     .eq('student_id', studentId)
-    .not('term.school_year.name', 'is', null);
+    .not('term.year.name', 'is', null);
   
   type YearQueryResult = {
     term: {
-      school_year: {
+      year: {
         name: string;
       };
     };
   };
   
-  const allYearNames = [...new Set((allYearsData as unknown as YearQueryResult[] || []).map(g => g.term.school_year.name))];
+  const allYearNames = [...new Set((allYearsData as unknown as YearQueryResult[] || []).map(g => g.term.year.name))];
 
   // Get all unique credit types for this student
   const { data: creditTypesData } = await supabase

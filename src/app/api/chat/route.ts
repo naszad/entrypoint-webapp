@@ -207,7 +207,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           // Step 1: Fetch the label of the current school year (e.g. "2024-2025")
           // ---------------------------------------------------------------------------------
           const { data: currentYearData } = await supabase
-            .from('school_years')
+            .from('years')
             .select('name')
             .eq('is_current', true)
             .single();

@@ -33,8 +33,8 @@ Table schools {
 }
 
 // Defines academic school years, globally applicable across schools
-Table school_years {
-  school_year_id uuid [pk]
+Table years {
+  year_id uuid [pk]
   name varchar [unique, not null] // Human-readable name for the school year ("2024-2025")
   start_year int [not null]
   end_year int [not null]
@@ -49,7 +49,7 @@ Table school_years {
 Table terms {
   term_id uuid [pk]
   school_id uuid [ref: > schools.school_id, not null]
-  school_year_id uuid [ref: > school_years.school_year_id, not null]
+  year_id uuid [ref: > years.year_id, not null]
   name varchar [not null] // "Fall 2024", "Semester 1 2024-2025", "Q1"
   abbreviation varchar // "Q1", "S1"
   start_date date [not null]
