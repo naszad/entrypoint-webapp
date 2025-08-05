@@ -33,10 +33,10 @@ const MenuContext = createContext<MenuContextType | undefined>(undefined);
 
 const navigations: Record<string, NavigationItem[]> = {
   'Counselor': [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    // { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Students", href: "/students", icon: UsersIcon },
     { name: "Reports", href: "/reports", icon: File },
-    { name: "Courses", href: "/courses", icon: BookOpen },
+    // { name: "Courses", href: "/courses", icon: BookOpen },
     { name: "Grades", href: "/grades", icon: FileDigit },
     { name: "Meeting Notes", href: "/notes", icon: Notebook },
   ],

@@ -40,7 +40,7 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
-        <LoginHeader description="Sign in to manage your graduation plan" />
+        <LoginHeader description="" />
         {/* Login Form */}
         <div className="mt-8 space-y-6">
           <div className="rounded-md shadow-sm space-y-4">

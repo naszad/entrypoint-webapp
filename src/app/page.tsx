@@ -11,7 +11,7 @@ const HomePage = () => {
     if (user === null) {
       router.push('/login');
     } else if (user) {
-      router.push('/dashboard');
+      router.push('//students');
     }
   }, [user, router]);
 

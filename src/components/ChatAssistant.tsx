@@ -294,7 +294,9 @@ export function ChatAssistant() {
                     : "mr-auto bg-gray-100"
                 )}
               >
-                <ReactMarkdown>{message.content || ''}</ReactMarkdown>
+                <div className="prose prose-sm max-w-none prose-a:text-blue-600">
+                  <ReactMarkdown>{message.content || ''}</ReactMarkdown>
+                </div>
                 {toolResult?.url && (
                   <div className="mt-2">
                     <Button asChild variant="action" size="sm" className="h-auto">
