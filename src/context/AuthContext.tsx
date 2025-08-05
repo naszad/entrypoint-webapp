@@ -91,7 +91,7 @@ const login = async (email: string, password: string) => {
         } else {
           setCookie('selectedSchoolId', userDetails.schools?.[0]?.schoolId || '')
           sessionStorage.setItem('selectedSchool', userDetails.schools?.[0] ? JSON.stringify(userDetails.schools?.[0]) : '' )
-          router.push('/dashboard')
+          router.push('/students')
         }
       } else {
         throw new Error('Error fetching user details')

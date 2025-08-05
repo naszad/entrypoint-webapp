@@ -35,7 +35,7 @@ const SchoolSwitcher = ({schools, selectedSchool, setSelectedSchool}: SchoolSwit
           <Button
               variant="primary"
               className='w-[45%]'
-                onClick={() => redirect('/dashboard')}
+                onClick={() => redirect('/students')}
             >
               <span className='text-lg'>Continue</span>
             </Button>
