@@ -2,11 +2,17 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/supabaseServer';
-import { StudentTagInfo, StudentTagValue, CategoryTagInfo } from '@/types/StudentTagInfo';
+import { StudentTagInfo, CategoryTagInfo } from '@/types/StudentTagInfo';
 
 export async function getStudentTags(studentId: string): Promise<StudentTagInfo> {
   try {
     const supabase = await createClient();
+    
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('User not authenticated');
+    }
     
     const { data: tagsData, error: tagsError } = await supabase
       .from('student_tags')
@@ -30,18 +36,13 @@ export async function getStudentTags(studentId: string): Promise<StudentTagInfo>
       throw new Error(`Failed to fetch student tags: ${tagsError.message}`);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const studentTags: StudentTagValue[] = (tagsData ?? []).map((row: any) => ({
-      studentTagId: row.student_tag_id,
-      tagId: row.tag?.tag_id ?? '',
-      tagName: row.tag?.name ?? '',
-      tagValue: row.value,
-    }));
-
     const categoryMap: Record<string, CategoryTagInfo> = {};
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    studentTags.forEach((row: any) => {
+    (tagsData ?? []).forEach((row: any) => {
+      // Skip rows with incomplete tag data
+      if (!row.tag?.tag_categories) return;
+      
       const categoryId = row.tag.tag_categories.tag_category_id;
       const categoryName = row.tag.tag_categories.name;
 
@@ -152,10 +153,20 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
 export async function updateStudentTag(studentTagId: string, value: string): Promise<{ message: string }> {
   try {
     const supabase = await createClient();
+    
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('User not authenticated');
+    }
 
     const { error: studentTagError } = await supabase
       .from('student_tags')
-      .update({ value })
+      .update({ 
+        value,
+        updated_by_user_id: user.id,
+        updated_at: new Date().toISOString()
+      })
       .eq('student_tag_id', studentTagId);
 
     if (studentTagError) {
@@ -172,6 +183,12 @@ export async function updateStudentTag(studentTagId: string, value: string): Pro
 export async function deleteStudentTag(studentTagId: string): Promise<{ message: string }> {
   try {
     const supabase = await createClient();
+    
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('User not authenticated');
+    }
 
     const { error: studentTagError } = await supabase
       .from('student_tags')
