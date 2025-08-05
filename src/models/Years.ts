@@ -2,6 +2,7 @@ import { pgTable, uuid, text, timestamp, integer, boolean, date } from 'drizzle-
 
 export const years = pgTable('years', {
   yearId: uuid('year_id').primaryKey().defaultRandom(),
+  yearExternalId: text('year_external_id').notNull().unique(), // The year ID from PowerSchool, needed during term mapping in Dagster
   name: text('name').notNull().unique(), // "2024-2025", "2023-2024"
   startYear: integer('start_year').notNull(), // 2024
   endYear: integer('end_year').notNull(), // 2025
