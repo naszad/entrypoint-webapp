@@ -17,3 +17,5 @@ export const tags = pgTable("tags", {
 (table) => ({
     unique: unique().on(table.tagCategoryId, table.customerId, table.name),
 }));
+
+export type Tag = typeof tags.$inferSelect;
