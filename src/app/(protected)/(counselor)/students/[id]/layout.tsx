@@ -176,6 +176,17 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
             onTagAdd={handleTagAdd}
             onTagEdit={handleTagEdit}
             onTagDelete={handleTagDelete}
+            onTagsReorder={(reorderedTags) => {
+              // Update local state with reordered tags
+              if (studentTags) {
+                setStudentTags({
+                  ...studentTags,
+                  categories: reorderedTags
+                });
+              }
+              // You can also persist the order to the backend here if needed
+              console.log('Tags reordered:', reorderedTags);
+            }}
         />
 
         <div className="flex justify-center mt-4 rounded-full">

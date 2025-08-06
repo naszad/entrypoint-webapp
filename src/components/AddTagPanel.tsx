@@ -126,7 +126,7 @@ export function AddTagPanel({
   const canEditValue = categoryId && name
 
   return (
-    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-lg z-20 border border-gray-200">
+    <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg z-50 border border-gray-200">
       <div className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-800">Add New Tag</h3>
