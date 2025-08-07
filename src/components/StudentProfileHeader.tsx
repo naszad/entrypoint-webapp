@@ -6,9 +6,10 @@ import Image from "next/image";
 import { Mail, PlusCircle } from "lucide-react";
 import { stringToColor } from "@/utils/utils";
 import { Tag } from "@/components/Tag";
-import { SortableTag } from "@/components/SortableTag";
+import { SortableCategory } from "@/components/SortableCategory";
 import { AddTagPanel } from "@/components/AddTagPanel";
-import { CategoryTagInfo, StudentTagValue } from "@/types/StudentTagInfo";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { CategoryTagInfo } from "@/types/StudentTagInfo";
 import {
   DndContext,
   closestCenter,
@@ -28,6 +29,7 @@ import {
 } from '@dnd-kit/sortable';
 import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import styles from '@/styles/TagScrollbar.module.css';
+import { getTagColors } from '@/utils/tagColors';
 
 interface StudentProfileHeaderProps {
   firstName: string;
@@ -54,11 +56,6 @@ const getUserInitials = (firstName: string, lastName: string): string => {
   return `${firstInitial}${lastInitial}`.toUpperCase();
 };
 
-interface FlatTag extends StudentTagValue {
-  categoryId: string;
-  categoryName: string;
-}
-
 export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
   firstName,
   lastName,
@@ -78,32 +75,30 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
 }) => {
   const [isAddTagPanelOpen, setIsAddTagPanelOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [localTags, setLocalTags] = useState(tags);
+  const [activeType, setActiveType] = useState<'category' | 'tag' | null>(null);
+  const [localCategories, setLocalCategories] = useState(tags);
   const [tagMenuState, setTagMenuState] = useState<{
     studentTagId: string | null;
     position: { top: number; left: number } | null;
   }>({ studentTagId: null, position: null });
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
 
-  // Update local tags when props change
+  // Update local categories when props change
   React.useEffect(() => {
-    setLocalTags(tags);
+    setLocalCategories(tags);
   }, [tags]);
 
-  // Flatten tags for easier sorting
-  const flatTags = useMemo((): FlatTag[] => {
-    if (!localTags) return [];
-    return localTags.flatMap(category =>
-      category.tags.map(tag => ({
-        ...tag,
-        categoryId: category.categoryId,
-        categoryName: category.categoryName,
-      }))
-    );
-  }, [localTags]);
-
-  // Create sortable items array
-  const sortableItems = useMemo(() => flatTags.map(tag => tag.studentTagId), [flatTags]);
+  // Create sortable items array for categories
+  const sortableCategoryItems = useMemo(() => 
+    localCategories?.map(cat => cat.categoryId) || [], 
+    [localCategories]
+  );
+  
+  // Check if student has any tags
+  const hasAnyTags = useMemo(() => {
+    if (!localCategories || localCategories.length === 0) return false;
+    return localCategories.some(category => category.tags.length > 0);
+  }, [localCategories]);
 
   // Configure sensors for drag detection
   const sensors = useSensors(
@@ -118,50 +113,81 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
   );
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    const { active } = event;
+    setActiveId(active.id as string);
+    
+    // Determine if we're dragging a category or a tag
+    if (active.data.current?.type === 'category') {
+      setActiveType('category');
+    } else {
+      setActiveType('tag');
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (over && active.id !== over.id) {
-      const oldIndex = sortableItems.indexOf(active.id as string);
-      const newIndex = sortableItems.indexOf(over.id as string);
-
-      // Reorder the flat tags
-      const reorderedFlatTags = arrayMove(flatTags, oldIndex, newIndex);
-      
-      // Rebuild the CategoryTagInfo structure
-      const categoryMap = new Map<string, CategoryTagInfo>();
-      
-      reorderedFlatTags.forEach(tag => {
-        if (!categoryMap.has(tag.categoryId)) {
-          categoryMap.set(tag.categoryId, {
-            categoryId: tag.categoryId,
-            categoryName: tag.categoryName,
-            tags: [],
-          });
-        }
+    if (!over || !localCategories) {
+      setActiveId(null);
+      setActiveType(null);
+      return;
+    }
+    
+    const activeData = active.data.current;
+    const overData = over.data.current;
+    
+    // Handle category reordering
+    if (activeData?.type === 'category' && overData?.type === 'category') {
+      if (active.id !== over.id) {
+        const oldIndex = sortableCategoryItems.indexOf(active.id as string);
+        const newIndex = sortableCategoryItems.indexOf(over.id as string);
         
-        const category = categoryMap.get(tag.categoryId)!;
-        category.tags.push({
-          studentTagId: tag.studentTagId,
-          tagId: tag.tagId,
-          tagName: tag.tagName,
-          tagValue: tag.tagValue,
-        });
-      });
-
-      const reorderedTags = Array.from(categoryMap.values());
-      setLocalTags(reorderedTags);
+        const reorderedCategories = arrayMove(localCategories, oldIndex, newIndex);
+        setLocalCategories(reorderedCategories);
+        
+        if (onTagsReorder) {
+          onTagsReorder(reorderedCategories);
+        }
+      }
+    }
+    // Handle tag reordering within the same category
+    else if (!activeData?.type || activeData?.type === 'tag') {
+      // Find which category contains the active and over tags
+      let activeCategoryIndex = -1;
+      let overCategoryIndex = -1;
+      let activeTagIndex = -1;
+      let overTagIndex = -1;
       
-      // Notify parent of reorder
-      if (onTagsReorder) {
-        onTagsReorder(reorderedTags);
+      localCategories.forEach((category, catIdx) => {
+        const activeIdx = category.tags.findIndex(tag => tag.studentTagId === active.id);
+        const overIdx = category.tags.findIndex(tag => tag.studentTagId === over.id);
+        
+        if (activeIdx !== -1) {
+          activeCategoryIndex = catIdx;
+          activeTagIndex = activeIdx;
+        }
+        if (overIdx !== -1) {
+          overCategoryIndex = catIdx;
+          overTagIndex = overIdx;
+        }
+      });
+      
+      // Only reorder if both tags are in the same category
+      if (activeCategoryIndex !== -1 && activeCategoryIndex === overCategoryIndex) {
+        const updatedCategories = [...localCategories];
+        const category = updatedCategories[activeCategoryIndex];
+        category.tags = arrayMove(category.tags, activeTagIndex, overTagIndex);
+        
+        setLocalCategories(updatedCategories);
+        
+        if (onTagsReorder) {
+          onTagsReorder(updatedCategories);
+        }
       }
     }
     
     setActiveId(null);
+    setActiveType(null);
   };
 
   const handleSaveTag = async (tag: {
@@ -210,8 +236,31 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
     }
   }, [tagMenuState.studentTagId]);
 
-  // Find the active tag for drag overlay
-  const activeTag = activeId ? flatTags.find(tag => tag.studentTagId === activeId) : null;
+  // Find the active item for drag overlay
+  interface TagWithCategory {
+    studentTagId: string;
+    tagId: string;
+    tagName: string;
+    tagValue: string;
+    categoryName: string;
+  }
+  
+  const activeItem = useMemo((): CategoryTagInfo | TagWithCategory | null => {
+    if (!activeId || !localCategories) return null;
+    
+    if (activeType === 'category') {
+      return localCategories.find(cat => cat.categoryId === activeId) || null;
+    } else {
+      // Find the tag across all categories
+      for (const category of localCategories) {
+        const tag = category.tags.find(t => t.studentTagId === activeId);
+        if (tag) {
+          return { ...tag, categoryName: category.categoryName };
+        }
+      }
+    }
+    return null;
+  }, [activeId, activeType, localCategories]);
 
   return (
     <Card className="flex items-center justify-between p-6 mb-6">
@@ -245,46 +294,66 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
               modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
             >
               <SortableContext
-                items={sortableItems}
+                items={sortableCategoryItems}
                 strategy={horizontalListSortingStrategy}
               >
                 {/* Horizontal scroll container */}
                 <div className={`overflow-x-auto overflow-y-visible max-w-full pb-1 ${styles.scrollContainer}`}>
-                  <div className="flex items-center gap-2 py-1 min-w-max">
-                    {flatTags.map((tag) => (
-                      <SortableTag
-                        key={tag.studentTagId}
-                        id={tag.studentTagId}
-                        category={tag.categoryName}
-                        name={tag.tagName}
-                        value={tag.tagValue}
-                        studentTagId={tag.studentTagId}
-                        onEdit={onTagEdit}
-                        onDelete={onTagDelete}
-                        onMenuClick={handleTagMenuClick}
-                        isMenuOpen={tagMenuState.studentTagId === tag.studentTagId}
-                        isEditMode={editingTagId === tag.studentTagId}
-                        onEditModeChange={(isEditing) => {
-                          if (!isEditing) {
-                            setEditingTagId(null)
-                          }
-                        }}
+                  <div className="flex items-start gap-6 py-1 min-w-max">
+                    {localCategories?.map((category) => (
+                      <SortableCategory
+                        key={category.categoryId}
+                        id={category.categoryId}
+                        categoryId={category.categoryId}
+                        categoryName={category.categoryName}
+                        tags={category.tags}
+                        onTagEdit={onTagEdit}
+                        onTagDelete={onTagDelete}
+                        onTagMenuClick={handleTagMenuClick}
+                        tagMenuState={tagMenuState}
+                        editingTagId={editingTagId}
+                        onEditModeChange={setEditingTagId}
                       />
                     ))}
                     
                     {/* Add tag button */}
                     {(allTagCategories && allTags && onTagAdd) && (
-                      <div className="relative flex-shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsAddTagPanelOpen(true);
-                          }}
-                          className="text-gray-400 hover:text-gray-600 transition-colors"
-                          aria-label="Add new tag"
-                        >
-                          <PlusCircle className="h-6 w-6" />
-                        </button>
+                      <div className={`relative flex-shrink-0 ${hasAnyTags ? 'mt-5' : ''}`}>
+                        {hasAnyTags ? (
+                          // Compact button when tags exist
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsAddTagPanelOpen(true);
+                            }}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                            aria-label="Add new tag"
+                          >
+                            <PlusCircle className="h-6 w-6" />
+                          </button>
+                        ) : (
+                          // Expanded button with text and tooltip when no tags
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsAddTagPanelOpen(true);
+                                  }}
+                                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"
+                                  aria-label="Add new tag"
+                                >
+                                  <PlusCircle className="h-5 w-5" />
+                                  <span className="text-sm font-medium">Add Tag</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Use tags to capture key information about a student</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     )}
                   </div>
@@ -293,13 +362,32 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
 
               {/* Drag overlay for smooth dragging */}
               <DragOverlay>
-                {activeTag ? (
+                {activeItem && activeType === 'category' ? (
+                  <div className="opacity-80">
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-xs font-semibold ${getTagColors((activeItem as CategoryTagInfo).categoryName).text} uppercase tracking-wider`}>
+                        {(activeItem as CategoryTagInfo).categoryName}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {(activeItem as CategoryTagInfo).tags.map((tag) => (
+                          <Tag
+                            key={tag.studentTagId}
+                            category={(activeItem as CategoryTagInfo).categoryName}
+                            name={tag.tagName}
+                            value={tag.tagValue}
+                            studentTagId={tag.studentTagId}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : activeItem && activeType === 'tag' ? (
                   <div className="opacity-80">
                     <Tag
-                      category={activeTag.categoryName}
-                      name={activeTag.tagName}
-                      value={activeTag.tagValue}
-                      studentTagId={activeTag.studentTagId}
+                      category={'categoryName' in activeItem ? activeItem.categoryName : ''}
+                      name={'tagName' in activeItem ? activeItem.tagName : ''}
+                      value={'tagValue' in activeItem ? activeItem.tagValue : ''}
+                      studentTagId={'studentTagId' in activeItem ? activeItem.studentTagId : ''}
                     />
                   </div>
                 ) : null}
