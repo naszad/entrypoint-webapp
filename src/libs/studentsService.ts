@@ -121,7 +121,8 @@ const getGradeColumnName = (key: string) => {
 const studentsFilterApplied = (filters: FilterValue[]) => {
   return filters.some(f => {
     const columnName = getColumnName(f.key);
-    return !['student_id', 'school_id'].includes(columnName);
+    // GPA is a special filter that doesn't map to a column
+    return !['student_id', 'school_id', 'gpa'].includes(columnName);
   });
 };
 
@@ -136,6 +137,10 @@ const gradesFilterApplied = (filters: FilterValue[]) => {
 const applyFilters = (q: any, filters: FilterValue[]) => {
 
   filters.forEach((filter) => {
+    // Skip GPA filter as it needs to be applied after data fetching
+    if (filter.key === 'gpa') {
+      return;
+    }
     
     let baseColumnKey = filter.key;
     if (filter.key.endsWith('RecentOnly') && parseInt(filter.value) > 0) {
@@ -282,6 +287,8 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
     
+    // Extract GPA filter if present
+    const gpaFilter = filters.find(f => f.key === 'gpa');
     const hasStudentFilters = studentsFilterApplied(filters);
 
     let query = supabase
@@ -335,8 +342,11 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       }
     }
 
-    // Apply pagination
-    if (pagingInfo) {
+    // If GPA filter exists, we need to fetch all students first (without pagination)
+    // to calculate GPAs before filtering
+    if (gpaFilter && pagingInfo) {
+      // Don't apply pagination yet if we need to filter by GPA
+    } else if (pagingInfo) {
       const from = (pagingInfo.pageNumber - 1) * pagingInfo.pageSize;
       const to = from + pagingInfo.pageSize - 1;
       query = query.range(from, to);
@@ -385,7 +395,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     }
 
 
-    const students: StudentInfo[] = studentSchoolLinks.map((studentSchoolLink): StudentInfo | null => {
+    let students: StudentInfo[] = studentSchoolLinks.map((studentSchoolLink): StudentInfo | null => {
       // It's possible for students to be null if the filter returns a link but no matching student
       if (!studentSchoolLink.students) {
         return null;
@@ -418,21 +428,60 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       };
     }).filter((student): student is StudentInfo => student !== null);
 
+    // Apply GPA filter if present
+    if (gpaFilter) {
+      const gpaValue = parseFloat(gpaFilter.value);
+      if (!isNaN(gpaValue)) {
+        students = students.filter(student => {
+          const studentGpa = student.gpa ?? 0;
+          switch (gpaFilter.condition) {
+            case 'eq':
+              return Math.abs(studentGpa - gpaValue) < 0.01; // Allow small floating point differences
+            case 'not':
+              return Math.abs(studentGpa - gpaValue) >= 0.01;
+            case 'gt':
+              return studentGpa > gpaValue;
+            case 'lt':
+              return studentGpa < gpaValue;
+            case 'gte':
+              return studentGpa >= gpaValue;
+            case 'lte':
+              return studentGpa <= gpaValue;
+            default:
+              return Math.abs(studentGpa - gpaValue) < 0.01;
+          }
+        });
+      }
+    }
+
+    // Apply pagination after GPA filtering if needed
+    const totalBeforePagination = students.length;
+    if (gpaFilter && pagingInfo) {
+      const from = (pagingInfo.pageNumber - 1) * pagingInfo.pageSize;
+      const to = from + pagingInfo.pageSize;
+      students = students.slice(from, to);
+    }
+
     let countResult: number | undefined = undefined;
     if (fetchWithCount) {
-      let countQuery = supabase
-        .from('school_student_link')
-        .select(hasStudentFilters ? '*,students!inner(*)' : '*', { count: 'exact', head: true })
-        .eq('school_id', selectedSchoolId);
-      
-      // Apply the same filters to count query
-      countQuery = applyFilters(countQuery, filters);
-      
-      const { count, error: countError } = await countQuery;
-      if (countError) {
-        throw new Error(countError.message);
+      if (gpaFilter) {
+        // If GPA filter is present, use the count from before pagination
+        countResult = totalBeforePagination;
+      } else {
+        let countQuery = supabase
+          .from('school_student_link')
+          .select(hasStudentFilters ? '*,students!inner(*)' : '*', { count: 'exact', head: true })
+          .eq('school_id', selectedSchoolId);
+        
+        // Apply the same filters to count query
+        countQuery = applyFilters(countQuery, filters);
+        
+        const { count, error: countError } = await countQuery;
+        if (countError) {
+          throw new Error(countError.message);
+        }
+        countResult = count || 0;
       }
-      countResult = count || 0;
     }
 
     return {
