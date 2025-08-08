@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { MeetingNoteInfo } from '@/types/MeetingNoteInfo';
+import { SuggestedTags, SuggestedTag } from '@/components/SuggestedTags';
 
 const StudentMeetingNotesPage = () => {
   const [recentMeetings, setRecentMeetings] = useState<MeetingNoteInfo[]>([]);
@@ -20,7 +21,9 @@ const StudentMeetingNotesPage = () => {
     notes?: string;
     transcript?: string;
     studentEmail?: string;
+    suggestedTags?: SuggestedTag[];
   } | null>(null);
+  const [savingTags, setSavingTags] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -204,6 +207,42 @@ const StudentMeetingNotesPage = () => {
               <p className="text-sm text-gray-600 bg-gray-50 p-4 rounded border border-gray-200 mb-5 leading-relaxed">
                 {transcriptionInfo.summary}
               </p>
+              {transcriptionInfo.suggestedTags && transcriptionInfo.suggestedTags.length > 0 && (
+                <div className={savingTags ? 'opacity-50 pointer-events-none' : ''}>
+                  <SuggestedTags 
+                    tags={transcriptionInfo.suggestedTags}
+                    onAddTags={async (tags) => {
+                      setSavingTags(true);
+                      try {
+                        // Save each tag to the student
+                        const savePromises = tags.map(tag => 
+                          fetch(`/api/students/${studentId}/tags`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                              tagId: tag.tagId,
+                              tagName: tag.name,
+                              tagCategoryId: tag.tagCategoryId,
+                              value: tag.value
+                            })
+                          })
+                        );
+                        
+                        await Promise.all(savePromises);
+                        
+                        // Clear the suggested tags after successful save
+                        setTranscriptionInfo(prev => prev ? { ...prev, suggestedTags: [] } : null);
+                      } catch (error) {
+                        console.error('Error saving tags:', error);
+                      } finally {
+                        setSavingTags(false);
+                      }
+                    }}
+                  />
+                </div>
+              )}
               <div className="flex items-center justify-start gap-4">
                 <span className="text-sm font-medium text-gray-700">Send summary via email:</span>
                 <a
@@ -255,4 +294,4 @@ const StudentMeetingNotesPage = () => {
   );
 };
 
-export default StudentMeetingNotesPage; 
+export default StudentMeetingNotesPage;

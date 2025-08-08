@@ -57,7 +57,7 @@ const Pagination = ({ total, currentPage = 1, onPageChange, onPageSizeChange, pa
       setPageNumber(1);
       onPageChange?.(1);
     }
-  }, [pageSize, isInitialMount]);
+  }, [pageSize, isInitialMount, onPageChange]);
   
   // Calculate which page numbers to show (up to 5)
   const getVisiblePages = () => {
