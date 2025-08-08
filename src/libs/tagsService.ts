@@ -20,7 +20,7 @@ export async function getStudentTags(studentId: string): Promise<StudentTagInfo>
         student_tag_id,
         tag_id,
         value,
-        tag (
+        tags (
           tag_id,
           name,
           tag_categories (
@@ -41,10 +41,10 @@ export async function getStudentTags(studentId: string): Promise<StudentTagInfo>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (tagsData ?? []).forEach((row: any) => {
       // Skip rows with incomplete tag data
-      if (!row.tag?.tag_categories) return;
+      if (!row.tags?.tag_categories) return;
       
-      const categoryId = row.tag.tag_categories.tag_category_id;
-      const categoryName = row.tag.tag_categories.name;
+      const categoryId = row.tags.tag_categories.tag_category_id;
+      const categoryName = row.tags.tag_categories.name;
 
       if (!categoryMap[categoryId]) {
         categoryMap[categoryId] = {
@@ -56,8 +56,8 @@ export async function getStudentTags(studentId: string): Promise<StudentTagInfo>
 
       categoryMap[categoryId].tags.push({
         studentTagId: row.student_tag_id,
-        tagId: row.tag.tag_id,
-        tagName: row.tag.name,
+        tagId: row.tags.tag_id,
+        tagName: row.tags.name,
         tagValue: row.value,
       });
     });
@@ -203,5 +203,93 @@ export async function deleteStudentTag(studentTagId: string): Promise<{ message:
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     throw new Error(`Failed to delete student tag. Error: ${message}`);
+  }
+}
+
+export async function getAllTagCategories(): Promise<{ tagCategoryId: string; name: string }[]> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: categories, error } = await supabase
+      .from('tag_categories')
+      .select('tag_category_id, name')
+      .order('name');
+
+    if (error) {
+      throw new Error(`Failed to fetch tag categories: ${error.message}`);
+    }
+
+    return categories?.map(cat => ({
+      tagCategoryId: cat.tag_category_id,
+      name: cat.name
+    })) ?? [];
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    throw new Error(`Failed to fetch tag categories. Error: ${message}`);
+  }
+}
+
+export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Get user's customer ID through their school membership
+    const { data: memberships, error: membershipError } = await supabase
+      .from('user_school_memberships')
+      .select(`
+        schools (
+          customer_id
+        )
+      `)
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (membershipError || !memberships || memberships.length === 0) {
+      throw new Error(`User school membership not found. User ID: ${user.id}, Error: ${membershipError?.message || 'No memberships found'}`);
+    }
+
+    const membership = memberships[0];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const customerId = (membership as any).schools?.customer_id;
+
+    // Get all tags for this customer with their categories and values
+    const { data: tags, error: tagsError } = await supabase
+      .from('tags')
+      .select(`
+        tag_id,
+        name,
+        tag_categories (
+          tag_category_id,
+          name
+        ),
+        student_tags (
+          value
+        )
+      `)
+      .eq('customer_id', customerId)
+      .order('name');
+
+    if (tagsError) {
+      throw new Error(`Failed to fetch tags: ${tagsError.message}`);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return tags?.map((tag: any) => ({
+      tagId: tag.tag_id,
+      name: tag.name,
+      categoryId: tag.tag_categories?.tag_category_id ?? '',
+      categoryName: tag.tag_categories?.name ?? '',
+      values: [...new Set(tag.student_tags?.map((st: { value: string }) => st.value) ?? [])] as string[]
+    })) ?? [];
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    throw new Error(`Failed to fetch tags. Error: ${message}`);
   }
 }

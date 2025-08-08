@@ -3,6 +3,7 @@ import { StudentProfileHeader } from '@/components/StudentProfileHeader';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { StudentInfo } from '@/types/StudentInfo';
+import { StudentTagInfo } from '@/types/StudentTagInfo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -10,28 +11,130 @@ import Link from 'next/link';
 export default function StudentProfileLayout({ children }: { children: React.ReactNode }) {
     const params = useParams();
     const [student, setStudent] = useState<StudentInfo | null>(null);
+    const [studentTags, setStudentTags] = useState<StudentTagInfo | null>(null);
+    const [allCategories, setAllCategories] = useState<{ tagCategoryId: string; name: string }[]>([]);
+    const [allTags, setAllTags] = useState<{ tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const pathname = usePathname();
     useEffect(() => {
-      const fetchStudent = async () => {
+      const fetchData = async () => {
         try {
           const { id } = params
-          const response = await fetch(`/api/students/${id}`);
-          if (!response.ok) {
+          
+          // Fetch student data
+          const studentResponse = await fetch(`/api/students/${id}`);
+          if (!studentResponse.ok) {
             setError('An error occurred while fetching the student, please try again later');
+            return;
           }
-          const studentData = await response.json();
+          const studentData = await studentResponse.json();
           setStudent(studentData);
+          
+          // Fetch student tags
+          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          if (tagsResponse.ok) {
+            const tagsData = await tagsResponse.json();
+            setStudentTags(tagsData);
+          }
+          
+          // Fetch all categories
+          const categoriesResponse = await fetch('/api/tags?type=categories');
+          if (categoriesResponse.ok) {
+            const categoriesData = await categoriesResponse.json();
+            setAllCategories(categoriesData);
+          }
+          
+          // Fetch all tags
+          const allTagsResponse = await fetch('/api/tags');
+          if (allTagsResponse.ok) {
+            const allTagsData = await allTagsResponse.json();
+            setAllTags(allTagsData);
+          }
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'An error occurred while fetching the student');
+          setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
         } finally {
           setIsLoading(false);
         }
       };
   
-      fetchStudent();
+      fetchData();
     }, [params]);
+    
+    const handleTagAdd = async (tag: { tagId?: string; tagName: string; tagCategoryId: string; value: string }) => {
+      try {
+        const { id } = params;
+        const response = await fetch(`/api/students/${id}/tags`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tag),
+        });
+        
+        if (response.ok) {
+          // Refresh tags
+          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          if (tagsResponse.ok) {
+            const tagsData = await tagsResponse.json();
+            setStudentTags(tagsData);
+          }
+          
+          // Refresh all tags if a new tag was created
+          if (!tag.tagId) {
+            const allTagsResponse = await fetch('/api/tags');
+            if (allTagsResponse.ok) {
+              const allTagsData = await allTagsResponse.json();
+              setAllTags(allTagsData);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to add tag:', err);
+      }
+    };
+    
+    const handleTagEdit = async (studentTagId: string, value: string) => {
+      try {
+        const { id } = params;
+        const response = await fetch(`/api/students/${id}/tags`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentTagId, value }),
+        });
+        
+        if (response.ok) {
+          // Refresh tags
+          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          if (tagsResponse.ok) {
+            const tagsData = await tagsResponse.json();
+            setStudentTags(tagsData);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to edit tag:', err);
+      }
+    };
+    
+    const handleTagDelete = async (studentTagId: string) => {
+      try {
+        const { id } = params;
+        const response = await fetch(`/api/students/${id}/tags`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentTagId }),
+        });
+        
+        if (response.ok) {
+          // Refresh tags
+          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          if (tagsResponse.ok) {
+            const tagsData = await tagsResponse.json();
+            setStudentTags(tagsData);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to delete tag:', err);
+      }
+    };
 
     if (isLoading) {
         return (<div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
@@ -67,6 +170,23 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
             graduationYear={student.graduationYear ?? ''}
             studentId={student.externalId?.toString() ?? ''}
             email={student.email ?? ''}
+            tags={studentTags?.categories}
+            allTagCategories={allCategories}
+            allTags={allTags}
+            onTagAdd={handleTagAdd}
+            onTagEdit={handleTagEdit}
+            onTagDelete={handleTagDelete}
+            onTagsReorder={(reorderedTags) => {
+              // Update local state with reordered tags
+              if (studentTags) {
+                setStudentTags({
+                  ...studentTags,
+                  categories: reorderedTags
+                });
+              }
+              // You can also persist the order to the backend here if needed
+              console.log('Tags reordered:', reorderedTags);
+            }}
         />
 
         <div className="flex justify-center mt-4 rounded-full">
