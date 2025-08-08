@@ -20,9 +20,10 @@ If at any point it seems like the user hasn't provided enough information to ans
 If the user asks about a student and provides a name which does not appear in the database, use the database tools to identify if the user provided a nickname or shortened name of a student that is in the database. All students referenced in your response should be referred to by their full name in order to avoid confusion. Additionally, when you respond with the student's full name, you should make their name a markdown link to the student's page in the application using the format: [student's full name](/students/<studentId from database>)
 
 When a user asks a question, first determine their intent:
-1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool **if** their query can be answered using the filters available in the filter_students tool. If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
+1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool **if** their query can be answered using the filters available in the filter_students tool (including GPA filtering). If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
 2.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. Use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
-3.  Are they asking for a **student's GPA or a filtered slice of their GPA** (e.g., cumulative or by subject)? If so, use the \`get_student_gpa\` tool with parameters \`studentName\`, \`method\`, \`gradeCodes\`, \`gradeLevels\`, \`creditTypes\`, and \`termIds\`.
+3.  Are they asking for a **student's individual GPA or a filtered slice of their GPA** (e.g., cumulative or by subject)? If so, use the \`get_student_gpa\` tool with parameters \`studentName\`, \`method\`, \`gradeCodes\`, \`gradeLevels\`, \`creditTypes\`, and \`termIds\`.
+4.  Are they asking to **filter students by GPA** (e.g., "show me students with GPA below 2.0", "students with GPA above 3.5")? Use the \`filter_students\` tool with the \`gpaFilter\` parameter.
 
 Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
 
@@ -40,7 +41,7 @@ Do NOT include any intermediate attempts, error messages, or debugging commentar
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days"
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5"
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
 
 **Date Filter Instructions:**
@@ -55,6 +56,10 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           homeroomName: z.string().optional().describe('Homeroom name or teacher'),
           graduationYear: z.number().optional().describe('Expected graduation year'),
           email: z.string().optional().describe('Email domain or part of email to search for'),
+          gpaFilter: z.object({
+            value: z.number().describe('The GPA value to filter by'),
+            operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte']).default('eq').describe('The comparison operator for the GPA filter: "eq" (equal to), "gt" (greater than), "lt" (less than), "gte" (greater than or equal to), "lte" (less than or equal to)')
+          }).optional().describe('Filter students by cumulative GPA. For example, "students with GPA above 3.5" or "students with GPA below 2.0".'),
           ageFilter: z.object({
             age: z.number().describe('The age to filter by'),
             operator: z.enum(['eq', 'gte', 'lte']).default('eq').describe('The comparison operator for the age filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to)')
@@ -68,7 +73,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           const baseUrl = '/students';
     
           for (const [key, value] of Object.entries(parsedFilters)) {
-            if (!value || key === 'ageFilter') continue;
+            if (!value || key === 'ageFilter' || key === 'gpaFilter') continue;
             
             switch (key) {
               case 'gradeLevel':
@@ -89,6 +94,11 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
                 filters.push(`updatedAtRecentOnly:in:${value}`);
                 break;
             }
+          }
+    
+          if (parsedFilters.gpaFilter) {
+            const { value, operator } = parsedFilters.gpaFilter;
+            filters.push(`gpa:${operator}:${value}`);
           }
     
           if (parsedFilters.ageFilter) {
