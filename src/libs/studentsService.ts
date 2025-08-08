@@ -78,11 +78,15 @@ const getColumnName = (key: string) => {
       return 'created_at';
     case 'createdAtTo':
       return 'created_at';
+    case 'createdAtRecentOnly':
+      return 'created_at';
     case 'updatedAt':
       return 'updated_at';
     case 'updatedAtFrom':
       return 'updated_at';
     case 'updatedAtTo':
+      return 'updated_at';
+    case 'updatedAtRecentOnly':
       return 'updated_at';
     default:
       return key;
@@ -130,14 +134,36 @@ const gradesFilterApplied = (filters: FilterValue[]) => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const applyFilters = (q: any, filters: FilterValue[]) => {
+
   filters.forEach((filter) => {
-    const columnName = getColumnName(filter.key);
+    
+    let baseColumnKey = filter.key;
+    if (filter.key.endsWith('RecentOnly') && parseInt(filter.value) > 0) {
+      baseColumnKey = filter.key.replace('RecentOnly', '');
+    }
+
+    const columnName = getColumnName(baseColumnKey);
     const filterOnStudentTable = ![
       'student_id',
       'school_id',
     ].includes(columnName);
     
     const targetColumn = filterOnStudentTable ? `students.${columnName}` : columnName;
+
+    if (filter.key.endsWith('RecentOnly')) {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      const daysAgo = new Date();
+      daysAgo.setDate(today.getDate() - parseInt(filter.value));
+      
+      const todayStr = today.toISOString().split('T')[0];
+      const daysAgoStr = daysAgo.toISOString().split('T')[0];
+      
+      // Apply date range filter
+      q = q.gte(targetColumn, daysAgoStr);
+      q = q.lte(targetColumn, todayStr);
+      return;
+    }
 
     switch (filter.condition) {
       case 'contains':
@@ -178,13 +204,17 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
   }
 
   filters.forEach((filter) => {
+    // Handle RecentOnly filters
+    let baseColumnKey = filter.key;
+    if (filter.key.endsWith('RecentOnly') && parseInt(filter.value) > 0) {
+      baseColumnKey = filter.key.replace('RecentOnly', '');
+    }
+      
     if (!filter.value) {
       return; // Skip empty filters
     }
 
-    const columnName = getGradeColumnName(filter.key);
-
-    console.log('columnName', columnName);
+    const columnName = getGradeColumnName(baseColumnKey);
     
     let targetColumn = columnName;
     // Handle different table columns
@@ -194,7 +224,20 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
     } else if (['local_course_code', 'name'].includes(columnName)) {
       targetColumn = `course.${columnName}`;
     } 
-    
+
+    if (filter.key.endsWith('RecentOnly')) {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      const daysAgo = new Date();
+      daysAgo.setDate(today.getDate() - parseInt(filter.value));
+      
+      const todayStr = today.toISOString().split('T')[0];
+      const daysAgoStr = daysAgo.toISOString().split('T')[0];
+      q = q.gte(targetColumn, daysAgoStr);
+      q = q.lte(targetColumn, todayStr);
+      return;
+    }
+
     try {
       switch (filter.condition) {
         case 'contains':

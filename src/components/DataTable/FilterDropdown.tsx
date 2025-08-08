@@ -1,5 +1,6 @@
 import { ColumnMeta } from './DataTable';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { getFilterConditionsByType } from '@/utils/filterConditions';
@@ -135,17 +136,60 @@ export function FilterDropdown({
           </select>
         ) : meta.filterType === 'date' ? (
           <>
+            {/* Show Last N Days Input */}
+            <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 rounded">
+              <span className="text-xs font-medium text-gray-700">Show last</span>
+              <Input
+                type="number"
+                min="1"
+                placeholder="30"
+                className="w-16 h-7 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={filterConditions[`${columnId}RecentOnly`] || ''}
+                onChange={(e) => {
+                  const recentOnlyKey = `${columnId}RecentOnly`;
+                  const fromKey = `${columnId}From`;
+                  const toKey = `${columnId}To`;
+                  const value = e.target.value;
+                  
+                  // Only allow positive integers
+                  if (value === '' || (parseInt(value) > 0 && Number.isInteger(Number(value)))) {
+                    if (value && parseInt(value) > 0) {
+                      // Clear existing from/to date values and set recent only to the number
+                      setFilterConditions({
+                        ...filterConditions,
+                        [recentOnlyKey]: value,
+                        [fromKey]: '',
+                        [toKey]: ''
+                      });
+                    } else {
+                      // Clear recent only if empty
+                      setFilterConditions({
+                        ...filterConditions,
+                        [recentOnlyKey]: ''
+                      });
+                    }
+                  }
+                  // If invalid input, don't update the state (input will revert)
+                }}
+              />
+              <span className="text-xs font-medium text-gray-700">days data</span>
+            </div>
+            
+            {/* Date Range Inputs */}
             <div className="text-xs font-medium text-gray-500 px-1">{`${headerText} From`}</div>
             <input
               id={`${columnId}From`}
               type="date"
-              className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                filterConditions[`${columnId}RecentOnly`] ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
               ref={(el) => {
                 if (filterInputRef) {
                   filterInputRef(el, `${columnId}From`);
                 }
               }}
-              autoFocus
+              autoFocus={!filterConditions[`${columnId}RecentOnly`]}
+              disabled={!!filterConditions[`${columnId}RecentOnly`]}
               value={filterConditions[`${columnId}From`] || ''}
               onChange={(e) => {
                 const value = e.target.value;
@@ -159,12 +203,15 @@ export function FilterDropdown({
             <input
               id={`${columnId}To`}
               type="date"
-              className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                filterConditions[`${columnId}RecentOnly`] ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
               ref={(el) => {
                 if (filterInputRef) {
                   filterInputRef(el, `${columnId}To`);
                 }
               }}
+              disabled={!!filterConditions[`${columnId}RecentOnly`]}
               value={filterConditions[`${columnId}To`] || ''}
               onChange={(e) => {
                 const value = e.target.value;
@@ -202,7 +249,8 @@ export function FilterDropdown({
               if (meta.filterType === 'date') {
                 const fromValue = filterConditions[`${columnId}From`];
                 const toValue = filterConditions[`${columnId}To`];
-                if (fromValue || toValue) {
+                const recentOnlyValue = filterConditions[`${columnId}RecentOnly`];
+                if (fromValue || toValue || (recentOnlyValue && parseInt(recentOnlyValue) > 0)) {
                   onApply(columnId);
                 }
               } else {

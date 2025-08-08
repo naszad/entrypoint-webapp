@@ -42,6 +42,8 @@ const getColumnName = (key: string) => {
       return 'updated_at';
     case 'updatedAtTo':
       return 'updated_at';
+    case 'updatedAtRecentOnly':
+      return 'updated_at';
     default:
       return key;
   }
@@ -65,7 +67,24 @@ export async function fetchReportsByCriteria(request: ReportsRequest): Promise<R
       .eq('user_id', userId);
 
       filters.forEach((filter) => {
-        const columnName = getColumnName(filter.key);
+        let baseColumnKey = filter.key;
+        if (filter.key.endsWith('RecentOnly') && parseInt(filter.value) > 0) {
+          baseColumnKey = filter.key.replace('RecentOnly', '');
+        }
+
+        const columnName = getColumnName(baseColumnKey);
+
+        if (filter.key.endsWith('RecentOnly')) {
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          const daysAgo = new Date();
+          daysAgo.setDate(today.getDate() - parseInt(filter.value));
+          
+          // Apply date range filter
+          query = query.gte(columnName, daysAgo.toISOString());
+          query = query.lte(columnName, today.toISOString());
+          return;
+        }
         
         switch (filter.condition) {
           case 'contains':

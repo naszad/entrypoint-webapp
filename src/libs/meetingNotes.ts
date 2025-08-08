@@ -46,6 +46,8 @@ const getColumnName = (key: string) => {
       return 'created_at';
     case 'createdAtTo':
       return 'created_at';
+    case 'createdAtRecentOnly':
+      return 'created_at';
     default:
       return key;
   }
@@ -56,39 +58,58 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
   // Handle date range filters specially
   const dateFromFilter = filters.find(f => f.key === 'createdAtFrom');
   const dateToFilter = filters.find(f => f.key === 'createdAtTo');
+  const recentOnlyFilter = filters.find(f => f.key === 'createdAtRecentOnly');
   
-  // Apply date range filters if both exist
-  if (dateFromFilter && dateToFilter) {
-    const fromDate = dateFromFilter.value;
-    const toDate = dateToFilter.value;
+  // Handle RecentOnly filter first
+  if (recentOnlyFilter && parseInt(recentOnlyFilter.value) > 0) {
+    const today = new Date();
+    const daysAgo = new Date();
+    daysAgo.setDate(today.getDate() - parseInt(recentOnlyFilter.value));
     
-    // For the "to" date, we need to include the entire day
-    // Add 23:59:59.999 to the to date to include all records from that day
-    const toDateEndOfDay = new Date(toDate);
-    toDateEndOfDay.setHours(23, 59, 59, 999);
+    const todayEndOfDay = new Date(today);
+    todayEndOfDay.setHours(23, 59, 59, 999);
     
-    q = q.gte('created_at', fromDate)
-        .lte('created_at', toDateEndOfDay.toISOString());
+    q = q.gte('created_at', daysAgo.toISOString())
+        .lte('created_at', todayEndOfDay.toISOString());
   } else {
-    // Apply individual date filters if only one exists
-    if (dateFromFilter) {
-      q = q.gte('created_at', dateFromFilter.value);
-    }
-    if (dateToFilter) {
-      const toDateEndOfDay = new Date(dateToFilter.value);
+    // Apply date range filters if both exist
+    if (dateFromFilter && dateToFilter) {
+      const fromDate = dateFromFilter.value;
+      const toDate = dateToFilter.value;
+      
+      // For the "to" date, we need to include the entire day
+      // Add 23:59:59.999 to the to date to include all records from that day
+      const toDateEndOfDay = new Date(toDate);
       toDateEndOfDay.setHours(23, 59, 59, 999);
-      q = q.lte('created_at', toDateEndOfDay.toISOString());
+      
+      q = q.gte('created_at', fromDate)
+          .lte('created_at', toDateEndOfDay.toISOString());
+    } else {
+      // Apply individual date filters if only one exists
+      if (dateFromFilter) {
+        q = q.gte('created_at', dateFromFilter.value);
+      }
+      if (dateToFilter) {
+        const toDateEndOfDay = new Date(dateToFilter.value);
+        toDateEndOfDay.setHours(23, 59, 59, 999);
+        q = q.lte('created_at', toDateEndOfDay.toISOString());
+      }
     }
   }
 
   // Apply all other filters
   filters.forEach((filter) => {
-    // Skip date range filters as they're handled above
-    if (filter.key === 'createdAtFrom' || filter.key === 'createdAtTo') {
+    // Skip date range filters and RecentOnly filters as they're handled above
+    if (filter.key === 'createdAtFrom' || filter.key === 'createdAtTo' || filter.key === 'createdAtRecentOnly') {
       return;
     }
     
-    const columnName = getColumnName(filter.key);
+    let baseColumnKey = filter.key;
+    if (filter.key.endsWith('RecentOnly') && parseInt(filter.value) > 0) {
+      baseColumnKey = filter.key.replace('RecentOnly', '');
+    }
+
+    const columnName = getColumnName(baseColumnKey);
     const filterOnStudentTable = ![
       'created_at',
       'summary',

@@ -9,6 +9,7 @@ export const TEXT_FILTER_CONDITIONS: FilterCondition[] = [
   { id: 'starts', displayValue: 'Starts with' },
   { id: 'ends', displayValue: 'Ends with' },
   { id: 'not', displayValue: 'Not' },
+  { id: 'in', displayValue: 'In' }
 ];
 
 export const NUMBER_FILTER_CONDITIONS: FilterCondition[] = [
@@ -18,6 +19,7 @@ export const NUMBER_FILTER_CONDITIONS: FilterCondition[] = [
   { id: 'gte', displayValue: 'Greater than or equal to' },
   { id: 'lte', displayValue: 'Less than or equal to' },
   { id: 'not', displayValue: 'Not' },
+  { id: 'in', displayValue: 'In' }
 ];
 
 export const DEFAULT_FILTER_CONDITIONS: FilterCondition[] = [

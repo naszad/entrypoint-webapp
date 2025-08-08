@@ -4,6 +4,15 @@ import { Table } from '@tanstack/react-table';
 import { ToolbarFilters } from './ToolbarFilters';
 import { FilterValue } from './DataTable';
 
+/**
+ * Extracts the base column ID by removing filter suffixes (From, To, RecentOnly)
+ */
+const getBaseColumnId = (columnId: string): string => {
+  return columnId.endsWith('From') || columnId.endsWith('To') || columnId.endsWith('RecentOnly')
+    ? columnId.replace(/(?:From|To|RecentOnly)$/, '')
+    : columnId;
+};
+
 export interface ActionItem {
   id: string;
   title?: string;
@@ -66,8 +75,15 @@ export function DataTableToolbar<TData>({
       <ToolbarFilters
         filterValues={filterValues}
         getColumnHeader={(columnId: string) => {
-          const baseColumnId = columnId.endsWith('From') || columnId.endsWith('To') ? columnId.replace(/(?:From|To)$/, '') : columnId;          
+          const baseColumnId = getBaseColumnId(columnId);         
           return table.getAllColumns().find((col) => col.id === baseColumnId)?.columnDef.header as string;
+        }}
+        getColumnValue={(columnId: string) => {
+          const filter = filterValues.find((filter) => filter.key === columnId);
+          if (filter?.key.endsWith('RecentOnly') && filter.value && parseInt(filter.value) > 0) {
+            return `Last ${filter.value} days`;
+          }
+          return filter?.value ?? '';
         }}
         onRemoveFilter={onRemoveFilter}
         onClearAllFilters={onClearAllFilters}
