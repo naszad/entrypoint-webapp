@@ -25,6 +25,7 @@ type StudentsResponse = {
 };
 
 type StudentGradesResponse = {
+  gradeCodes: string[];
   data: StudentGradeInfo[];
   count?: number;
 };
@@ -195,6 +196,15 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
       case 'lte':
         q = q.lte(targetColumn, filter.value);
         break;
+      case 'in':
+        // Handle multi-select values (pipe-separated) or single values
+        if (filter.value.includes('|')) {
+          const values = filter.value.split('|').filter(v => v.trim() !== '');
+          q = q.in(targetColumn, values);
+        } else {
+          q = q.eq(targetColumn, filter.value);
+        }
+        break;
       default:
         q = q.eq(targetColumn, filter.value);
     }
@@ -268,6 +278,15 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
           break;
         case 'lte':
           q = q.lte(targetColumn, filter.value);
+          break;
+        case 'in':
+          // Handle multi-select values (pipe-separated) or single values
+          if (filter.value.includes('|')) {
+            const values = filter.value.split('|').filter(v => v.trim() !== '');
+            q = q.in(targetColumn, values);
+          } else {
+            q = q.eq(targetColumn, filter.value);
+          }
           break;
         default:
           q = q.eq(targetColumn, filter.value);
@@ -826,8 +845,23 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       throw new Error(schoolError.message);
     }
 
+    const { data: gradeCodeRows } = await supabase
+      .from('student_grades')
+      .select('grade_code')
+      .order('grade_code', { ascending: true });
+
+    const rows = (gradeCodeRows as Array<{ grade_code: string | null }> | null) ?? [];
+    const gradeCodes: string[] = Array.from(
+      new Set(
+        rows
+          .map((r) => r.grade_code)
+          .filter((v): v is string => !!v)
+      )
+    );
+
     if (!schoolStudentLinks || schoolStudentLinks.length === 0) {
       return {
+        gradeCodes,
         data: [],
         count: 0
       };
@@ -949,6 +983,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
 
     if (!data) {
       return {
+        gradeCodes,
         data: [],
         count: 0
       };
@@ -1066,6 +1101,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     }
 
     return {
+      gradeCodes,
       data: studentGrades,
       count: totalCount
     };

@@ -25,7 +25,7 @@ import Pagination from "./Pagination";
 export type ColumnMeta = {
   enableFiltering?: boolean;
   enableSorting?: boolean;
-  filterType?: 'text' | 'number' | 'date' | 'dropdown';
+  filterType?: 'text' | 'number' | 'date' | 'dropdown' | 'multi-select';
   filterOptions?: string[];
   header?: string;
 }
@@ -51,6 +51,7 @@ export interface DataTableProps<TData, TValue> {
   onPageChange?: (pageNumber: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   pageSize?: number;
+  multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
 }
 
 export function DataTable<TData, TValue>({
@@ -68,6 +69,7 @@ export function DataTable<TData, TValue>({
   onPageChange,
   onPageSizeChange,
   pageSize,
+  multiSelectRemoteSource,
 }: DataTableProps<TData, TValue>) {
   const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -186,6 +188,7 @@ export function DataTable<TData, TValue>({
                         filterConditionRef={(el) => {
                           filterConditionRefs.current[column.id] = el;
                         }}
+                        multiSelectRemoteSource={multiSelectRemoteSource}
                       />
                     );
                   })}

@@ -111,6 +111,15 @@ export async function fetchReportsByCriteria(request: ReportsRequest): Promise<R
           case 'lte':
             query = query.lte(columnName, filter.value);
             break;
+          case 'in':
+            // Handle multi-select values (pipe-separated) or single values
+            if (filter.value.includes('|')) {
+              const values = filter.value.split('|').filter(v => v.trim() !== '');
+              query = query.in(columnName, values);
+            } else {
+              query = query.eq(columnName, filter.value);
+            }
+            break;
           default:
             query = query.eq(columnName, filter.value);
         }

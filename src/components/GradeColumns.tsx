@@ -108,7 +108,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     enableHiding: true,
     meta: {
       enableFiltering: true,
-      filterType: "text",
+      filterType: "multi-select",
     },
     cell: ({ row }) => (
       <div className="font-medium">
