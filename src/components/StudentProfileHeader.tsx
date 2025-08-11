@@ -285,7 +285,7 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
             {studentId ? ` • ID: ${studentId}` : ''}
           </div>
           {/* Tags Section with Drag and Drop */}
-          <div className="max-w-full relative">
+          <div id="student-header-tags" className="max-w-full relative">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}

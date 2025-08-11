@@ -234,6 +234,23 @@ const StudentMeetingNotesPage = () => {
                         
                         // Clear the suggested tags after successful save
                         setTranscriptionInfo(prev => prev ? { ...prev, suggestedTags: [] } : null);
+
+                        // Notify the layout to refresh tags immediately and subtly animate
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(new CustomEvent('student-tags:added', {
+                            detail: {
+                              studentId,
+                              tags: tags.map(t => ({
+                                tagId: t.tagId,
+                                tagName: t.name,
+                                tagCategoryId: t.tagCategoryId,
+                                value: t.value,
+                              }))
+                            }
+                          }));
+                          // Backward-compat simple refresh event
+                          window.dispatchEvent(new CustomEvent('student-tags:refresh'));
+                        }
                       } catch (error) {
                         console.error('Error saving tags:', error);
                       } finally {

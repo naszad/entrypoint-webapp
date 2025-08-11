@@ -10,6 +10,7 @@ interface TagProps {
   name: string
   value: string
   studentTagId: string
+  isNew?: boolean
   onEdit?: (studentTagId: string, value: string) => void
   onDelete?: (studentTagId: string) => void
   onMenuClick?: (studentTagId: string, rect: DOMRect) => void
@@ -20,10 +21,19 @@ interface TagProps {
   isDragging?: boolean
 }
 
-export function Tag({ category, name, value, studentTagId, onEdit, onDelete, onMenuClick, isMenuOpen, isEditMode, onEditModeChange, dragHandleProps, isDragging }: TagProps) {
+export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDelete, onMenuClick, isMenuOpen, isEditMode, onEditModeChange, dragHandleProps, isDragging }: TagProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
   const { bg, text, border } = getTagColors(category)
+
+  // Smooth entrance animation for newly added tags
+  const [entered, setEntered] = useState(!isNew)
+  React.useEffect(() => {
+    if (isNew) {
+      const id = requestAnimationFrame(() => setEntered(true))
+      return () => cancelAnimationFrame(id)
+    }
+  }, [isNew])
 
   // Sync edit mode with parent
   React.useEffect(() => {
@@ -94,7 +104,7 @@ export function Tag({ category, name, value, studentTagId, onEdit, onDelete, onM
   }
 
   const tagComponent = (
-    <div className={`relative group inline-flex items-center transition-all duration-200 ${isDragging ? 'opacity-50' : ''}`}>
+    <div className={`relative group inline-flex items-center transition-all duration-300 ${isDragging ? 'opacity-50' : ''} ${entered ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-95'}`}>
       {/* Expandable tag container */}
       <div className={`flex items-center rounded-full ${bg} ${text} border ${border} border-opacity-0 group-hover:border-opacity-100 transition-all duration-200 overflow-hidden`}>
         {/* Menu button - appears on hover by expanding the container */}
