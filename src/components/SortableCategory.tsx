@@ -99,6 +99,7 @@ export function SortableCategory({
               name={tag.tagName}
               value={tag.tagValue}
               studentTagId={tag.studentTagId}
+              isNew={tag.studentTagId.startsWith('temp:')}
               onEdit={onTagEdit}
               onDelete={onTagDelete}
               onMenuClick={onTagMenuClick}

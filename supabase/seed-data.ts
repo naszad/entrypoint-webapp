@@ -5,6 +5,7 @@ import { Client } from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV || 'local'}` })
+const verbose = process.argv.includes('--verbose');
 
 async function seedData() {
   const client = new Client({
@@ -22,6 +23,9 @@ async function seedData() {
   for (const file of files) {
     const sql = fs.readFileSync(path.join(seedDir, file), 'utf-8');
     console.log(`Running ${file}...`);
+    if (verbose) {
+      console.log(`SQL for ${file}:\n${sql}`);
+    }
     await db.execute(sql);
   }
 

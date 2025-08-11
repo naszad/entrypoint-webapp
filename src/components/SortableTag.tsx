@@ -10,6 +10,7 @@ interface SortableTagProps {
   name: string
   value: string
   studentTagId: string
+  isNew?: boolean
   onEdit?: (studentTagId: string, value: string) => void
   onDelete?: (studentTagId: string) => void
   onMenuClick?: (studentTagId: string, rect: DOMRect) => void
@@ -50,6 +51,7 @@ export function SortableTag(props: SortableTagProps) {
         name={props.name}
         value={props.value}
         studentTagId={props.studentTagId}
+        isNew={props.isNew}
         onEdit={props.onEdit}
         onDelete={props.onDelete}
         onMenuClick={props.onMenuClick}

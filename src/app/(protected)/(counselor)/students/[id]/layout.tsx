@@ -61,6 +61,59 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
       fetchData();
     }, [params]);
     
+    // Listen for immediate tag refresh requests from child pages (e.g., meeting notes page)
+    useEffect(() => {
+      const handleTagsRefresh = async () => {
+        try {
+          const { id } = params;
+          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          if (tagsResponse.ok) {
+            const tagsData = await tagsResponse.json();
+            setStudentTags(tagsData);
+            // Trigger a subtle animation on the header tag area
+            // Mark new tags in local state to animate them on first render
+            // We do this by creating temporary ids that SortableCategory/Tag recognize
+            setStudentTags(prev => {
+              if (!prev) return tagsData;
+              const existingIds = new Set(prev.categories.flatMap(c => c.tags.map(t => t.studentTagId)));
+              const updated = { ...tagsData };
+              updated.categories = updated.categories.map((cat: { categoryId: string; categoryName: string; tags: Array<{ studentTagId: string; tagId: string; tagName: string; tagValue: string }> }) => ({
+                ...cat,
+                tags: cat.tags.map((t: { studentTagId: string; tagId: string; tagName: string; tagValue: string }) => ({
+                  ...t,
+                  studentTagId: existingIds.has(t.studentTagId) ? t.studentTagId : `temp:${t.studentTagId}`
+                }))
+              }));
+              // After a short delay, drop the temp markers by reloading again silently
+              setTimeout(async () => {
+                try {
+                  const resp = await fetch(`/api/students/${id}/tags`);
+                  if (resp.ok) {
+                    const fresh = await resp.json();
+                    setStudentTags(fresh);
+                  }
+                } catch {}
+              }, 400);
+              return updated;
+            });
+          }
+        } catch (err) {
+          console.warn('Tag refresh failed', err);
+        }
+      };
+
+      const directAddHandler = async () => {
+        await handleTagsRefresh();
+      };
+
+      window.addEventListener('student-tags:refresh', directAddHandler);
+      window.addEventListener('student-tags:added', directAddHandler);
+      return () => {
+        window.removeEventListener('student-tags:refresh', directAddHandler);
+        window.removeEventListener('student-tags:added', directAddHandler);
+      };
+    }, [params]);
+    
     const handleTagAdd = async (tag: { tagId?: string; tagName: string; tagCategoryId: string; value: string }) => {
       try {
         const { id } = params;
