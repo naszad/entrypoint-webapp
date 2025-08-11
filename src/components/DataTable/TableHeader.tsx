@@ -21,6 +21,7 @@ interface TableHeaderProps<TData> {
   filterDropdownRef: (el: HTMLDivElement | null) => void;
   filterInputRef?: (el: HTMLInputElement | HTMLSelectElement | null, key?: string) => void;
   filterConditionRef: (el: HTMLSelectElement | null) => void;
+  multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
 }
 
 export function TableHeader<TData>({
@@ -39,6 +40,7 @@ export function TableHeader<TData>({
   filterDropdownRef,
   filterInputRef,
   filterConditionRef,
+  multiSelectRemoteSource,
 }: TableHeaderProps<TData>) {
   const column = header.column;
   const meta = column.columnDef.meta as ColumnMeta;
@@ -103,6 +105,7 @@ export function TableHeader<TData>({
             isLastColumn={isLastColumn}
             filterInputRef={filterInputRef}
             filterConditionRef={filterConditionRef}
+            multiSelectRemoteSource={multiSelectRemoteSource}
           />
         </div>
       )}

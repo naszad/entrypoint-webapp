@@ -142,6 +142,15 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
       case 'lte':
         q = q.lte(targetColumn, filter.value);
         break;
+      case 'in':
+        // Handle multi-select values (pipe-separated) or single values
+        if (filter.value.includes('|')) {
+          const values = filter.value.split('|').filter(v => v.trim() !== '');
+          q = q.in(targetColumn, values);
+        } else {
+          q = q.eq(targetColumn, filter.value);
+        }
+        break;
       default:
         q = q.eq(targetColumn, filter.value);
     }

@@ -4,6 +4,8 @@ import { Input } from '../ui/input';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { getFilterConditionsByType } from '@/utils/filterConditions';
+import { } from 'react';
+import { MultiSelectFilter } from './MultiSelectFilter';
 
 interface FilterDropdownProps {
   columnId: string;
@@ -18,6 +20,7 @@ interface FilterDropdownProps {
   isLastColumn?: boolean;
   filterInputRef?: (el: HTMLInputElement | HTMLSelectElement | null, key?: string) => void;
   filterConditionRef?: (el: HTMLSelectElement | null) => void;
+  multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
 }
 
 export function FilterDropdown({
@@ -33,6 +36,7 @@ export function FilterDropdown({
   isLastColumn,
   filterInputRef,
   filterConditionRef,
+  multiSelectRemoteSource,
 }: FilterDropdownProps) {
   const getFilterConditionOptions = (filterType: string) => {
     return getFilterConditionsByType(filterType);
@@ -101,7 +105,7 @@ export function FilterDropdown({
           </div>
         )}
         <div className="text-xs font-medium text-gray-800 px-1">Filter by {headerText}</div>
-        {meta.filterType !== 'dropdown' && meta.filterType !== 'date' && (
+        {meta.filterType !== 'dropdown' && meta.filterType !== 'date' && meta.filterType !== 'multi-select' && (
           <div className="space-y-1">
             <div className="text-xs font-medium text-gray-500 px-1">Condition</div>
             <select
@@ -222,6 +226,14 @@ export function FilterDropdown({
               }}
             />
           </>
+        ) : meta.filterType === 'multi-select' ? (
+          <MultiSelectFilter
+            columnId={columnId}
+            headerText={headerText}
+            filterConditions={filterConditions}
+            setFilterConditions={setFilterConditions}
+            multiSelectRemoteSource={multiSelectRemoteSource}
+          />
         ) : (
           <>
             <div className="text-xs font-medium text-gray-500 px-1">Value</div>
@@ -253,6 +265,11 @@ export function FilterDropdown({
                 if (fromValue || toValue || (recentOnlyValue && parseInt(recentOnlyValue) > 0)) {
                   onApply(columnId);
                 }
+              } else if (meta.filterType === 'multi-select') {
+                const multiSelectValue = filterConditions[columnId];
+                if (multiSelectValue && multiSelectValue.trim() !== '') {
+                  onApply(columnId);
+                }
               } else {
                 onApply(columnId);
               }
@@ -265,4 +282,4 @@ export function FilterDropdown({
       </div>
     </div>
   );
-} 
+}

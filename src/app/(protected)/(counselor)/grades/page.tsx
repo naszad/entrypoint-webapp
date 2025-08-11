@@ -16,6 +16,7 @@ const GradesPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [studentGrades, setStudentGrades] = useState<StudentGradeInfo[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [gradeCodes, setGradeCodes] = useState<string[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const searchParams = useSearchParams();
   const { isChatAssistantOpen } = useChatAssistantOpen();
@@ -66,6 +67,7 @@ const GradesPage = () => {
 
       setStudentGrades(data.data);
       setTotalCount(data.count);
+      setGradeCodes(data.gradeCodes);
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
@@ -111,6 +113,11 @@ const GradesPage = () => {
     }
   };
 
+  const multiSelectRemoteSource = async (columnId: string) => {
+    if (columnId === 'gradeCode') return gradeCodes.map(code => ({ value: code, label: code }));
+    return [];
+  };
+
   // Clear alert message after 5 seconds
   useEffect(() => {
     if (alertMessage) {
@@ -146,6 +153,7 @@ const GradesPage = () => {
           className="w-full"
           defaultVisibility={initialVisibility}
           onParamsChange={handleParamsChange}
+          multiSelectRemoteSource={multiSelectRemoteSource}
           isLoading={isLoading}
           pageSize={currentPageSize}
         />

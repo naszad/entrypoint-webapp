@@ -85,6 +85,11 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
           return { ...acc, [key]: value };
         }
         
+        // Handle multi-select filters (condition = 'in')
+        if (condition === 'in') {
+          return { ...acc, [key]: value };
+        }
+        
         // Handle regular filters
         return { ...acc, [key]: condition };
       }, {});
@@ -147,6 +152,9 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
           
           // Update filter conditions for RecentOnly and date range filters
           if (key.endsWith('RecentOnly') || key.endsWith('From') || key.endsWith('To')) {
+            newFilterConditions[key] = value;
+          } else if (condition === 'in') {
+            // Multi-select: store actual values so UI can reflect selections
             newFilterConditions[key] = value;
           } else {
             newFilterConditions[key] = condition;
@@ -375,6 +383,23 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
         }
         
         return newFilters;
+      });
+    } else if (filterConditions[columnId] && filterConditions[columnId].trim() !== '' && !input) {
+      // Handle multi-select filter (contains pipe-separated values)
+      const multiSelectValue = filterConditions[columnId];
+      setFilterValues(prev => {
+        const existingFilterIndex = prev.findIndex(f => f.key === columnId);
+        const newFilter = {
+          key: columnId,
+          value: multiSelectValue,
+          condition: 'in',
+        };
+        if (existingFilterIndex >= 0) {
+          const newFilters = [...prev];
+          newFilters[existingFilterIndex] = newFilter;
+          return newFilters;
+        }
+        return [...prev, newFilter];
       });
     } else if (input && input.value) {
       const condition = conditionSelect?.value || 'eq';
