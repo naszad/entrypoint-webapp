@@ -15,14 +15,20 @@ export async function POST(req: Request) {
 You are a helpful AI assistant for school counselors. Your goal is to answer questions by querying the school's database or by helping the user navigate the application.
 When the user asks about their "current year" (e.g., "current year GPA"), you must interpret this as the school year with is_current = true in the database and pass that year label to the get_student_gpa tool via the yearLabels parameter.
 
-If at any point it seems like the user hasn't provided enough information to answer their question, make use of the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need. For example, if the user asks about a student's GPA, but only provides their first name, you can use the database tools to narrow down what student they are referring to, retrieve their full name, and call the \`get_student_gpa\` tool.
+When a user asks a question about a specific student, you MUST follow this sequence:
+1.  Use the 'identify_student' tool with the name provided by the user.
+2.  Analyze the result from 'identify_student':
+    a. If it returns a single 'studentId', you have successfully identified the student. You can now use this 'studentId' in other tools like 'get_student_gpa'.
+    b. If it returns a list of 'potentialMatches', the name is ambiguous. You MUST present this list to the user and ask them to clarify which student they mean. Do not proceed with other tools.
+    c. If it returns a 'noMatchFound' message, inform the user that you could not find the student and ask them to provide a more specific name or check the spelling. Do not proceed with other tools.
 
-If the user asks about a student and provides a name which does not appear in the database, use the database tools to identify if the user provided a nickname or shortened name of a student that is in the database. All students referenced in your response should be referred to by their full name in order to avoid confusion. Additionally, when you respond with the student's full name, you should make their name a markdown link to the student's page in the application using the format: [student's full name](/students/<studentId from database>)
+All students referenced in your response should be referred to by their full name. When you respond with the student's full name, you should make their name a markdown link to the student's page in the application using the format: [student's full name](/students/<studentId>).
 
 When a user asks a question, first determine their intent:
-1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool **if** their query can be answered using the filters available in the filter_students tool (including GPA filtering). If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
-2.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. Use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
-3.  Are they asking for a **student's individual GPA or a filtered slice of their GPA** (e.g., cumulative or by subject)? If so, use the \`get_student_gpa\` tool with parameters \`studentName\`, \`method\`, \`gradeCodes\`, \`gradeLevels\`, \`creditTypes\`, and \`termIds\`.
+
+1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool **if** their query can be answered using the filters available in the filter_students tool. If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
+2.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. First use 'identify_student' if a name is mentioned, then use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
+3.  Are they asking for a **student's GPA or a filtered slice of their GPA**? If so, you MUST first use the \`identify_student\` tool to get an unambiguous studentId. Once you have the studentId, use the \`get_student_gpa\` tool.
 4.  Are they asking to **filter students by GPA** (e.g., "show me students with GPA below 2.0", "students with GPA above 3.5")? Use the \`filter_students\` tool with the \`gpaFilter\` parameter.
 
 Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
@@ -111,15 +117,17 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
                 // Assumes backend can handle year part for date contains
                 filters.push(`dateOfBirth:contains:${birthYear}`);
                 break;
-              case 'gte': // age >= X  means birth year <= Y
+              case 'gte': 
+                // age >= X  means birth year <= Y
                 filters.push(`dateOfBirth:lte:${birthYear}-12-31`);
                 break;
-              case 'lte': // age <= X means birth year >= Y
+              case 'lte':
+                // age <= X means birth year >= Y
                 filters.push(`dateOfBirth:gte:${birthYear}-01-01`);
                 break;
             }
           }
-    
+
           // Construct the URL
           let url = baseUrl;
           if (filters.length > 0) {
@@ -128,6 +136,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           }
     
           // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.
+
           return {
             url,
             filtersApplied: parsedFilters,
@@ -186,6 +195,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           const cookieStore = cookies()
           const selectedSchoolId = (await cookieStore).get('selectedSchoolId')?.value
 
+
           const supabase = await createClient()
           const { data, error } = await supabase.rpc('execute_safe_select', { 
             query_text: sql,
@@ -201,10 +211,61 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           return data;
         },
       }),
-      get_student_gpa: tool({
-        description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by school year labels (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to finalized grades (${FINALIZED_GRADE_CODES.join(', ')}) for data from past years, but uses current year grades by grade code (${CURRENT_YEAR_GRADE_CODES.join(', ')}) when filtering by current year.`,
+      // identify_student tool
+      identify_student: tool({
+        description: `Identifies a student by name to get their unique studentId. This is the first step for any query about a specific student. The search is automatically filtered to students the counselor has access to. It handles three cases:
+1. Exact match: Returns the student's ID and full name.
+2. Multiple matches: Returns a list of potential students for the user to choose from.
+3. No matches: Returns a message indicating the student was not found.`,
         parameters: z.object({
-          studentName: z.string().describe('Full name or part of the student\'s name'),
+          studentName: z.string().describe("The student's full name or partial name to search for."),
+        }),
+        execute: async ({ studentName }) => {
+          console.log(`Executing identify_student for: "${studentName}" (RLS will filter by school)`);
+          const supabase = await createClient();
+
+          //query for students
+          const { data: students, error } = await supabase
+            .from('students')
+            .select('student_id, full_name, grade_level')
+            .ilike('full_name', `%${studentName}%`);
+
+          if (error) {
+            console.error('Error identifying student:', error);
+            return { noMatchFound: `An error occurred: ${error.message}` };
+          }
+
+          if (!students || students.length === 0) {
+            console.log(`No match found for "${studentName}"`);
+            return { noMatchFound: `Could not find a student named "${studentName}". Please check the spelling or provide a more complete name.` };
+          }
+
+          if (students.length === 1) {
+            const student = students[0];
+            console.log(`Exact match found for "${studentName}": ${student.full_name} (${student.student_id})`);
+            return {
+              studentId: student.student_id,
+              fullName: student.full_name,
+            };
+          }
+
+          // Multiple matches found
+          console.log(`Ambiguous match for "${studentName}". Found ${students.length} potential matches.`);
+          return {
+            potentialMatches: students.map(s => ({
+              studentId: s.student_id,
+              fullName: s.full_name,
+              gradeLevel: s.grade_level,
+            })),
+          };
+        },
+      }),
+      get_student_gpa: tool({
+        description: `Retrieves a student's GPA after they have been unambiguously identified.
+This tool requires a 'studentId'. You MUST call 'identify_student' first to get the studentId.
+It can be filtered by various parameters like credit types (subjects) or school years.`,
+        parameters: z.object({
+          studentId: z.string().describe("The student's unique ID, obtained from the 'identify_student' tool."),
           method: z.string().optional().describe('GPA calculation method: simple, added_value, credit_hour_weighted'),
           gradeCodes: z.array(z.string()).optional().describe(`Filter by grade codes (${ALL_GRADE_CODES.join(', ')});`),
           creditTypes: z.array(z.string()).optional().describe('Filter by course subject(s), matching the credit_type in grade records (e.g., ["English", "Math"])'),
@@ -212,21 +273,15 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           gradeLevels: z.array(z.number()).optional().describe('Filter by grade levels (e.g., ["9", "10", "11", "12"])'),
         }),
         execute: async (parsed) => {
-          console.log(`Executing get_student_gpa tool with parsed params: studentName="${parsed.studentName}", method="${parsed.method ?? 'simple'}", gradeCodes=${JSON.stringify(parsed.gradeCodes)}, creditTypes=${JSON.stringify(parsed.creditTypes)}, yearLabels=${JSON.stringify(parsed.yearLabels)}, gradeLevels=${JSON.stringify(parsed.gradeLevels)}`);
+          console.log(`Executing get_student_gpa tool with parsed params: studentId="${parsed.studentId}", method="${parsed.method ?? 'simple'}", gradeCodes=${JSON.stringify(parsed.gradeCodes)}, creditTypes=${JSON.stringify(parsed.creditTypes)}, yearLabels=${JSON.stringify(parsed.yearLabels)}, gradeLevels=${JSON.stringify(parsed.gradeLevels)}`);
           const supabase = await createClient();
-          const { data: student, error: studentError } = await supabase
-            .from('students')
-            .select('student_id')
-            .ilike('full_name', `%${parsed.studentName}%`)
-            .single();
-          if (studentError || !student) {
-            throw new Error('Student not found: ' + parsed.studentName);
-          }
-          const studentId = student.student_id;
+
+          const studentId = parsed.studentId;
           
           // ---------------------------------------------------------------------------------
           // Step 1: Fetch the label of the current school year (e.g. "2024-2025")
           // ---------------------------------------------------------------------------------
+
           const { data: currentYearData } = await supabase
             .from('years')
             .select('name')
@@ -242,6 +297,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           //     the filter explicitly references the current school year OR the
           //     special placeholder "current" / "current_year" is supplied.
           // ---------------------------------------------------------------------------------
+          
           let yearLabelsFilter: string[] | null = parsed.yearLabels ? [...parsed.yearLabels] : null;
           const gradeLevelsFilter: number[] | null = parsed.gradeLevels ?? null;
           let defaultGradeCodes: readonly string[] = FINALIZED_GRADE_CODES;
