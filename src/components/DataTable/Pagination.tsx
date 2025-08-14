@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -14,30 +14,10 @@ interface PaginationProps {
 
 const Pagination = ({ total, currentPage = 1, onPageChange, onPageSizeChange, pageSize: propPageSize }: PaginationProps) => {
 
-  const [pageSize, setPageSize] = useState(() => {
-    if (typeof window !== 'undefined') {
-      if (propPageSize && !isNaN(propPageSize) && propPageSize > 0) return propPageSize;
-      const savedPageSize = localStorage.getItem('pagination-pageSize');
-      if (savedPageSize) {
-        const parsed = parseInt(savedPageSize, 10);
-        return parsed;
-      } else {
-        localStorage.setItem('pagination-pageSize', '50');
-        return 50;
-      }
-    }
-    return propPageSize || 50;
-  });
-  
-  const [pageNumber, setPageNumber] = useState(currentPage);
-  const [isInitialMount, setIsInitialMount] = useState(true);
+  const pageSize = propPageSize || 50;
+  const pageNumber = currentPage;
   
   const totalPages = Math.ceil(total / pageSize);
-  
-  // Sync pageNumber with currentPage prop
-  useEffect(() => {
-    setPageNumber(currentPage);
-  }, [currentPage]);
   
   // Update localStorage when pageSize changes
   useEffect(() => {
@@ -45,19 +25,6 @@ const Pagination = ({ total, currentPage = 1, onPageChange, onPageSizeChange, pa
       localStorage.setItem('pagination-pageSize', pageSize.toString());
     }
   }, [pageSize]);
-  
-  // Mark initial mount as complete
-  useEffect(() => {
-    setIsInitialMount(false);
-  }, []);
-  
-  // Reset to page 1 when pageSize changes and notify parent (but not on initial mount)
-  useEffect(() => {
-    if (!isInitialMount) {
-      setPageNumber(1);
-      onPageChange?.(1);
-    }
-  }, [pageSize, isInitialMount, onPageChange]);
   
   // Calculate which page numbers to show (up to 5)
   const getVisiblePages = () => {
@@ -82,14 +49,11 @@ const Pagination = ({ total, currentPage = 1, onPageChange, onPageSizeChange, pa
   const visiblePages = getVisiblePages();
   
   const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize);
-    setPageNumber(1);
     onPageSizeChange?.(newSize);
   };
   
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      setPageNumber(newPage);
       onPageChange?.(newPage);
     }
   };

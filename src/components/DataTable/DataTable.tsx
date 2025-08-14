@@ -52,6 +52,7 @@ export interface DataTableProps<TData, TValue> {
   onPageSizeChange?: (pageSize: number) => void;
   pageSize?: number;
   multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
+  mostRecentOnly?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -70,6 +71,7 @@ export function DataTable<TData, TValue>({
   onPageSizeChange,
   pageSize,
   multiSelectRemoteSource,
+  mostRecentOnly = false,
 }: DataTableProps<TData, TValue>) {
   const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -101,6 +103,7 @@ export function DataTable<TData, TValue>({
   } = useTableParams({
     onParamsChange,
     enablePagination,
+    mostRecentOnly,
   });
 
   const table = useReactTable({
