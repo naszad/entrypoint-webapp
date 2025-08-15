@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Mic, CircleStop, Mail, FileText } from 'lucide-react'
-import { generateMeetingNotesAction } from '@/app/actions/meetingNotes';
+import { generateMeetingNotesAction, addMeetingNotes } from '@/app/actions/meetingNotes';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { MeetingNoteInfo } from '@/types/MeetingNoteInfo';
 import { SuggestedTags, SuggestedTag } from '@/components/SuggestedTags';
+import { AddMeetingNotesDialog, MeetingNoteData } from '@/components/AddMeetingNotesDialog';
 
 const StudentMeetingNotesPage = () => {
   const [recentMeetings, setRecentMeetings] = useState<MeetingNoteInfo[]>([]);
@@ -118,6 +119,41 @@ const StudentMeetingNotesPage = () => {
     setIsTranscribing(false);
   };
 
+  const handleAddNote = async (noteData: { date: Date; notes: string; isPrivate: boolean }) => {
+    setIsGenerating(true);
+    try {
+      const data = await addMeetingNotes(
+        user?.userId || '', 
+        studentId || '', 
+        noteData.notes, 
+        noteData.date.toISOString(),
+        noteData.isPrivate
+      );
+      setTranscriptionInfo({
+        meetingNoteId: data.meetingNoteId,
+        summary: data.summary,
+        notes: data.notes,
+        transcript: undefined,
+        studentEmail: data.studentEmail,
+        suggestedTags: data.suggestedTags
+      });
+      setShowSummary(true);
+      
+      // Refresh recent meetings to include the new note
+      const response = await fetch(`/api/students/${studentId}/meeting-notes`);
+      if (response.ok) {
+        const updatedMeetings = await response.json();
+        setRecentMeetings(updatedMeetings);
+      }
+    } catch (error) {
+      console.error('Error adding meeting note:', error);
+      setTranscriptionInfo({error: 'Error saving meeting note. Please try again.'});
+      setShowSummary(true);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div>
       {/* Transcription Section */}
@@ -156,21 +192,22 @@ const StudentMeetingNotesPage = () => {
           <div className="text-sm text-gray-500">
             {isTranscribing ? 'Recording audio... Click stop when finished.' : 'Click to start recording audio for transcription.'}
           </div>
-          {/* <div className="relative">
+          <div className="relative">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center">
               <span className="px-2 bg-white text-sm text-gray-500">or</span>
             </div>
-          </div> */}
-          {/* <button
-            type="button"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
-          >
-            <DocumentTextIcon className="w-5 h-5" />
-            Enter Note Manually
-          </button> */}
+          </div>
+          <AddMeetingNotesDialog 
+            onSave={(noteData: MeetingNoteData) => handleAddNote({
+              date: new Date(noteData.date),
+              notes: noteData.notes,
+              isPrivate: noteData.isPrivate
+            })}
+            isLoading={isGenerating || isTranscribing}
+          />
         </div>
         {isGenerating && (
             <div className="mt-8">
