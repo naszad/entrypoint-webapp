@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { MeetingNoteInfo } from '@/types/MeetingNoteInfo';
 import { SuggestedTags, SuggestedTag } from '@/components/SuggestedTags';
-import { AddMeetingNotesDialog } from '@/components/AddMeetingNotesDialog';
+import { AddMeetingNotesDialog, MeetingNoteData } from '@/components/AddMeetingNotesDialog';
 
 const StudentMeetingNotesPage = () => {
   const [recentMeetings, setRecentMeetings] = useState<MeetingNoteInfo[]>([]);
@@ -201,8 +201,7 @@ const StudentMeetingNotesPage = () => {
             </div>
           </div>
           <AddMeetingNotesDialog 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onSave={(noteData: any) => handleAddNote({
+            onSave={(noteData: MeetingNoteData) => handleAddNote({
               date: new Date(noteData.date),
               notes: noteData.notes,
               isPrivate: noteData.isPrivate

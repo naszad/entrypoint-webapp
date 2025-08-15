@@ -12,12 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 
+export interface MeetingNoteData {
+  date: string;
+  notes: string;
+  isPrivate: boolean;
+}
+
 interface AddMeetingNotesProps {
-  onSave: (noteData: {
-    date: string;
-    notes: string;
-    isPrivate: boolean;
-  }) => void;
+  onSave: (noteData: MeetingNoteData) => void;
   isLoading?: boolean;
 }
 
