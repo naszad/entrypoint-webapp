@@ -28,7 +28,6 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import styles from '@/styles/TagScrollbar.module.css';
 import { getTagColors } from '@/utils/tagColors';
 
 interface StudentProfileHeaderProps {
@@ -263,46 +262,61 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
   }, [activeId, activeType, localCategories]);
 
   return (
-    <Card className="flex items-center justify-between p-6 mb-6">
-      <div className="flex items-center gap-4">
-        {photoUrl ? (
-          <Image
+    <Card className="p-6 mb-6">
+      {/* First Row: Profile Photo, Student Info, and Email Button */}
+      <div id="student-info" className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          {photoUrl ? (
+            <Image
             src={photoUrl}
             alt={fullName}
-            className="w-16 h-16 rounded-full object-cover"
+            className="w-24 h-24 rounded-full object-cover flex-shrink-0"
             width={64}
             height={64}
-          />
-        ) : (
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-white text-2xl ${stringToColor(fullName)}`}>
-            {getUserInitials(firstName, lastName)}
+            />
+          ) : (
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center font-bold text-white text-4xl flex-shrink-0 ${stringToColor(fullName)}`}>
+              {getUserInitials(firstName, lastName)}
+            </div>
+          )}
+          <div>
+            <div className="text-2xl font-bold">{fullName}</div>
+            <div className="text-gray-600 font-medium">
+              Grade {gradeLevel} • Class of {graduationYear}
+              {studentId ? ` • ID: ${studentId}` : ''}
+            </div>
           </div>
-        )}
-        <div className="flex flex-col gap-2">
-          <div className="text-2xl font-bold">{fullName}</div>
-          <div className="text-gray-600 font-medium">
-            Grade {gradeLevel} • Class of {graduationYear}
-            {studentId ? ` • ID: ${studentId}` : ''}
-          </div>
-          {/* Tags Section with Drag and Drop */}
-          <div id="student-header-tags" className="max-w-full relative">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
+        </div>
+        <a
+          href={`mailto:${email}`}
+          className="flex items-center px-4 py-2 gap-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex-shrink-0"
+        >
+          <Mail size={20} />
+          Email
+        </a>
+      </div>
+
+      {/* Second Row: Tags Section */}
+      <div id="student-tags" className="w-full">
+        {/* Tags Section with Drag and Drop */}
+        <div className="relative w-full">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
+          >
+            <SortableContext
+              items={sortableCategoryItems}
+              strategy={horizontalListSortingStrategy}
             >
-              <SortableContext
-                items={sortableCategoryItems}
-                strategy={horizontalListSortingStrategy}
-              >
-                {/* Horizontal scroll container */}
-                <div className={`overflow-x-auto overflow-y-visible max-w-full pb-1 ${styles.scrollContainer}`}>
-                  <div className="flex items-start gap-6 py-1 min-w-max">
-                    {localCategories?.map((category) => (
+              {/* Tags container with wrapping */}
+              <div className="w-full">
+                <div className="flex items-start gap-6 py-1 flex-wrap">
+                  {localCategories?.map((category, index) => (
+                    <div key={category.categoryId} className="flex items-start gap-6">
                       <SortableCategory
-                        key={category.categoryId}
                         id={category.categoryId}
                         categoryId={category.categoryId}
                         categoryName={category.categoryName}
@@ -314,149 +328,168 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
                         editingTagId={editingTagId}
                         onEditModeChange={setEditingTagId}
                       />
-                    ))}
-                    
-                    {/* Add tag button */}
-                    {(allTagCategories && allTags && onTagAdd) && (
-                      <div className={`relative flex-shrink-0 ${hasAnyTags ? 'mt-5' : ''}`}>
-                        {hasAnyTags ? (
-                          // Compact button when tags exist
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsAddTagPanelOpen(true);
-                            }}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                            aria-label="Add new tag"
-                          >
-                            <PlusCircle className="h-6 w-6" />
-                          </button>
-                        ) : (
-                          // Expanded button with text and tooltip when no tags
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsAddTagPanelOpen(true);
-                                  }}
-                                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"
-                                  aria-label="Add new tag"
-                                >
-                                  <PlusCircle className="h-5 w-5" />
-                                  <span className="text-sm font-medium">Add Tag</span>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Use tags to capture key information about a student</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                      
+                      {/* Add tag button - attached to the last category */}
+                      {index === localCategories.length - 1 && (allTagCategories && allTags && onTagAdd) && (
+                        <div className={`relative flex-shrink-0 ${hasAnyTags ? 'mt-5' : ''}`}>
+                          {hasAnyTags ? (
+                            // Compact button when tags exist
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsAddTagPanelOpen(true);
+                              }}
+                              className="text-gray-400 hover:text-gray-600 transition-colors"
+                              aria-label="Add new tag"
+                            >
+                              <PlusCircle className="h-6 w-6" />
+                            </button>
+                          ) : (
+                            // Expanded button with text and tooltip when no tags
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsAddTagPanelOpen(true);
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"
+                                    aria-label="Add new tag"
+                                  >
+                                    <PlusCircle className="h-5 w-5" />
+                                    <span className="text-sm font-medium">Add Tag</span>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Use tags to capture key information about a student</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Fallback Add tag button when no categories exist */}
+                  {(!localCategories || localCategories.length === 0) && (allTagCategories && allTags && onTagAdd) && (
+                    <div className="relative flex-shrink-0">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsAddTagPanelOpen(true);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"
+                              aria-label="Add new tag"
+                            >
+                              <PlusCircle className="h-5 w-5" />
+                              <span className="text-sm font-medium">Add Tag</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Use tags to capture key information about a student</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  )}
                 </div>
-              </SortableContext>
+              </div>
+            </SortableContext>
 
-              {/* Drag overlay for smooth dragging */}
-              <DragOverlay>
-                {activeItem && activeType === 'category' ? (
-                  <div className="opacity-80">
-                    <div className="flex flex-col gap-1">
-                      <span className={`text-xs font-semibold ${getTagColors((activeItem as CategoryTagInfo).categoryName).text} uppercase tracking-wider`}>
-                        {(activeItem as CategoryTagInfo).categoryName}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {(activeItem as CategoryTagInfo).tags.map((tag) => (
-                          <Tag
-                            key={tag.studentTagId}
-                            category={(activeItem as CategoryTagInfo).categoryName}
-                            name={tag.tagName}
-                            value={tag.tagValue}
-                            studentTagId={tag.studentTagId}
-                          />
-                        ))}
-                      </div>
+            {/* Drag overlay for smooth dragging */}
+            <DragOverlay>
+              {activeItem && activeType === 'category' ? (
+                <div className="opacity-80">
+                  <div className="flex flex-col gap-1">
+                    <span className={`text-xs font-semibold ${getTagColors((activeItem as CategoryTagInfo).categoryName).text} uppercase tracking-wider`}>
+                      {(activeItem as CategoryTagInfo).categoryName}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {(activeItem as CategoryTagInfo).tags.map((tag) => (
+                        <Tag
+                          key={tag.studentTagId}
+                          category={(activeItem as CategoryTagInfo).categoryName}
+                          name={tag.tagName}
+                          value={tag.tagValue}
+                          studentTagId={tag.studentTagId}
+                        />
+                      ))}
                     </div>
                   </div>
-                ) : activeItem && activeType === 'tag' ? (
-                  <div className="opacity-80">
-                    <Tag
-                      category={'categoryName' in activeItem ? activeItem.categoryName : ''}
-                      name={'tagName' in activeItem ? activeItem.tagName : ''}
-                      value={'tagValue' in activeItem ? activeItem.tagValue : ''}
-                      studentTagId={'studentTagId' in activeItem ? activeItem.studentTagId : ''}
-                    />
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-            
-            {/* Add Tag Panel - positioned outside scroll container */}
-            {isAddTagPanelOpen && allTagCategories && allTags && (
-              <AddTagPanel
-                categories={allTagCategories}
-                allTags={allTags}
-                onClose={() => setIsAddTagPanelOpen(false)}
-                onSave={handleSaveTag}
-              />
-            )}
-            
-            {/* Tag Menu - positioned outside scroll container */}
-            {tagMenuState.studentTagId && tagMenuState.position && (
-              <div
-                className="fixed z-50 w-28 bg-white rounded-md shadow-lg border border-gray-200 text-gray-700"
-                style={{
-                  top: `${tagMenuState.position.top}px`,
-                  left: `${tagMenuState.position.left}px`,
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ul className="py-1">
-                  {onTagEdit && (
-                    <li>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Set the tag to edit mode
-                          setEditingTagId(tagMenuState.studentTagId);
-                          // Close the menu
-                          setTagMenuState({ studentTagId: null, position: null });
-                        }}
-                        className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100"
-                      >
-                        Edit
-                      </button>
-                    </li>
-                  )}
-                  {onTagDelete && (
-                    <li>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTagMenuDelete();
-                        }}
-                        className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
-                      >
-                        Delete
-                      </button>
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
+                </div>
+              ) : activeItem && activeType === 'tag' ? (
+                <div className="opacity-80">
+                  <Tag
+                    category={'categoryName' in activeItem ? activeItem.categoryName : ''}
+                    name={'tagName' in activeItem ? activeItem.tagName : ''}
+                    value={'tagValue' in activeItem ? activeItem.tagValue : ''}
+                    studentTagId={'studentTagId' in activeItem ? activeItem.studentTagId : ''}
+                  />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+          
+          {/* Add Tag Panel - positioned outside scroll container */}
+          {isAddTagPanelOpen && allTagCategories && allTags && (
+            <AddTagPanel
+              categories={allTagCategories}
+              allTags={allTags}
+              onClose={() => setIsAddTagPanelOpen(false)}
+              onSave={handleSaveTag}
+            />
+          )}
+          
+          {/* Tag Menu - positioned outside scroll container */}
+          {tagMenuState.studentTagId && tagMenuState.position && (
+            <div
+              className="fixed z-50 w-28 bg-white rounded-md shadow-lg border border-gray-200 text-gray-700"
+              style={{
+                top: `${tagMenuState.position.top}px`,
+                left: `${tagMenuState.position.left}px`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ul className="py-1">
+                {onTagEdit && (
+                  <li>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Set the tag to edit mode
+                        setEditingTagId(tagMenuState.studentTagId);
+                        // Close the menu
+                        setTagMenuState({ studentTagId: null, position: null });
+                      }}
+                      className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      Edit
+                    </button>
+                  </li>
+                )}
+                {onTagDelete && (
+                  <li>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTagMenuDelete();
+                      }}
+                      className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
-      <a
-        href={`mailto:${email}`}
-        className="flex items-center px-4 py-2 z-50 gap-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-      >
-        <Mail size={20} />
-        Email
-      </a>
     </Card>
   );
 };
