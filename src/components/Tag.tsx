@@ -14,13 +14,14 @@ interface TagProps {
   onEdit?: (studentTagId: string, value: string) => void
   onDelete?: (studentTagId: string) => void
   onMenuClick?: (studentTagId: string, rect: DOMRect) => void
+  isMenuOpen?: boolean
   isEditMode?: boolean
   onEditModeChange?: (isEditing: boolean) => void
   dragHandleProps?: React.HTMLAttributes<HTMLElement> // Props for drag handle area
   isDragging?: boolean
 }
 
-export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDelete, onMenuClick, isEditMode, onEditModeChange, dragHandleProps, isDragging }: TagProps) {
+export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDelete, onMenuClick, isMenuOpen, isEditMode, onEditModeChange, dragHandleProps, isDragging }: TagProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
   const { bg, text, border } = getTagColors(category)
@@ -114,7 +115,7 @@ export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDele
           >
             <button
               onClick={handleMenuButtonClick}
-              className={`p-1 rounded-full hover:bg-black/10 ${text}`}
+              className={`p-0.5 rounded-full hover:bg-black/10 ${text} opacity-0 group-hover:opacity-100 transition-all duration-200 delay-75 ${isMenuOpen ? 'opacity-100' : ''}`}
               aria-label="Tag options"
             >
               <MoreVertical className="h-4 w-4" />
