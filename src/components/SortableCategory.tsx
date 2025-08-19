@@ -70,23 +70,23 @@ export function SortableCategory({
     <div
       ref={setNodeRef}
       style={style}
-      className={`inline-flex flex-col gap-1 ${isDragging ? 'opacity-50' : ''}`}
+      className={`inline-flex flex-col gap-1 items-start ${isDragging ? 'opacity-50' : ''}`}
     >
       {/* Category Label - Draggable */}
       <div 
-        className="flex items-center gap-1 group"
+        className="flex items-center group relative"
         {...attributes}
         {...listeners}
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
-        <GripHorizontal className={`h-3 w-3 ${text} opacity-0 group-hover:opacity-60 transition-opacity`} />
+        <GripHorizontal className={`h-3 w-3 ${text} opacity-0 transition-opacity absolute`} />
         <span className={`text-xs font-semibold ${text} uppercase tracking-wider select-none`}>
           {categoryName}
         </span>
       </div>
       
       {/* Tags within this category */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <SortableContext
           items={sortableTagItems}
           strategy={horizontalListSortingStrategy}
