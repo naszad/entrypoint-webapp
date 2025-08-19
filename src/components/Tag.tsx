@@ -24,7 +24,8 @@ interface TagProps {
 export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDelete, onMenuClick, isMenuOpen, isEditMode, onEditModeChange, dragHandleProps, isDragging }: TagProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
-  const { bg, text, border } = getTagColors(category)
+  const [isHovered, setIsHovered] = useState(false)
+  const { bg, text, border, borderHex } = getTagColors(category)
 
   // Smooth entrance animation for newly added tags
   const [entered, setEntered] = useState(!isNew)
@@ -104,14 +105,19 @@ export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDele
   }
 
   const tagComponent = (
-    <div className={`mr-1 relative group inline-flex items-center transition-all duration-300 ${isDragging ? 'opacity-50' : ''} ${entered ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-95'}`}>
+    <div 
+      className={`mr-1 relative group inline-flex items-center transition-all duration-300 ${isDragging ? 'opacity-50' : ''} ${entered ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-95'}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Absolutely positioned menu button */}
       {(onEdit || onDelete) && (
         <div
           className={`absolute inset-y-0 left-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-100 z-10 transform -translate-x-[50%]`}
         >
           <div
-            className={`relative flex items-center h-full rounded-l-full ${bg} border-y border-l ${border} border-opacity-0 group-hover:border-opacity-100 transition-all`}
+            className={`relative flex items-center h-full rounded-l-full ${bg} border-y border-l border-transparent transition-all`}
+            style={{ borderColor: isHovered ? borderHex : 'transparent' }}
           >
             <button
               onClick={handleMenuButtonClick}
@@ -126,9 +132,12 @@ export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDele
 
       {/* The visible tag, which does not change size */}
       <span
-        className={`${bg} ${text} px-3 py-1 rounded-full text-sm font-medium border-y border-r ${border} border-opacity-0 group-hover:rounded-l-none group-hover:border-opacity-100 transition-all`}
+        className={`${bg} ${text} px-3 py-1 rounded-full text-sm font-medium border border-transparent group-hover:rounded-l-none transition-all`}
         {...dragHandleProps}
-        style={{ cursor: dragHandleProps ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+        style={{ 
+          cursor: dragHandleProps ? (isDragging ? 'grabbing' : 'grab') : 'default',
+          borderColor: isHovered ? borderHex : 'transparent',
+        }}
       >
         {value}
       </span>
