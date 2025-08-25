@@ -11,7 +11,12 @@ const HomePage = () => {
     if (user === null) {
       router.push('/login');
     } else if (user) {
-      router.push('/students');
+      // Check if user needs to agree to EULA first
+      if (!user.eulaAgreeTimestamp) {
+        router.push('/eula');
+      } else {
+        router.push('/students');
+      }
     }
   }, [user, router]);
 

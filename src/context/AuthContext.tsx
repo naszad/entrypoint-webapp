@@ -42,9 +42,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const user = await getUserByAuthId(id);
 
         if (user) {
+          // Check if user needs to agree to EULA first
+          if (!user.eulaAgreeTimestamp) {
+            setLoading(false);
+            router.push('/eula');
+            return;
+          }
           setUser({ ...user, role: "Counselor" });
+          
           if (user.isMultiSchoolUser) {
             setCookie('isMultiSchoolUser', user.isMultiSchoolUser.toString())
+            // Don't redirect here - let middleware handle it
           } else {
             setCookie('selectedSchoolId', user.schools?.[0]?.schoolId || '')
             sessionStorage.setItem('selectedSchool', user.schools?.[0] ? JSON.stringify(user.schools?.[0]) : '' )
@@ -84,7 +92,13 @@ const login = async (email: string, password: string) => {
       const { user } = data;
       const userDetails = await getUserByAuthId(user.id);
       if (userDetails) {
+         // If user hasn't agreed to EULA, send them to EULA screen first
+        if (!userDetails.eulaAgreeTimestamp) {
+          router.push('/eula');
+          return;
+        }
         setUser({ ...userDetails, role: "Counselor" });
+
         if (userDetails.isMultiSchoolUser) {
           setCookie('isMultiSchoolUser', userDetails.isMultiSchoolUser.toString())
           router.push('/select-school')

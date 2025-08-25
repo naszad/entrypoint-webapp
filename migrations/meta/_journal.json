@@ -260,6 +260,27 @@
       "when": 1755078297001,
       "tag": "0045_latest_student_grades",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1755614618741,
+      "tag": "0046_public_configuration",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1755942490174,
+      "tag": "0047_fetch_public_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1755942545628,
+      "tag": "0048_youthful_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

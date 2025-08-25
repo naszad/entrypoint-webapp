@@ -40,13 +40,17 @@ export async function updateSession(request: NextRequest) {
   const selectedSchool = request.cookies.get('selectedSchoolId')?.value;
   const isMultiSchoolUser = request.cookies.get('isMultiSchoolUser')?.value === 'true';
 
-  if (user && isMultiSchoolUser && !selectedSchool && request.nextUrl.pathname !== '/select-school') {
+  // Handle multi-school user redirection (but not if they're on EULA page)
+  if (user && isMultiSchoolUser && !selectedSchool && 
+      request.nextUrl.pathname !== '/select-school' && 
+      request.nextUrl.pathname !== '/eula') {
     const url = request.nextUrl.clone()
     url.pathname = '/select-school'
     return NextResponse.redirect(url)
   }
 
   // Redirect authenticated users away from the login page
+  // Note: EULA check is handled in AuthContext which will redirect to /eula if needed
   if (user && request.nextUrl.pathname === '/login') {    
     const url = request.nextUrl.clone()
     url.pathname = '/students'

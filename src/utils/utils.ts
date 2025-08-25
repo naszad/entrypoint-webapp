@@ -5,6 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Validate UUID v4-like string
+export function isValidUuid(value?: string): boolean {
+  if (!value) return false;
+  const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  return uuidRegex.test(value);
+}
+
 // Deterministic color from string (for profile fallback)
 export function stringToColor(str: string): string {
   // Tailwind-friendly color palette (can be extended)

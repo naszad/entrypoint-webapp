@@ -7,7 +7,7 @@ import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInf
 import { useParams } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ALL_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
+import { CURRENT_YEAR_GRADE_CODES, FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
 import React from 'react';
 
 // Types for the new bulk GPA API response
@@ -17,8 +17,6 @@ interface BulkGpaResponse {
   byYearAndGradeCode: Record<string, Record<string, number>>;
   byCreditType: Record<string, number>;
 }
-
-
 
 const getGradeCodesStorageKey = (studentId: string) => {
   return `currentYearGradeCodes-${studentId}`;
@@ -30,6 +28,7 @@ const StudentGradesPage = () => {
   const [allCreditTypes, setAllCreditTypes] = useState<CreditType[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const [currentCodes, setCurrentCodes] = useState<string[]>([]);
+  const [allCodes, setAllCodes] = useState<string[]>([]);
   const [gpaData, setGpaData] = useState<BulkGpaResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -97,6 +96,23 @@ const StudentGradesPage = () => {
     }
   }, [params.id]);
 
+  const fetchAllGradeCodes = useCallback(async () => {
+    if (!params.id) return;
+    try {
+      const schoolId = JSON.parse(sessionStorage.getItem('selectedSchool') || '{}').schoolId;
+      const response = await fetch(`/api/config?configKey=grade_code_sort&schoolId=${schoolId}`);
+      const data = await response.json();
+
+      if (data && Array.isArray(data.value)) {
+        setAllCodes(data.value);
+      } 
+      return;
+      
+    } catch (err) {
+      console.error('Failed to fetch grade codes:', err);
+    }
+  }, [params.id]);
+
   // Load student grades and GPA data on mount
   useEffect(() => {
     fetchStudentCurrentGrades();
@@ -127,8 +143,9 @@ const StudentGradesPage = () => {
   useEffect(() => {
     if (studentTermGradeInfo.length > 0 && allCreditTypes.length > 0) {
       fetchBulkGpaData();
+      fetchAllGradeCodes();
     }
-  }, [fetchBulkGpaData, studentTermGradeInfo.length, allCreditTypes.length]);
+  }, [fetchBulkGpaData, fetchAllGradeCodes, studentTermGradeInfo.length, allCreditTypes.length]);
 
   // Helper to get courses for a credit type in a year
   const getCourses = (year: YearGradeInfo, creditType: string): CourseGradeInfo[] => {
@@ -152,6 +169,19 @@ const StudentGradesPage = () => {
   const getCurrentYearGpa = (): string => {
     if (!gpaData?.currentYear || gpaData.currentYear.gpa === null || gpaData.currentYear.gpa === undefined) return '-';
     return gpaData.currentYear.gpa.toFixed(2);
+  };
+
+  const sortGradeCodes = (codes: string[]): string[] => {
+    // Sort codes according to the order in allCodes
+    return [...codes].sort((a, b) => {
+      const indexA = allCodes.indexOf(a);
+      const indexB = allCodes.indexOf(b);
+      // If not found, put at the end
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
   };
 
   // Clear alert message after 3 seconds
@@ -291,13 +321,13 @@ const StudentGradesPage = () => {
                         <div className="flex items-center gap-2">
                           <span>{currentYear.label}</span>
                           <GradeCodeSelector
-                            allCodes={[...ALL_GRADE_CODES]}
+                            allCodes={allCodes}
                             selectedCodes={currentCodes}
                             onChange={handleCurrentCodesChange}
                           />
                         </div>
                       </th>
-                      {currentCodes.map(code => (
+                      {sortGradeCodes(currentCodes).map(code => (
                         <th key={code} className="text-center px-3 py-2 text-xs font-semibold text-gray-600 uppercase w-14 min-w-[3.5rem] max-w-[3.5rem]">{code}</th>
                       ))}
                     </React.Fragment>
@@ -332,7 +362,7 @@ const StudentGradesPage = () => {
                         return currentYear ? (
                           <React.Fragment>
                             <td className="border-l border-gray-200"></td>
-                            {currentCodes.map(code => (
+                            {sortGradeCodes(currentCodes).map(code => (
                               <td key={code}></td>
                             ))}
                           </React.Fragment>

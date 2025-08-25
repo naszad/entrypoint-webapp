@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, varchar, timestamp } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   userId: uuid('user_id').primaryKey(),
@@ -8,6 +8,7 @@ export const users = pgTable('users', {
   lastName: text('last_name').notNull(),
   email: varchar('email', { length: 256 }).notNull().unique(),
   imageUrl: text('image_url'),
+  eulaAgreeTimestamp: timestamp("eula_agree_timestamp", { withTimezone: true }),
 });
 
 export type User = typeof users.$inferSelect;

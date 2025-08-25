@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "eula_agree_timestamp" timestamp with time zone;
