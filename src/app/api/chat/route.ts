@@ -27,9 +27,10 @@ All students referenced in your response should be referred to by their full nam
 When a user asks a question, first determine their intent:
 
 1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool **if** their query can be answered using the filters available in the filter_students tool. If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
-2.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. First use 'identify_student' if a name is mentioned, then use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
-3.  Are they asking for a **student's GPA or a filtered slice of their GPA**? If so, you MUST first use the \`identify_student\` tool to get an unambiguous studentId. Once you have the studentId, use the \`get_student_gpa\` tool.
-4.  Are they asking to **filter students by GPA** (e.g., "show me students with GPA below 2.0", "students with GPA above 3.5")? Use the \`filter_students\` tool with the \`gpaFilter\` parameter.
+2.  Are they asking to **view, find, or display a list of grades**? If so, your goal is to navigate them to the right page. Use the \`filter_grades\` tool **if** their query can be answered using the filters available in the filter_grades tool. If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
+3.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. First use 'identify_student' if a name is mentioned, then use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
+4.  Are they asking for a **student's GPA or a filtered slice of their GPA**? If so, you MUST first use the \`identify_student\` tool to get an unambiguous studentId. Once you have the studentId, use the \`get_student_gpa\` tool.
+5.  Are they asking to **filter students by GPA** (e.g., "show me students with GPA below 2.0", "students with GPA above 3.5")? Use the \`filter_students\` tool with the \`gpaFilter\` parameter.
 
 Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
 
@@ -41,6 +42,10 @@ Do NOT include any intermediate attempts, error messages, or debugging commentar
     system: systemMessage,
     messages,
     maxSteps: 10,
+    // Uncomment to see some openai call results
+    // onStepFinish: (step) => {
+      // console.log('step', step);
+    // },
     tools: {
       filter_students: tool({
         description: `Applies filters to the student data table and navigates the user to the filtered view.
@@ -137,6 +142,85 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
     
           // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.
 
+          return {
+            url,
+            filtersApplied: parsedFilters,
+          };
+        }
+      }),
+      filter_grades: tool({
+        description: `Applies filters to the grades data table and navigates the user to the filtered view.
+
+Use this tool **only** when the user's request is to **view, show, find, or display a list/table of grades**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
+
+- **Correct Usage Examples**: "Show me grades below 90%", "Show me all A grades", "Find grades for Math courses", "Display grades for John Smith"
+- **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade did Jane Doe get in Math?" or "How many students got A's?". For those, you must query the database directly.`,
+        parameters: z.object({
+          fullName: z.string().optional().describe('Student name or part of name to search for'),
+          course_localCourseCode: z.string().optional().describe('Course code or part of course code to search for'),
+          credit_type: z.string().optional().describe('Credit type (e.g., Math, Science, English, History, Arts, etc.)'),
+          course_name: z.string().optional().describe('Course name or part of course name to search for'),
+          gradeLetter: z.string().optional().describe('Grade letter (e.g., A, B, C, D, F)'),
+          gradePercentage: z.object({
+            percentage: z.number().describe('The grade percentage to filter by'),
+            operator: z.enum(['eq', 'gte', 'lte']).default('eq').describe('The comparison operator for the grade percentage filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to)')
+          }).optional().describe('Filter grades by percentage. For example, "grades above 85%" or "90% grades".'),
+          gradeCode: z.string().optional().describe('Grade code (e.g., A, B, C, D, F, P, I)'),
+          updatedAfter: z.string().optional().describe('Show grades updated after this date (YYYY-MM-DD format)'),
+          updatedBefore: z.string().optional().describe('Show grades updated before this date (YYYY-MM-DD format)'),
+        }),
+        execute: async (parsedFilters) => {
+          console.log('Executing filter_grades tool with filters:', parsedFilters);
+          const filters: string[] = [];
+          const baseUrl = '/grades';
+    
+          // Consolidate filter parameters to start supporting generic filter logic
+          const filterConfig: Record<string, { operator: string; field?: string }> = {
+            fullName: { operator: 'contains' },
+            course_localCourseCode: { operator: 'contains' },
+            course_name: { operator: 'contains' },
+            gradeLetter: { operator: 'contains' },
+            gradeCode: { operator: 'eq' },
+            credit_type: { operator: 'contains' },
+            updatedAfter: { operator: 'gte', field: 'updatedAt' },
+            updatedBefore: { operator: 'lte', field: 'updatedAt' }
+          };
+
+          for (const [key, value] of Object.entries(parsedFilters)) {
+            if (!Object.keys(filterConfig).includes(key)) continue;
+            const config = filterConfig[key];
+            const fieldName = config.field || key;
+            const filterValue = config.operator === 'contains' || config.operator === 'eq' 
+              ? value as string
+              : value;
+            filters.push(`${fieldName}:${config.operator}:${filterValue}`);
+          }
+
+          // TODO: This kind of numeric filter (gte, lte, eq) will be added to the generic filter soon TM
+          if (parsedFilters.gradePercentage) {
+            const { percentage, operator } = parsedFilters.gradePercentage;
+            
+            switch (operator) {
+              case 'eq':
+                filters.push(`gradePercentage:eq:${percentage}`);
+                break;
+              case 'gte':
+                filters.push(`gradePercentage:gte:${percentage}`);
+                break;
+              case 'lte':
+                filters.push(`gradePercentage:lte:${percentage}`);
+                break;
+            }
+          }
+    
+          // Construct the URL
+          let url = baseUrl;
+          if (filters.length > 0) {
+            const filterString = filters.join(',');
+            url += `?filters=${encodeURIComponent(filterString)}`;
+          }
+    
+          // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.
           return {
             url,
             filtersApplied: parsedFilters,

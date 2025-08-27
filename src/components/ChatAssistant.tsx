@@ -26,11 +26,26 @@ type FiltersApplied = {
   };
 };
 
+type GradesFiltersApplied = {
+  fullName?: string;
+  course_localCourseCode?: string;
+  course_name?: string;
+  gradeLetter?: string;
+  gradePercentage?: {
+    percentage: number;
+    operator: 'eq' | 'gte' | 'lte';
+  };
+  gradeCode?: string;
+  credit_type?: string;
+  updatedAfter?: string;
+  updatedBefore?: string;
+};
+
 type ToolInvocation = {
   toolName: string;
   result: {
     url?: string;
-    filtersApplied?: FiltersApplied;
+    filtersApplied?: FiltersApplied | GradesFiltersApplied;
   }
 }
 
@@ -78,6 +93,59 @@ const generateFilterDescription = (filters?: FiltersApplied): string => {
   }
 
   let fullDescription = `View students: ${descriptions.join(', ')}`;
+  if (fullDescription.length > 50) {
+    fullDescription = fullDescription.substring(0, 47) + '...';
+  }
+  return fullDescription;
+};
+
+const generateGradesFilterDescription = (filters?: GradesFiltersApplied): string => {
+  if (!filters || Object.keys(filters).length === 0) {
+    return 'View All Grades';
+  }
+
+  const descriptions: string[] = [];
+
+  if (filters.fullName) {
+    descriptions.push(`student: "${filters.fullName}"`);
+  }
+  if (filters.course_localCourseCode) {
+    descriptions.push(`course code: "${filters.course_localCourseCode}"`);
+  }
+  if (filters.course_name) {
+    descriptions.push(`course: "${filters.course_name}"`);
+  }
+  if (filters.gradeLetter) {
+    descriptions.push(`grade: ${filters.gradeLetter}`);
+  }
+  if (filters.gradePercentage) {
+    const { percentage, operator } = filters.gradePercentage;
+    switch (operator) {
+      case 'eq':
+        descriptions.push(`${percentage}%`);
+        break;
+      case 'gte':
+        descriptions.push(`${percentage}%+`);
+        break;
+      case 'lte':
+        descriptions.push(`≤${percentage}%`);
+        break;
+    }
+  }
+  if (filters.gradeCode) {
+    descriptions.push(`code: ${filters.gradeCode}`);
+  }
+  if (filters.credit_type) {
+    descriptions.push(`subject: ${filters.credit_type}`);
+  }
+  if (filters.updatedAfter) {
+    descriptions.push(`updated after ${filters.updatedAfter}`);
+  }
+  if (filters.updatedBefore) {
+    descriptions.push(`updated before ${filters.updatedBefore}`);
+  }
+
+  let fullDescription = `View grades: ${descriptions.join(', ')}`;
   if (fullDescription.length > 50) {
     fullDescription = fullDescription.substring(0, 47) + '...';
   }
@@ -171,7 +239,7 @@ export function ChatAssistant() {
 
     if (lastMessage.role === 'assistant' && lastMessage.toolInvocations) {
       const toolInvocation = (lastMessage.toolInvocations as ToolInvocation[]).find(
-        (inv) => inv.toolName === 'filter_students'
+        (inv) => inv.toolName === 'filter_students' || inv.toolName === 'filter_grades'
       );
 
       if (toolInvocation?.result?.url) {
@@ -275,13 +343,15 @@ export function ChatAssistant() {
           >
             {messages.map((message) => {
               let toolResult: ToolInvocation['result'] | undefined;
+              let toolName: string | undefined;
 
               if (message.role === 'assistant' && message.toolInvocations) {
                 const toolInvocation = (message.toolInvocations as ToolInvocation[]).find(
-                  (inv) => inv.toolName === 'filter_students'
+                  (inv) => inv.toolName === 'filter_students' || inv.toolName === 'filter_grades'
                 );
                 if (toolInvocation?.result?.url) {
                   toolResult = toolInvocation.result;
+                  toolName = toolInvocation.toolName;
                 }
               }
               return (
@@ -301,7 +371,10 @@ export function ChatAssistant() {
                   <div className="mt-2">
                     <Button asChild variant="action" size="sm" className="h-auto">
                       <Link href={toolResult.url}>
-                        {generateFilterDescription(toolResult.filtersApplied)}
+                        {toolName === 'filter_grades' 
+                          ? generateGradesFilterDescription(toolResult.filtersApplied as GradesFiltersApplied)
+                          : generateFilterDescription(toolResult.filtersApplied as FiltersApplied)
+                        }
                       </Link>
                     </Button>
                   </div>
