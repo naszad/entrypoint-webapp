@@ -288,6 +288,13 @@
       "when": 1756221031894,
       "tag": "0049_get_last_n_years_final_terms_gpa",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1756323672763,
+      "tag": "0050_database-comments-support",
+      "breakpoints": true
     }
   ]
 }

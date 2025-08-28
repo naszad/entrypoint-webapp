@@ -11,31 +11,16 @@ export const maxDuration = 30
 export async function POST(req: Request) {
   const { messages }: { messages: CoreMessage[] } = await req.json()
 
-  const systemMessage = `
-You are a helpful AI assistant for school counselors. Your goal is to answer questions by querying the school's database or by helping the user navigate the application.
-When the user asks about their "current year" (e.g., "current year GPA"), you must interpret this as the school year with is_current = true in the database and pass that year label to the get_student_gpa tool via the yearLabels parameter.
+  const systemMessage = `You are a helpful AI assistant for school counselors and administrators. Your goal is to answer questions by querying the database or helping the user navigate the application. Select the best tool for the user's request based on the tool's description.
 
-When a user asks a question about a specific student, you MUST follow this sequence:
-1.  Use the 'identify_student' tool with the name provided by the user.
-2.  Analyze the result from 'identify_student':
-    a. If it returns a single 'studentId', you have successfully identified the student. You can now use this 'studentId' in other tools like 'get_student_gpa'.
-    b. If it returns a list of 'potentialMatches', the name is ambiguous. You MUST present this list to the user and ask them to clarify which student they mean. Do not proceed with other tools.
-    c. If it returns a 'noMatchFound' message, inform the user that you could not find the student and ask them to provide a more specific name or check the spelling. Do not proceed with other tools.
-
-All students referenced in your response should be referred to by their full name. When you respond with the student's full name, you should make their name a markdown link to the student's page in the application using the format: [student's full name](/students/<studentId>).
-
-When a user asks a question, first determine their intent:
-
-1.  Are they asking to **view, find, or display a list of students**? If so, your goal is to navigate them to the right page. Use the \`filter_students\` tool **if** their query can be answered using the filters available in the filter_students tool. If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
-2.  Are they asking to **view, find, or display a list of grades**? If so, your goal is to navigate them to the right page. Use the \`filter_grades\` tool **if** their query can be answered using the filters available in the filter_grades tool. If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
-3.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. First use 'identify_student' if a name is mentioned, then use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`).
-4.  Are they asking for a **student's GPA or a filtered slice of their GPA**? If so, you MUST first use the \`identify_student\` tool to get an unambiguous studentId. Once you have the studentId, use the \`get_student_gpa\` tool.
-5.  Are they asking to **filter students by GPA** (e.g., "show me students with GPA below 2.0", "students with GPA above 3.5")? Use the \`filter_students\` tool with the \`gpaFilter\` parameter.
-
-Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
-
-Do NOT include any intermediate attempts, error messages, or debugging commentary in your response. Only present the final answer message to the user.
-`
+Key Guidelines:
+- "Current year" refers to the school year where 'is_current' is true in the database.
+- For any task involving a specific student, you must first use the 'identify_student' tool to get their unique ID. If the name is ambiguous, present the potential matches to the user for clarification.
+- When referencing a student, use their full name and format it as a markdown link to their profile, like this: [Student's Full Name](/students/<studentId>).
+- If the user asks a question that you can't answer with one of the other tools, you should inspect the database schema and see if there is a table that might be relevant (make sure to read the comments in the schema). If you find a table, use the \`get_table_schema\` tool to get the schema and understand the table better. Then use the \`execute_sql\` tool to execute a query on the table.
+- Questions about students' goals, interests, and other non-academic information should be answered by looking for relevant tags in the tags table or meeting_notes. Search the tags table for potentially relevant tag names (if you don't find any relevant ones by assuming a name, then select all tag names and look for possibly relevant ones), then look in the student_tags table for the values to help answer the question. Questions about students' academic track should be contained by tags in the Academics tag_category.
+- You may search the meeting_notes table for potentially relevant information about a single student. You may not search the meeting_notes table for information about multiple students at once.
+- Provide only the final, user-facing answer. Do not include intermediate steps, tool outputs, or error messages in your response.`
 
   const result = await streamText({
     model: openai('gpt-4o'),
@@ -44,7 +29,7 @@ Do NOT include any intermediate attempts, error messages, or debugging commentar
     maxSteps: 10,
     // Uncomment to see some openai call results
     // onStepFinish: (step) => {
-      // console.log('step', step);
+    //   console.log('step', step);
     // },
     tools: {
       filter_students: tool({
@@ -228,7 +213,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         }
       }),
       list_tables: tool({
-        description: 'Lists all available tables in the database. This is the first step for answering a question that requires specific information. Use this if you do not know the database schema.',
+        description: `Lists all available tables in the database. Use the comments to understand the table better. This is the first step for answering a question that requires specific information. Use this if you do not know the database schema.`,
         parameters: z.object({}),
         execute: async () => {
           console.log('Executing list_tables tool');
@@ -245,7 +230,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         },
       }),
       get_table_schema: tool({
-        description: 'Gets the schema (column names and data types) for a specific table. After finding relevant tables with `list_tables`, use this to understand their structure before writing a query.',
+        description: 'Gets the schema (column names, data types, and comments) for a specific table. After finding relevant tables with `list_tables`, use this to understand their structure and purpose before writing a query.',
         parameters: z.object({
           tableName: z.string().describe('The name of the table to get the schema for.'),
         }),
@@ -297,7 +282,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       }),
       // identify_student tool
       identify_student: tool({
-        description: `Identifies a student by name to get their unique studentId. This is the first step for any query about a specific student. The search is automatically filtered to students the counselor has access to. It handles three cases:
+        description: `Identifies a student by name to get their unique studentId. This is the first step for any query about a specific student. The search is automatically filtered to students the user has access to. It handles three cases:
 1. Exact match: Returns the student's ID and full name.
 2. Multiple matches: Returns a list of potential students for the user to choose from.
 3. No matches: Returns a message indicating the student was not found.`,
