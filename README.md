@@ -65,7 +65,7 @@ This project uses a `.env.local` file to manage environment variables.
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=<api-url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-NEXT_PUBLIC_SUPABASE_SERVICE_KEY=<service_role key>
+SUPABASE_SERVICE_KEY=<service_role key>
 DATABASE_URL=<DB-url>
 ```
 
