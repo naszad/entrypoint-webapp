@@ -63,8 +63,8 @@ This project uses a `.env.local` file to manage environment variables.
 - **Populate the values**: Fill in the `.env.local` file with the values provided by the `supabase start` command:
 
 ```dotenv
-NEXT_PUBLIC_SUPABASE_URL=<api-url>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+SUPABASE_URL=<api-url>
+SUPABASE_ANON_KEY=<anon key>
 SUPABASE_SERVICE_KEY=<service_role key>
 DATABASE_URL=<DB-url>
 ```
@@ -76,26 +76,42 @@ OPENAI_API_KEY=<some-long-key>
 
 ### 5. Launch the Development Environment
 
-Build the development Docker image and start the application container. The `--env-file` flag is required to correctly load variables during the build process.
+Build the development Docker image and start the application container:
 
 ```bash
-docker-compose --env-file .env.local -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --build
 ```
 
-- `--env-file .env.local`: Explicitly tells Docker Compose which environment file to use.
 - `-f docker-compose.dev.yml`: Specifies that we are using the development configuration.
 - `--build`: Rebuilds the image. Run this the first time and anytime you change dependencies in `package.json`.
 
 The application will now be running with hot-reloading at [http://localhost:3000](http://localhost:3000).
 
-**NOTE:** You can still run the application without Docker using `npm run dev`, and build it with `npm run build`.
-
-### 6. Reset and Seed the Database
-
-With the container running, open a **new terminal window** and run the database reset script inside the container:
+By default, this will use `.env.local` for environment varaibles. If you want to run with a different set of env vars, simply change the `ENV_FILE` value:
 
 ```bash
-docker-compose --env-file .env.local -f docker-compose.dev.yml exec webapp-dev npm run reset
+ENV_FILE=.env.development docker compose -f docker-compose.dev.yml up --build
+```
+
+**NOTE:** You can still run the application without Docker using `npm run dev`, and build it with `npm run build`.
+
+### 6. Create a Production-Ready Build
+
+To create a production-ready build (emulating what happens in our CI/CD process), you use the main `docker-compose.yml` file. The environment to use is controlled via a shell variable, `ENV_FILE`.
+
+```bash
+ENV_FILE=.env.development docker compose up --build
+```
+
+- This command sets the `ENV_FILE` variable for this session, which is then used by `docker-compose.yml` to load the correct environment file.
+- If `ENV_FILE` is not set, it will default to `.env.local`.
+
+### 7. Reset and Seed the Database
+
+This command must be run from your host, not inside the container.
+
+```bash
+npm run reset
 ```
 
 This will apply all database migrations and run the seed scripts. The initial seeded user is `test@email.com` with a password of `password`.
@@ -109,10 +125,16 @@ Most scripts/commands, such as running tests or database migrations, should be e
 
 ### Running Commands in the Container
 
-There are two ways to run commands inside the container:
+There are two primary ways to run commands inside a container. The service name is `webapp` for both the development and the production container (differentiated by the compose file used).
 
-1.  **Directly with `exec`**: `docker-compose --env-file .env.local -f docker-compose.dev.yml exec webapp-dev <your-command>`
-2.  **Using an interactive shell**: Run `docker-compose --env-file .env.local -f docker-compose.dev.yml exec webapp-dev sh` to get a shell inside the container. You can then run your commands (e.g., `npm run test`). Type `exit` to return to your host machine.
+1.  **Directly with `exec`**: 
+    ```bash
+    ENV_FILE=.env.local docker compose -f docker-compose.dev.yml exec webapp <your-command>
+    ```
+2.  **Using an interactive shell**: With the container running, in aother termianl run the command below to get a shell. You can then run your commands (e.g., `npm run test`). Type `exit` to return to your host machine.
+   ```bash
+   docker compose exec webapp sh
+   ```
 
 ### Database Changes
 We use [Drizzle](https://orm.drizzle.team/docs/overview) to manage the database schema. All changes to the database should be made via the schema files in `/models`.
@@ -135,21 +157,9 @@ The development process is as follows. The below shell commands must be run insi
 
 **IMPORTANT!!** [Read here on how to resolve migration file conflicts.](https://entrypointsrm.atlassian.net/wiki/spaces/Tech/pages/64454661/Resolving+merge+conflicts)
 
-## Testing a Production Build Locally
-
-We maintain a separate `docker-compose.yml` and `Dockerfile` to build a production-ready image of the application. This is useful for final testing before deployment and serves as the blueprint for our CI/CD process.
-
-To build and run a production-like container, use the following command:
-
-```bash
-docker-compose --env-file .env.local up --build
-```
-
-This will create a lean, optimized container and run it on [http://localhost:3000](http://localhost:3000). Note that this setup does **not** have hot-reloading, so if you make any code changes you will need to re-build the Docker image.
-
 ## Pull requests
 Before opening a pull request, check:
-1. Does the production build execute successfully? (`docker-compose up --build`)
+1. Does the production build execute successfully? (`ENV_FILE=.env.development docker compose up --build`)
 2. Have migrations been generated and have you tested them against a reset copy of your local database?
 
 ## Database Backup and Restore

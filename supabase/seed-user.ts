@@ -4,12 +4,9 @@ import dotenv from 'dotenv';
 type Environment = 'local' | 'development' | 'production' | 'test';
 const env = (process.env.NODE_ENV || 'local') as Environment;
 let envFile = `.env.${env}`;
-if(env === 'local') {
-  envFile = `.env`;
-} 
 
 dotenv.config({ path: envFile })
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseUrl = process.env.SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!
 const supabase = createClient(
   supabaseUrl,

@@ -1,5 +1,5 @@
 services:
-  webapp-dev:
+  webapp:
     # Use a different container name to avoid conflicts with the production setup.
     container_name: entrypoint_webapp_dev
     build:
@@ -14,7 +14,7 @@ services:
       - HOST=0.0.0.0
       - SUPABASE_INTERNAL_URL=http://kong:8000
     env_file:
-      - .env.local
+      - ${ENV_FILE:-.env.local}
     # This is the core of the hot-reloading setup.
     # It mounts your local code directories into the container, so any changes
     # you make are instantly reflected.

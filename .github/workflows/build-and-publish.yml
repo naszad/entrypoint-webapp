@@ -5,14 +5,6 @@ on:
   workflow_dispatch:
 
 env:
-  # =================================================================================
-  #                            !!! IMPORTANT !!!
-  #
-  #  You must replace these placeholder values with your actual GCP information.
-  #
-  # =================================================================================
-  GAR_HOSTNAME: "us-central1-docker.pkg.dev"
-  GAR_LOCATION: "us-central1-docker.pkg.dev/the-racer-467718-e3/entrypoint"
   IMAGE_NAME: "entrypoint-webapp"
 
 jobs:
@@ -23,6 +15,9 @@ jobs:
     permissions:
       contents: "read"
       id-token: "write"
+
+    outputs:
+      image_path: ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
     steps:
       - name: Checkout repository
@@ -64,3 +59,14 @@ jobs:
           tags: ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-to-cloud-run:
+    name: Deploy to Cloud Run
+    needs: build-and-push
+    permissions:
+      contents: "read"
+      id-token: "write"
+    uses: ./.github/workflows/deploy-to-cloud-run.yml
+    with:
+      image: ${{ needs.build-and-push.outputs.image_path }}
+    secrets: inherit

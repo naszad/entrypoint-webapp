@@ -7,9 +7,6 @@ import dotenv from 'dotenv';
 type Environment = 'local' | 'development' | 'production' | 'test';
 const env = (process.env.NODE_ENV || 'local') as Environment;
 let envFile = `.env.${env}`;
-if(env === 'local') {
-  envFile = `.env`;
-} 
 
 dotenv.config({ path: envFile })
 

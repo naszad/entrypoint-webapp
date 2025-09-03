@@ -3,20 +3,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # Add 'args' to pass build-time environment variables
-      # These values will be pulled from the .env.local file
-      args:
-        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     container_name: entrypoint_webapp
     ports:
       - '3000:3000'
-    # The 'env_file' directive loads environment variables from a file.
     env_file:
-      - .env.local
+      - ${ENV_FILE:-.env.local}
     # We add an 'environment' section to set the internal URL.
     # This URL is used by the server-side parts of Next.js to communicate
     # with Supabase's API gateway (Kong) over the internal Docker network.
+    volumes:
+      # This is needed for the Supabase CLI to work with the docker socket.
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - SUPABASE_INTERNAL_URL=http://kong:8000
     networks:

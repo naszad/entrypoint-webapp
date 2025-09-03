@@ -6,6 +6,9 @@ import { NavigationEvents } from "@/components/navigation-events";
 import { TransitionIndicator } from "@/components/ui/transition-indicator";
 import "../styles/globals.css";
 
+// This is necessary to allow the environment variables to be set on the window object
+export const dynamic = 'force-dynamic'
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -31,6 +34,26 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/*
+          The following script injects server-side environment variables into the client-side
+          window object. This allows the Supabase client to be initialized with the correct
+          configuration for the current environment.
+
+          We use 'dangerouslySetInnerHTML' because we need to render a literal <script> tag.
+          This is safe in this context because the content is generated on the server and does
+          not include any user-provided data, thus preventing XSS vulnerabilities.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.env = {
+                SUPABASE_URL: "${process.env.SUPABASE_URL}",
+                SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY}",
+                APP_URL: "${process.env.APP_URL}",
+              };
+            `,
+          }}
+        />
         <AuthProvider>
           <MenuProvider>
             <TransitionIndicator isLoading={false} />

@@ -3,14 +3,6 @@
 # Alpine is a lightweight Linux distribution, which helps keep our image size down.
 FROM node:22-alpine AS builder
 
-# Accept build arguments for environment variables
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-# Set these arguments as environment variables for the build process
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
-
 # Set the working directory inside the container
 WORKDIR /app
 
