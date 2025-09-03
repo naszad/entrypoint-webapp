@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,8 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StudentCurrentGrades } from "@/types/StudentCurrentGrades";
 import { StudentFinalTermGpa } from "@/types/StudentFinalTermGpa"; 
 import { gradeColors } from "@/utils/gradeColors";
-import { FINALIZED_GRADE_CODES } from '@/utils/gradeCodes';
 import { useAuth } from "@/context/AuthContext";
+import { useConfig } from "@/hooks/useConfig";
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -27,6 +27,8 @@ const StudentProfilePage = () => {
   const [finalTermsGpas, setFinalTermsGpas] = useState<StudentFinalTermGpa[]>([]);
 
   const { user } = useAuth();
+  const configKeys = useMemo(() => ['final_grade_codes'], []);
+  const { loading: loadingConfig, finalGradeCodes } = useConfig(configKeys);
 
   const fetchStudentCurrentGrades = useCallback(async ( studentId: string ) => {
     try {
@@ -52,8 +54,12 @@ const StudentProfilePage = () => {
   }, []);
 
   const fetchGpa = useCallback(async (studentId: string) => {
+    if (loadingConfig) {
+      return;
+    }
     try {
-      const url = `/api/students/${studentId}/gpa?gradeCodes=${FINALIZED_GRADE_CODES.join(',')}`;
+
+      const url = `/api/students/${studentId}/gpa?gradeCodes=${finalGradeCodes.join(',')}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -72,15 +78,13 @@ const StudentProfilePage = () => {
         message: `Failed to fetch GPA ${err instanceof Error ? err.message : ''}`
       });
     }
-  }, []);
+  }, [finalGradeCodes, loadingConfig]);
 
   const fetchFinalTermsGpas = useCallback(async (studentId: string) => {
     try {
       const url = `/api/students/${studentId}/gpa?finalOnly=true&userId=${user?.userId}`;
       const response = await fetch(url);
       const data = await response.json();
-
-      console.log('Final terms GPAs:', data);
 
       if (!response.ok) {
         setAlertMessage({ 

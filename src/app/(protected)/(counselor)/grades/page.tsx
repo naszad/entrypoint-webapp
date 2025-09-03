@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { columns, defaultVisibility as initialVisibility } from "@/components/GradeColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
@@ -9,6 +9,7 @@ import { saveReport } from '@/libs/reportsService';
 import { StudentGradeInfo } from "@/types/StudentGradeInfo";
 import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
 import { useAuth } from '@/context/AuthContext'
+import { useConfig } from '@/hooks/useConfig';
 import { cn } from "@/utils/utils"
 import { Switch } from "@/components/ui/switch";
 
@@ -17,13 +18,16 @@ const GradesPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [studentGrades, setStudentGrades] = useState<StudentGradeInfo[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [gradeCodes, setGradeCodes] = useState<string[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const { isChatAssistantOpen } = useChatAssistantOpen();
   const { user } = useAuth();
+  
+  const configKeys = useMemo(() => ['grade_code_sort'], []);
+  const { gradeCodeSort } = useConfig(configKeys);
+  
   const [mostRecentOnly, setMostRecentOnly] = useState<boolean>(() => {
     // Check URL parameter first
     const urlParam = searchParams.get('mostRecentOnly');
@@ -122,7 +126,6 @@ const GradesPage = () => {
 
       setStudentGrades(data.data);
       setTotalCount(data.count);
-      setGradeCodes(data.gradeCodes);
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
@@ -184,7 +187,10 @@ const GradesPage = () => {
   };
 
   const multiSelectRemoteSource = async (columnId: string) => {
-    if (columnId === 'gradeCode') return gradeCodes.map(code => ({ value: code, label: code }));
+    if (columnId === 'gradeCode') {
+      const sortedGradeCodes = gradeCodeSort;
+      return sortedGradeCodes.map(code => ({ value: code, label: code }));
+    }
     return [];
   };
 

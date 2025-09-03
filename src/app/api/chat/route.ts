@@ -4,12 +4,17 @@ import { createClient } from '@/utils/supabase/supabaseServer'
 import { z } from 'zod'
 import { cookies } from 'next/headers'
 import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes'
+import { fetchConfig } from '@/libs/configService'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
 
 export async function POST(req: Request) {
   const { messages }: { messages: CoreMessage[] } = await req.json()
+
+  // Fetch selectedSchoolId from cookies at the beginning so it's available to all tools
+  const cookieStore = await cookies()
+  const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value
 
   const systemMessage = `You are a helpful AI assistant for school counselors and administrators. Your goal is to answer questions by querying the database or helping the user navigate the application. Select the best tool for the user's request based on the tool's description.
 
@@ -261,10 +266,6 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
             return { error: err_msg };
           }
 
-          const cookieStore = cookies()
-          const selectedSchoolId = (await cookieStore).get('selectedSchoolId')?.value
-
-
           const supabase = await createClient()
           const { data, error } = await supabase.rpc('execute_safe_select', { 
             query_text: sql,
@@ -366,10 +367,12 @@ It can be filtered by various parameters like credit types (subjects) or school 
           //     the filter explicitly references the current school year OR the
           //     special placeholder "current" / "current_year" is supplied.
           // ---------------------------------------------------------------------------------
+
+          const configResponse = await fetchConfig({schoolId: selectedSchoolId, configKeys: ['final_grade_codes']});
           
           let yearLabelsFilter: string[] | null = parsed.yearLabels ? [...parsed.yearLabels] : null;
           const gradeLevelsFilter: number[] | null = parsed.gradeLevels ?? null;
-          let defaultGradeCodes: readonly string[] = FINALIZED_GRADE_CODES;
+          let defaultGradeCodes: readonly string[] = configResponse['final_grade_codes'] ? configResponse['final_grade_codes'] : FINALIZED_GRADE_CODES;
 
           if (yearLabelsFilter && yearLabelsFilter.length > 0) {
             // Replace placeholder tokens with the actual current year label
@@ -379,7 +382,7 @@ It can be filtered by various parameters like credit types (subjects) or school 
             );
 
             // If, after replacement, the current school year label is in the filter -> use current year grade codes
-            if (currentSchoolYearLabel && yearLabelsFilter.includes(currentSchoolYearLabel)) {
+            if (currentSchoolYearLabel && yearLabelsFilter.includes(currentSchoolYearLabel)) {  
               defaultGradeCodes = CURRENT_YEAR_GRADE_CODES;
             }
           }
