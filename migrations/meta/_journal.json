@@ -295,6 +295,20 @@
       "when": 1756323672763,
       "tag": "0050_database-comments-support",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1756829179278,
+      "tag": "0051_wide_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1756830405170,
+      "tag": "0052_get_student_daily_absences_and_tardies",
+      "breakpoints": true
     }
   ]
 }

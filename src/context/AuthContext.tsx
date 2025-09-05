@@ -80,6 +80,7 @@ const handleLogout = async () => {
   localStorage.clear();
   setCookie('selectedSchoolId', '')
   setCookie('isMultiSchoolUser', '')
+  setUser(null);
   await logout()
 }
 
