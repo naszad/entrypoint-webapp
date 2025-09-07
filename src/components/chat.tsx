@@ -22,6 +22,7 @@ import {
 import { useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { useRouter } from 'next/navigation';
 import { Response } from '@/components/response';
 import { 
   Actions, 
@@ -75,11 +76,33 @@ export function Chat() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [loadingChat, setLoadingChat] = useState(false);
+  const router = useRouter();
   
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, addToolResult } = useChat({
     transport: new DefaultChatTransport({
         api: '/api/ai'
-    })
+    }),
+    // Handle client-side tools that should be automatically executed
+    async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
+      if (toolCall.toolName === 'navigate') {
+        // Automatically navigate to the provided URL
+        const { url } = toolCall.input as { url: string };
+        console.log('Auto-navigating to:', url);
+        router.push(url);
+        
+        // Add tool result without await to avoid potential deadlocks
+        addToolResult({
+          tool: 'navigate',
+          toolCallId: toolCall.toolCallId,
+          output: { success: true, navigatedTo: url },
+        });
+      }
+    },
   });
 
   const loadChat = async (chatId: string) => {
@@ -218,7 +241,7 @@ export function Chat() {
                               const isLastMessage = messageIndex === messages.length - 1;
                             return (
                                 <div key={`${message.id}-${i}`}>
-                                <Response defaultOrigin="http://localhost:3000" allowedLinkPrefixes={['/students/']}>{part.text}</Response>
+                                <Response defaultOrigin="http://localhost:3000" allowedLinkPrefixes={['/students/', '/grades/']}>{part.text}</Response>
                                 {message.role === 'assistant' && isLastMessage && (
                                     <Actions className="mt-2">
                                         <Action

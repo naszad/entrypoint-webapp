@@ -4,6 +4,7 @@ import { listTablesTool } from './tools/listTables'
 import { getTableSchemaTool } from './tools/getTableSchema'
 import { executeSqlTool } from './tools/executeSql'
 import { getStudentGpaTool } from './tools/getStudentGpa'
+import { navigateTool } from './tools/navigate'
 import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { filterGradesTool } from './tools/filterGrades'
@@ -93,6 +94,7 @@ Key Guidelines:
       execute_sql: executeSqlTool,
       get_student_gpa: getStudentGpaTool,
       identify_student: identifyStudentTool,
+      navigate: navigateTool,
     },
   })
 
