@@ -1,11 +1,12 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { createClient } from '@/utils/supabase/supabaseServer'
+import type { ListTablesInput, ListTablesOutput } from '@/types/ChatToolTypes';
 
-export const listTablesTool = tool({
+export const listTablesTool = tool<ListTablesInput, ListTablesOutput>({
   description:
     'Lists all available tables in the database. This is the first step for answering a question that requires specific information. Use this if you do not know the database schema.',
-  parameters: z.object({}),
+  inputSchema: z.object({}),
   execute: async () => {
     console.log('Executing list_tables tool')
     const supabase = await createClient()

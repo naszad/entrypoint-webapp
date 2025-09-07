@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeftIcon } from "lucide-react"
+import { MessagesSquare } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/utils/utils"
@@ -164,7 +164,9 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-
+  
+  // Override width for right sidebars
+  const customWidth = side === "right" ? "350px" : undefined
   if (collapsible === "none") {
     return (
       <div
@@ -173,6 +175,7 @@ function Sidebar({
           "text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
           className
         )}
+        style={customWidth ? { width: customWidth } : undefined}
         {...props}
       >
         {children}
@@ -189,7 +192,7 @@ function Sidebar({
           data-mobile="true"
           className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
           style={
-            {
+            customWidth ? { width: customWidth } : {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
             } as React.CSSProperties
           }
@@ -218,27 +221,42 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+          "relative bg-transparent transition-[width] duration-200 ease-linear",
+          // Only apply generic width classes if we don't have custom width
+          !customWidth && "w-(--sidebar-width)",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
         )}
+        style={customWidth ? { 
+          width: customWidth,
+          ...(state === "collapsed" && collapsible === "offcanvas" && { width: 0 }),
+        } : undefined}
       />
       <div
         data-slot="sidebar-container"
         className={cn(
           "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
-          side === "left"
+          // Only apply generic offcanvas classes if we don't have custom width
+          !customWidth && (side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]"),
+          // Apply base positioning for custom width sidebars
+          customWidth && (side === "left" ? "left-0" : "right-0"),
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
           className
         )}
+        style={customWidth ? { 
+          width: customWidth,
+          ...(state === "collapsed" && collapsible === "offcanvas" && {
+            [side === "left" ? "left" : "right"]: `-${customWidth}`,
+          }),
+        } : undefined}
         {...props}
       >
         <div
@@ -254,27 +272,30 @@ function Sidebar({
 }
 
 function SidebarTrigger({
-  className,
   onClick,
+  side,
   ...props
-}: React.ComponentProps<typeof Button>) {
+}: React.ComponentProps<typeof Button> & {
+  side?: "left" | "right"
+}) {
   const { toggleSidebar } = useSidebar()
 
   return (
     <Button
+      id="chat-assistant-button"
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
-      variant="ghost"
-      size="icon"
-      className={cn("size-7", className)}
+      data-side={side}
+      size="lg"
+      aria-label="Open Assistant"
+      className={cn("gap-1 px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 mt-3 mr-3")}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <PanelLeftIcon />
-      <span className="sr-only">Toggle Sidebar</span>
+      <MessagesSquare size={20} className="text-blue-500" />
     </Button>
   )
 }

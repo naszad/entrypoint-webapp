@@ -2,11 +2,12 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { cookies } from 'next/headers'
+import type { ExecuteSqlInput, ExecuteSqlOutput } from '@/types/ChatToolTypes';
 
-export const executeSqlTool = tool({
+export const executeSqlTool = tool<ExecuteSqlInput, ExecuteSqlOutput>({
   description:
-    `Executes a final, read-only SQL 'SELECT' query to get specific information from the database. Use this after you have explored the schema with 'list_tables' and 'get_table_schema' to construct a precise query.`,
-  parameters: z.object({
+    `Executes a final, read-only SQL 'SELECT' query to get specific information from the database. Use this after you have explored the schema with 'list_tables' and 'get_table_schema' to construct a precise query. If you already have the information necessary to construct the query, skip the schema exploration and use this tool to execute it.`,
+  inputSchema: z.object({
     sql: z.string().describe('The SQL SELECT query to execute.'),
   }),
   execute: async ({ sql }) => {

@@ -2,10 +2,11 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes'
+import type { GetStudentGpaInput, GetStudentGpaOutput } from '@/types/ChatToolTypes';
 
-export const getStudentGpaTool = tool({
+export const getStudentGpaTool = tool<GetStudentGpaInput, GetStudentGpaOutput>({
   description: `Retrieves a student's GPA, optionally filtered by various parameters. Use the creditTypes parameter to filter by course subjects (matching the credit_type field, e.g., 'English', 'Math'). Use yearLabels to filter by school year labels (e.g., ['2022-2023', '2023-2024']). If no specific grade codes are provided, it defaults to finalized grades (${FINALIZED_GRADE_CODES.join(', ')}) for data from past years, but uses current year grades by grade code (${CURRENT_YEAR_GRADE_CODES.join(', ')}) when filtering by current year.`,
-  parameters: z.object({
+  inputSchema: z.object({
     studentName: z.string().describe("Full name or part of the student's name"),
     method: z.string().optional().describe('GPA calculation method: simple, added_value, credit_hour_weighted'),
     gradeCodes: z.array(z.string()).optional().describe(`Filter by grade codes (${ALL_GRADE_CODES.join(', ')});`),
@@ -24,7 +25,8 @@ export const getStudentGpaTool = tool({
       .ilike('full_name', `%${parsed.studentName}%`)
       .single()
     if (studentError || !student) {
-      throw new Error('Student not found: ' + parsed.studentName)
+      console.error('Student not found:', parsed.studentName)
+      return { error: `Student not found: ${parsed.studentName}` }
     }
     const studentId = student.student_id
 
@@ -72,8 +74,16 @@ export const getStudentGpaTool = tool({
       p_grade_levels: gradeLevelsFilter,
     })
     if (error) {
-      throw new Error(error.message)
+      console.error('Error calculating GPA:', error)
+      return { error: `Failed to calculate GPA: ${error.message}` }
     }
+    
+    // Check if GPA calculation returned null (no grades found)
+    if (gpa === null || gpa === undefined) {
+      console.error('GPA calculation returned null for student:', parsed.studentName)
+      return { error: `No grades found for student: ${parsed.studentName}. Cannot calculate GPA.` }
+    }
+    
     // Round GPA to two decimals for consistency with bulk endpoint
     const rawGpa = gpa as number
     const roundedGpa = typeof rawGpa === 'number' ? Number(rawGpa.toFixed(2)) : rawGpa

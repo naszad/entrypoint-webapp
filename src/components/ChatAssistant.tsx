@@ -1,95 +1,62 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import ReactMarkdown from "react-markdown";
-import { MessagesSquare, Send, X, MoveDown, Trash2 } from 'lucide-react'
-import { useChat } from '@ai-sdk/react';
-import { cn } from '@/utils/utils'
+// --- REACT & THIRD-PARTY IMPORTS ---
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useChat } from '@ai-sdk/react'
+import ReactMarkdown from "react-markdown"
+import Link from 'next/link'
+
+// --- ICON IMPORTS ---
+import { Send, MoveDown, Trash2 } from 'lucide-react'
+
+// --- UI COMPONENT IMPORTS ---
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { TypingAnimation } from './TypingAnimation/TypingAnimation';
-import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Sidebar, SidebarContent, SidebarHeader } from '@/components/ui/sidebar'
+import { TypingAnimation } from './TypingAnimation/TypingAnimation'
 
-type FiltersApplied = {
-  gradeLevel?: number;
-  fullName?: string;
-  enrollmentStatus?: 'active' | 'inactive';
-  gender?: 'male' | 'female';
-  homeroomName?: string;
-  graduationYear?: number;
-  email?: string;
-  ageFilter?: {
-    age: number;
-    operator: 'eq' | 'gte' | 'lte';
-  };
+// --- UTILITY IMPORTS ---
+import { cn } from '@/utils/utils'
+
+// --- TYPE DEFINITIONS ---
+type ToolResult = {
+  url?: string;
+  filtersApplied?: Record<string, unknown>;
+  description?: string;
+  [key: string]: unknown;
 };
 
-type ToolInvocation = {
+type MessagePart = {
+  type: 'text' | 'tool-call' | 'tool-result';
+  text?: string;
+  toolCallId?: string;
+  toolName?: string;
+  args?: Record<string, unknown>;
+  result?: ToolResult;
+};
+
+type LegacyToolInvocation = {
   toolName: string;
-  result: {
-    url?: string;
-    filtersApplied?: FiltersApplied;
-  }
-}
-
-const generateFilterDescription = (filters?: FiltersApplied): string => {
-  if (!filters || Object.keys(filters).length === 0) {
-    return 'View All Students';
-  }
-
-  const descriptions: string[] = [];
-
-  if (filters.gradeLevel) {
-    descriptions.push(`grade ${filters.gradeLevel}`);
-  }
-  if (filters.fullName) {
-    descriptions.push(`name: "${filters.fullName}"`);
-  }
-  if (filters.enrollmentStatus) {
-    descriptions.push(filters.enrollmentStatus);
-  }
-  if (filters.gender) {
-    descriptions.push(filters.gender);
-  }
-  if (filters.homeroomName) {
-    descriptions.push(`homeroom: "${filters.homeroomName}"`);
-  }
-  if (filters.graduationYear) {
-    descriptions.push(`graduating ${filters.graduationYear}`);
-  }
-  if (filters.email) {
-    descriptions.push(`email: "${filters.email}"`);
-  }
-  if (filters.ageFilter) {
-    const { age, operator } = filters.ageFilter;
-    switch (operator) {
-      case 'eq':
-        descriptions.push(`age ${age}`);
-        break;
-      case 'gte':
-        descriptions.push(`age ${age}+`);
-        break;
-      case 'lte':
-        descriptions.push(`age <= ${age}`);
-        break;
-    }
-  }
-
-  let fullDescription = `View students: ${descriptions.join(', ')}`;
-  if (fullDescription.length > 50) {
-    fullDescription = fullDescription.substring(0, 47) + '...';
-  }
-  return fullDescription;
+  result?: ToolResult;
 };
 
+type UIMessage = {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  parts: MessagePart[];
+  // Legacy support
+  content?: string;
+  toolInvocations?: LegacyToolInvocation[];
+};
+
+// --- COMPONENT DEFINITION ---
 export function ChatAssistant() {
-  const { isChatAssistantOpen, setIsChatAssistantOpen } = useChatAssistantOpen()
+  // --- STATE: UI & INTERACTION ---
   const [showJumpToBottom, setShowJumpToBottom] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const router = useRouter();
+  const [input, setInput] = useState('')
+  
+  // --- STATE: NAVIGATION TRACKING ---
   const [lastNavigatedMessageId, setLastNavigatedMessageId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('lastNavigatedMessageId');
@@ -97,17 +64,7 @@ export function ChatAssistant() {
     return null;
   });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (lastNavigatedMessageId) {
-        sessionStorage.setItem('lastNavigatedMessageId', lastNavigatedMessageId);
-      } else {
-        sessionStorage.removeItem('lastNavigatedMessageId');
-      }
-    }
-  }, [lastNavigatedMessageId]);
-
-  // Load initial messages from localStorage for persistence
+  // --- STATE: CHAT INITIALIZATION ---
   const [initialMessages] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('chatAssistantMessages');
@@ -122,38 +79,101 @@ export function ChatAssistant() {
     return [];
   });
 
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit: handleChatSubmit,
-    status,
-    setMessages,
-    setInput,
-  } = useChat({
-    id: 'chat-assistant',
-    initialMessages,
+  // --- REFS ---
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  
+  // --- HOOKS ---
+  const router = useRouter();
+  const { messages, sendMessage, status, setMessages } = useChat({
+    messages: initialMessages,
   });
 
-  // Handler to clear chat history
-  const clearChat = () => {
+  // --- HELPER FUNCTIONS: MESSAGE PROCESSING ---
+  const extractToolResult = useCallback((message: UIMessage) => {
+    if (message.role !== 'assistant') return null;
+
+    // v5 uses parts structure - prioritize this
+    if (message.parts && message.parts.length > 0) {
+      const toolResultPart = message.parts.find(
+        (part: MessagePart) => part.type === 'tool-result' && part.toolName === 'filter_students'
+      );
+      if (toolResultPart?.result) {
+        return toolResultPart.result;
+      }
+    }
+
+    // Fallback to v4 toolInvocations for backward compatibility
+    if (message.toolInvocations && message.toolInvocations.length > 0) {
+      const filterStudentsTool = message.toolInvocations.find(
+        (inv: LegacyToolInvocation) => inv.toolName === 'filter_students'
+      );
+      if (filterStudentsTool?.result) {
+        return filterStudentsTool.result;
+      }
+    }
+
+    return null;
+  }, []);
+
+  const getMessageContent = useCallback((message: UIMessage) => {
+    // v5 uses parts structure - prioritize this
+    if (message.parts && message.parts.length > 0) {
+      return message.parts
+        .filter((part: MessagePart) => part.type === 'text')
+        .map((part: MessagePart) => part.text || '')
+        .join('');
+    }
+
+    // Fallback to v4 content structure for backward compatibility
+    return message.content || '';
+  }, []);
+
+  // --- HELPER FUNCTIONS: SCROLL MANAGEMENT ---
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
+    setShowJumpToBottom(!isAtBottom)
+  }, [])
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  // --- EVENT HANDLERS ---
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+  }, [])
+
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    sendMessage({ text: input });
+    setInput('');
+  }, [input, sendMessage])
+
+  const clearChat = useCallback(() => {
     setMessages([]);
     setInput('');
     localStorage.removeItem('chatAssistantMessages');
     setLastNavigatedMessageId(null);
-  };
+  }, [setMessages])
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  // --- EFFECTS: PERSISTENCE ---
+  // Persist navigation state to sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (lastNavigatedMessageId) {
+        sessionStorage.setItem('lastNavigatedMessageId', lastNavigatedMessageId);
+      } else {
+        sessionStorage.removeItem('lastNavigatedMessageId');
+      }
+    }
+  }, [lastNavigatedMessageId]);
 
-    // `handleChatSubmit` will automatically append the user's message (from `input`)
-    // and send it to the API. The `useChat` hook manages the message list and
-    // will handle the full request-response cycle with tools.
-    handleChatSubmit(e as React.FormEvent<HTMLFormElement>);
-  };
-
-  // Persist chat messages to localStorage on change
+  // Persist chat messages to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('chatAssistantMessages', JSON.stringify(messages));
@@ -162,155 +182,103 @@ export function ChatAssistant() {
     }
   }, [messages]);
 
-  // Automatic navigation when a filter_students tool result is available
+  // --- EFFECTS: NAVIGATION ---
+  // Auto-navigate when filter_students tool result is available
   useEffect(() => {
     if (messages.length === 0) return;
-    const lastMessage = messages[messages.length - 1];
+    const lastMessage = messages[messages.length - 1] as UIMessage;
 
     if (lastMessage.id === lastNavigatedMessageId) return;
 
-    if (lastMessage.role === 'assistant' && lastMessage.toolInvocations) {
-      const toolInvocation = (lastMessage.toolInvocations as ToolInvocation[]).find(
-        (inv) => inv.toolName === 'filter_students'
-      );
-
-      if (toolInvocation?.result?.url) {
-        router.push(toolInvocation.result.url);
-        setLastNavigatedMessageId(lastMessage.id);
-      }
+    const toolResult = extractToolResult(lastMessage);
+    if (toolResult?.url) {
+      router.push(toolResult.url);
+      setLastNavigatedMessageId(lastMessage.id);
     }
-  }, [messages, router, lastNavigatedMessageId]);
+  }, [messages, router, lastNavigatedMessageId, extractToolResult]);
 
-  // Load saved state from localStorage
-  useEffect(() => {
-    const savedState = localStorage.getItem('chatAssistantOpen')
-    if (savedState !== null) {
-      setIsChatAssistantOpen(JSON.parse(savedState))
-    }
-    // Listen for storage events
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem('chatAssistantOpen');
-      if (saved !== null) {
-        setIsChatAssistantOpen(JSON.parse(saved));
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [setIsChatAssistantOpen]);
-
-  // Handle scroll events
-  const handleScroll = () => {
-    if (!messagesContainerRef.current) return
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
-    setShowJumpToBottom(!isAtBottom)
-  }
-
-  // Scroll to bottom function
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  // Add scroll event listener
+  // --- EFFECTS: SCROLL MANAGEMENT ---
+  // Set up scroll event listener
   useEffect(() => {
     const container = messagesContainerRef.current
     if (container) {
       container.addEventListener('scroll', handleScroll)
       return () => container.removeEventListener('scroll', handleScroll)
     }
-  }, [])
+  }, [handleScroll])
 
-  // Auto scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
       scrollToBottom()
     }
-  }, [messages])
+  }, [messages, scrollToBottom])
 
-  // Save state to localStorage and emit storage event
-  const handleToggle = () => {
-    const newState = !isChatAssistantOpen
-    setIsChatAssistantOpen(newState)
-    localStorage.setItem('chatAssistantOpen', JSON.stringify(newState))
-    window.dispatchEvent(new Event('storage'))
-  }
-
+  // --- COMPONENT RENDERING ---
   return (
-    <>
-      {!isChatAssistantOpen && (
-        <Button id="chat-assistant-button"
-          onClick={handleToggle}
-          className="fixed top-9 right-9 z-50 gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          aria-label="Open Assistant"
-        >
-          <MessagesSquare size={20} className="text-blue-500" /> Assistant
-        </Button>
-      )}
-
-      <div
-        className={cn(
-          'fixed top-0 right-0 h-full w-[400px] bg-background border-l transform transition-transform duration-300 ease-in-out z-40 shadow-[-4px_0_10px_rgba(0,0,0,0.1)]',
-          isChatAssistantOpen ? 'translate-x-0' : 'translate-x-full'
-        )}
-      >
-        <div className="p-4 h-full flex flex-col">
+      <Sidebar side="right">
+        {/* SIDEBAR HEADER */}
+        <SidebarHeader className="p-4">
           <div className="flex items-center justify-between mb-4 border-b pb-4">
             <div className="flex items-center gap-2 flex-1">
-              <MessagesSquare size={20} className="text-blue-500" />
               <h2 className="text-lg font-semibold">Assistant</h2>
             </div>
             <div className="flex items-center gap-2">
               <Button onClick={clearChat} variant="ghost" size="icon" aria-label="Clear chat history">
                 <Trash2 size={20} />
               </Button>
-              <Button onClick={handleToggle} variant="ghost" size="icon" aria-label="Close Assistant">
-                <X size={20} />
-              </Button>
             </div>
           </div>
-          
+        </SidebarHeader>
+        
+        {/* MESSAGES CONTENT */}
+        <SidebarContent className="p-4">
           <div 
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto relative"
           >
+            {/* MESSAGE LIST */}
             {messages.map((message) => {
-              let toolResult: ToolInvocation['result'] | undefined;
+              const uiMessage = message as UIMessage;
+              const toolResult = extractToolResult(uiMessage);
+              const textContent = getMessageContent(uiMessage);
 
-              if (message.role === 'assistant' && message.toolInvocations) {
-                const toolInvocation = (message.toolInvocations as ToolInvocation[]).find(
-                  (inv) => inv.toolName === 'filter_students'
-                );
-                if (toolInvocation?.result?.url) {
-                  toolResult = toolInvocation.result;
-                }
-              }
               return (
-              <div
-                key={message.id}
-                className={cn(
-                  "p-2 rounded-lg mb-2 max-w-[85%]",
-                  message.role === 'user'
-                    ? "ml-auto bg-blue-100"
-                    : "mr-auto bg-gray-100"
-                )}
-              >
-                <div className="prose prose-sm max-w-none prose-a:text-blue-600">
-                  <ReactMarkdown>{message.content || ''}</ReactMarkdown>
-                </div>
-                {toolResult?.url && (
-                  <div className="mt-2">
-                    <Button asChild variant="action" size="sm" className="h-auto">
-                      <Link href={toolResult.url}>
-                        {generateFilterDescription(toolResult.filtersApplied)}
-                      </Link>
-                    </Button>
+                <div
+                  key={uiMessage.id}
+                  className={cn(
+                    "p-2 rounded-lg mb-2 max-w-[85%]",
+                    uiMessage.role === 'user'
+                      ? "ml-auto bg-blue-100"
+                      : "mr-auto bg-gray-100"
+                  )}
+                >
+                  {/* MESSAGE TEXT */}
+                  <div className="prose prose-sm max-w-none prose-a:text-blue-600">
+                    <ReactMarkdown>{textContent}</ReactMarkdown>
                   </div>
-                )}
-              </div>
+                  
+                  {/* TOOL RESULT BUTTON */}
+                  {toolResult?.url && (
+                    <div className="mt-2">
+                      <Button asChild variant="action" size="sm" className="h-auto">
+                        <Link href={toolResult.url}>
+                          {toolResult.description || 'View Students'}
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )
             })}
+            
+            {/* SCROLL ANCHOR */}
             <div ref={messagesEndRef} />
-            {(status === 'submitted' || status === 'streaming') && <TypingAnimation />}
+            
+            {/* TYPING INDICATOR */}
+            {status === 'submitted' && <TypingAnimation />}
+            
+            {/* JUMP TO BOTTOM BUTTON */}
             {showJumpToBottom && (
               <Button
                 variant="primary"
@@ -323,30 +291,30 @@ export function ChatAssistant() {
               </Button>
             )}
           </div>
-
-          <div className="mt-auto p-2 border-t">
-            <div className="flex gap-2">
-              <div className="w-[95%]">
-                <Input
-                  autoFocus={isChatAssistantOpen}
-                  placeholder="Need help? Press enter to send"
-                  value={input}
-                  onChange={handleInputChange}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
-                    }
-                  }}
-                />
-              </div>
-              <Button onClick={handleSubmit} className='mt-2' variant="primary" size="icon">
-                <Send size={40} />
-              </Button>
+        </SidebarContent>
+        
+        {/* INPUT AREA */}
+        <div className="mt-auto p-4 border-t">
+          <div className="flex gap-2">
+            <div className="w-[95%]">
+              <Input
+                autoFocus={true}
+                placeholder="Need help? Press enter to send"
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
+                  }
+                }}
+              />
             </div>
+            <Button onClick={handleSubmit} className='mt-2' variant="primary" size="icon">
+              <Send size={40} />
+            </Button>
           </div>
         </div>
-      </div>
-    </>
+      </Sidebar>
   )
 } 

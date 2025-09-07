@@ -1,10 +1,93 @@
 import { tool } from 'ai'
 import { z } from 'zod'
+import { FilterStudentsResult, FiltersApplied } from '@/types/ChatToolTypes'
+import type { FilterStudentsInput, FilterStudentsOutput } from '@/types/ChatToolTypes';
 
-export const filterStudentsTool = tool({
+/**
+ * Generates a human-readable description of applied filters for display in UI buttons
+ * @param filters - The filters that have been applied
+ * @returns A string description of the filters, truncated if too long
+ */
+const generateFilterDescription = (filters?: FiltersApplied): string => {
+  if (!filters || Object.keys(filters).length === 0) {
+    return 'View All Students';
+  }
+
+  const descriptions: string[] = [];
+
+  if (filters.gradeLevel) {
+    descriptions.push(`grade ${filters.gradeLevel}`);
+  }
+  if (filters.fullName) {
+    descriptions.push(`name: "${filters.fullName}"`);
+  }
+  if (filters.enrollmentStatus) {
+    descriptions.push(filters.enrollmentStatus);
+  }
+  if (filters.gender) {
+    descriptions.push(filters.gender);
+  }
+  if (filters.homeroomName) {
+    descriptions.push(`homeroom: "${filters.homeroomName}"`);
+  }
+  if (filters.graduationYear) {
+    descriptions.push(`graduating ${filters.graduationYear}`);
+  }
+  if (filters.email) {
+    descriptions.push(`email: "${filters.email}"`);
+  }
+  if (filters.ageFilter) {
+    const { age, operator } = filters.ageFilter;
+    switch (operator) {
+      case 'eq':
+        descriptions.push(`age ${age}`);
+        break;
+      case 'gte':
+        descriptions.push(`age ${age}+`);
+        break;
+      case 'lte':
+        descriptions.push(`age <= ${age}`);
+        break;
+    }
+  }
+  if (filters.gpaFilter) {
+    const { value, operator } = filters.gpaFilter;
+    switch (operator) {
+      case 'eq':
+        descriptions.push(`GPA ${value}`);
+        break;
+      case 'gt':
+        descriptions.push(`GPA > ${value}`);
+        break;
+      case 'lt':
+        descriptions.push(`GPA < ${value}`);
+        break;
+      case 'gte':
+        descriptions.push(`GPA >= ${value}`);
+        break;
+      case 'lte':
+        descriptions.push(`GPA <= ${value}`);
+        break;
+    }
+  }
+  if (filters.createdAtRecentOnly) {
+    descriptions.push(`created in last ${filters.createdAtRecentOnly} days`);
+  }
+  if (filters.updatedAtRecentOnly) {
+    descriptions.push(`updated in last ${filters.updatedAtRecentOnly} days`);
+  }
+
+  let fullDescription = `View students: ${descriptions.join(', ')}`;
+  if (fullDescription.length > 50) {
+    fullDescription = fullDescription.substring(0, 47) + '...';
+  }
+  return fullDescription;
+};
+
+export const filterStudentsTool = tool<FilterStudentsInput, FilterStudentsOutput>({
   description: `Applies filters to the student data table and navigates the user to the filtered view.
 
-Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
+Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include a url or link in your text response!
 
 - **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5"
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
@@ -13,7 +96,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 - When user asks for students "updated/modified/changed in the last X days", use updatedAtRecentOnly with the number of days
 - When user asks for students "created/added/registered in the last X days", use createdAtRecentOnly with the number of days
 - Examples: "last 30 days" = 30, "last week" = 7, "last month" = 30, "yesterday" = 1, "last 2 weeks" = 14`,
-  parameters: z.object({
+  inputSchema: z.object({
     gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12)'),
     fullName: z.string().optional().describe('Name or part of name to search for'),
     enrollmentStatus: z.enum(['active', 'inactive']).optional().describe('Student enrollment status'),
@@ -92,11 +175,14 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       url += `?filters=${encodeURIComponent(filterString)}`
     }
 
-    // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.
+    // Generate description for the applied filters
+    const description = generateFilterDescription(parsedFilters);
+
     return {
       url,
       filtersApplied: parsedFilters,
-    }
+      description,
+    } as FilterStudentsResult
   }
 })
 

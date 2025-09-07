@@ -7,9 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { saveReport } from '@/libs/reportsService';
 import { StudentGradeInfo } from "@/types/StudentGradeInfo";
-import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
 import { useAuth } from '@/context/AuthContext'
-import { cn } from "@/utils/utils"
 
 
 const GradesPage = () => {
@@ -19,7 +17,6 @@ const GradesPage = () => {
   const [gradeCodes, setGradeCodes] = useState<string[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const searchParams = useSearchParams();
-  const { isChatAssistantOpen } = useChatAssistantOpen();
   const { user } = useAuth();
 
   const initialPageSize = (() => {
@@ -134,7 +131,7 @@ const GradesPage = () => {
     <div className="flex flex-col w-full h-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-gray-700">Grades</h3>
-        <div className={cn("flex gap-2 justify-end", isChatAssistantOpen ? "" : "mr-35")}>
+        <div className="flex gap-2 justify-end">
           <SaveViewDialog onSave={handleSaveView} />
         </div>
       </div>

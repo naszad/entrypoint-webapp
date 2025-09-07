@@ -11,8 +11,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
-import { cn } from "@/utils/utils"
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +20,6 @@ const StudentsPage = () => {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isChatAssistantOpen } = useChatAssistantOpen();
 
   const initialPageSize = (() => {
     const sizeParam = searchParams.get('pageSize');
@@ -166,7 +163,7 @@ const StudentsPage = () => {
     <div className="flex flex-col w-full h-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-gray-700">Students</h3>
-        <div className={cn("flex gap-2 justify-end", isChatAssistantOpen ? "" : "mr-35")}>
+        <div className="flex gap-2 justify-end">
           <Button id="download-button" variant="action" onClick={handleDownloadClick}>
             <DownloadIcon className="w-4 h-4" />
             Download
