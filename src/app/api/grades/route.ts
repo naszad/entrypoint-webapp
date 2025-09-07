@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const pageNumber = parseInt(url.searchParams.get('pageNumber') || '1', 10);
     const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
     const fetchWithCount = url.searchParams.get('fetchWithCount') === 'true';
+    const mostRecentOnly = url.searchParams.get('mostRecentOnly') === 'true';
 
     let filters: FilterValue[] = [];
     if (filtersParam) {
@@ -23,7 +24,8 @@ export async function GET(req: Request) {
       fetchWithCount,
       filters,
       sort,
-      pagingInfo: { pageNumber, pageSize }
+      pagingInfo: { pageNumber, pageSize },
+      mostRecentOnly,
     });
     return NextResponse.json(studentGradesResponse);
   } catch (err: unknown) {

@@ -1,0 +1,28 @@
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: entrypoint_webapp
+    ports:
+      - '3000:3000'
+    env_file:
+      - ${ENV_FILE:-.env.local}
+    # We add an 'environment' section to set the internal URL.
+    # This URL is used by the server-side parts of Next.js to communicate
+    # with Supabase's API gateway (Kong) over the internal Docker network.
+    volumes:
+      # This is needed for the Supabase CLI to work with the docker socket.
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SUPABASE_INTERNAL_URL=http://kong:8000
+    networks:
+      - supabase_network
+
+networks:
+  supabase_network:
+    # This tells Docker Compose that the network is defined elsewhere.
+    # In this case, it's the network created by the Supabase CLI.
+    # Need to update setup process/docs to make this consistent across developer machines
+    external: true
+    name: supabase_network_entrypoint-webapp

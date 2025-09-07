@@ -17,6 +17,7 @@ type StudentsRequest = {
     pageNumber: number;
     pageSize: number;
   };
+  mostRecentOnly?: boolean;
 };
 
 type StudentsResponse = {
@@ -829,7 +830,7 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
 export async function fetchStudentGradesByFilterCriteria(request: StudentsRequest): Promise<StudentGradesResponse> {
   try {
     const supabase = await createClient()
-    const { filters, sort, pagingInfo, fetchWithCount } = request;
+    const { filters, sort, pagingInfo, fetchWithCount, mostRecentOnly } = request;
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
 
@@ -870,7 +871,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     const studentIds = schoolStudentLinks.map(link => link.student_id);
 
     let query = supabase
-      .from('student_grades')
+      .from(mostRecentOnly ? 'latest_student_grades' : 'student_grades')
       .select(`
         grade_id,
         student_id,
@@ -940,8 +941,9 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       `)
       .in('student_id', studentIds);
 
-    // Apply filters to main query
-    query = applyGradeFilters(query, filters);
+      // Apply filters to main query
+      query = applyGradeFilters(query, filters);
+
     if (hasGradeFilters) {
       query = query.not('student', 'is', 'null').not('course', 'is', 'null');
     }
@@ -973,7 +975,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       query = query.range(from, to);
     }
 
-    // Execute main query
+    // Execute query
     const { data, error } = await query;
 
     if (error) {
@@ -1066,7 +1068,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     let totalCount: number | undefined;
     if (fetchWithCount) {
       let countQuery = supabase
-        .from('student_grades')
+        .from(mostRecentOnly ? 'latest_student_grades' : 'student_grades')
         .select(hasGradeFilters ? `
           *,
           student:students!inner(

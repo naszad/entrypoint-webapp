@@ -610,4 +610,11 @@ BEGIN
   (sophia_rodriguez_student_id, econ12b_section_id, q4_2425_term_id, econ_12b_course_id, 'A', 'Q4', 95.00, 4.00, 0.5, 0.5, 0, false, 'History', 'Final', NULL, '12', 'StoredGrades', '2025-05-25', 'GRADE_SOPHIA_ECON12B_Q4_2425', 'G_SOPHIA_ECON12B_Q4_2425', encode(digest('GRADE_SOPHIA_ECON12B_Q4_2425', 'sha256'), 'hex'), 'mock_source'),
   (sophia_rodriguez_student_id, econ12b_section_id, s2_2425_term_id, econ_12b_course_id, 'A', 'S2', 93.00, 4.00, 1.0, 1.0, 0, false, 'History', 'Final', NULL, '12', 'StoredGrades', '2025-05-25', 'GRADE_SOPHIA_ECON12B_S2_2425', 'G_SOPHIA_ECON12B_S2_2425', encode(digest('GRADE_SOPHIA_ECON12B_S2_2425', 'sha256'), 'hex'), 'mock_source');
 
+  -- Student Daily Absences for Emma Johnson
+  INSERT INTO student_daily_absences (customer_id, school_id, student_id, year_id, absence_date, external_id, external_key, external_key_hash, sis_code, normalized_absence_code, external_source)
+  VALUES
+    ('48aac272-392f-4086-9dd3-4e4defaf3c18', lincoln_high_school_id, emma_johnson_student_id, year_2324_id, '2023-10-05', 'A_EMMA_20231005', 'ABS_EMMA_20231005', encode(digest('ABS_EMMA_20231005', 'sha256'), 'hex'), 'A', 'Unexcused', 'mock_source'),
+    ('48aac272-392f-4086-9dd3-4e4defaf3c18', lincoln_high_school_id, emma_johnson_student_id, year_2324_id, '2023-11-12', 'A_EMMA_20231112', 'ABS_EMMA_20231112', encode(digest('ABS_EMMA_20231112', 'sha256'), 'hex'), 'S', 'Tardy', 'mock_source'),
+    ('48aac272-392f-4086-9dd3-4e4defaf3c18', lincoln_high_school_id, emma_johnson_student_id, year_2425_id, '2024-09-03', 'A_EMMA_20240903', 'ABS_EMMA_20240903', encode(digest('ABS_EMMA_20240903', 'sha256'), 'hex'), 'E', 'Excused', 'mock_source');
+
 END $$;

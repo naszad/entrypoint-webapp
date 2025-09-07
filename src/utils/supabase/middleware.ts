@@ -6,9 +6,13 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  //SUPABASE_INTERNAL_URL is only used locally with docker-compose. Not needed for production.
+  const supabaseUrl = process.env.SUPABASE_INTERNAL_URL ?? process.env.SUPABASE_URL!
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl!,
+    supabaseAnonKey!,
     {
       cookies: {
         getAll() {
@@ -40,13 +44,17 @@ export async function updateSession(request: NextRequest) {
   const selectedSchool = request.cookies.get('selectedSchoolId')?.value;
   const isMultiSchoolUser = request.cookies.get('isMultiSchoolUser')?.value === 'true';
 
-  if (user && isMultiSchoolUser && !selectedSchool && request.nextUrl.pathname !== '/select-school') {
+  // Handle multi-school user redirection (but not if they're on EULA page)
+  if (user && isMultiSchoolUser && !selectedSchool && 
+      request.nextUrl.pathname !== '/select-school' && 
+      request.nextUrl.pathname !== '/eula') {
     const url = request.nextUrl.clone()
     url.pathname = '/select-school'
     return NextResponse.redirect(url)
   }
 
   // Redirect authenticated users away from the login page
+  // Note: EULA check is handled in AuthContext which will redirect to /eula if needed
   if (user && request.nextUrl.pathname === '/login') {    
     const url = request.nextUrl.clone()
     url.pathname = '/students'

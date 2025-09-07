@@ -41,15 +41,12 @@ const ReportsPage = () => {
       const url = new URL(window.location.origin);
       url.pathname = report.pageName;
       
-      if (params.filters) {
-        url.searchParams.append('filters', params.filters);
-      }
-      if (params.sort) {
-        url.searchParams.append('sort', params.sort); 
-      }
-      if (params.columns) {
-        url.searchParams.append('columns', params.columns);
-      }
+      // Dynamically add all params to URL searchParams
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '' && typeof value !== 'object') {
+          url.searchParams.append(key, String(value));
+        }
+      });
       router.push(url.toString());
     } else {
       // report corrupted do nothing

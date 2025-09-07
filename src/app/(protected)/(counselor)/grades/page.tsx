@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from "react";
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { columns, defaultVisibility as initialVisibility } from "@/components/GradeColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,16 +8,74 @@ import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { saveReport } from '@/libs/reportsService';
 import { StudentGradeInfo } from "@/types/StudentGradeInfo";
 import { useAuth } from '@/context/AuthContext'
+import { useConfig } from '@/hooks/useConfig';
+import { cn } from "@/utils/utils"
+import { Switch } from "@/components/ui/switch";
 
 
 const GradesPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [studentGrades, setStudentGrades] = useState<StudentGradeInfo[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [gradeCodes, setGradeCodes] = useState<string[]>([]);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
+  
+  const configKeys = useMemo(() => ['grade_code_sort'], []);
+  const { gradeCodeSort } = useConfig(configKeys);
+  
+  const [mostRecentOnly, setMostRecentOnly] = useState<boolean>(() => {
+    // Check URL parameter first
+    const urlParam = searchParams.get('mostRecentOnly');
+    if (urlParam === 'true') {
+      return true;
+    }
+    
+    // Fall back to localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('grades-mostRecentOnly');
+      if (saved !== null) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return false;
+        }
+      }
+    }
+    return false;
+  });
+
+  // Ensure the setting is persisted and URL is updated
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('grades-mostRecentOnly', JSON.stringify(mostRecentOnly));
+    
+    // Update URL to reflect mostRecentOnly state
+    const newSearchParams = new URLSearchParams();
+    
+    // Copy all existing params
+    searchParams.forEach((value, key) => {
+      if (key !== 'mostRecentOnly') {
+        newSearchParams.set(key, value);
+      }
+    });
+    
+    // Add mostRecentOnly if true
+    if (mostRecentOnly) {
+      newSearchParams.set('mostRecentOnly', 'true');
+    }
+    
+    const newQuery = newSearchParams.toString();
+    const currentQuery = searchParams.toString();
+    
+    // Only update URL if it's actually different
+    if (currentQuery !== newQuery) {
+      const newUrl = newQuery ? `${pathname}?${newQuery}` : pathname;
+      router.replace(newUrl);
+    }
+  }, [mostRecentOnly, searchParams, pathname, router]);
 
   const initialPageSize = (() => {
     const sizeParam = searchParams.get('pageSize');
@@ -41,7 +99,8 @@ const GradesPage = () => {
     sortField: string, 
     sortDirection: 'asc' | 'desc',
     pageNumber: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
+    recentOnlyOverride?: boolean
   ) => {
     try {      
       setIsLoading(true);
@@ -50,7 +109,8 @@ const GradesPage = () => {
       if (sortField) {
         queryParams += `&sort=${encodeURIComponent(sortField)}:${encodeURIComponent(sortDirection)}`;
       }
-      const url = `/api/grades${queryParams}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true`;
+      const mostRecent = typeof recentOnlyOverride === 'boolean' ? recentOnlyOverride : mostRecentOnly;
+      const url = `/api/grades${queryParams}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true&mostRecentOnly=${mostRecent}`;
       const response = await fetch(url);
       const data = await response.json();
       
@@ -64,7 +124,6 @@ const GradesPage = () => {
 
       setStudentGrades(data.data);
       setTotalCount(data.count);
-      setGradeCodes(data.gradeCodes);
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
@@ -82,7 +141,22 @@ const GradesPage = () => {
     const sortId = sorting[0]?.id || '';
     const sortDirection = sorting[0]?.desc ? 'desc' : 'asc';
     setCurrentPageSize(params.pageSize);
+    setLastQuery({ filters, sortField: sortId, sortDirection, pageNumber: params.pageNumber, pageSize: params.pageSize });
     await fetchStudentGrades(filters, sortId, sortDirection, params.pageNumber, params.pageSize);
+  };
+
+  // Track last query so toggle can refetch
+  const [lastQuery, setLastQuery] = useState<{ filters: FilterValue[]; sortField: string; sortDirection: 'asc' | 'desc'; pageNumber: number; pageSize: number } | null>(null);
+
+  const handleToggleMostRecent = async (checked: boolean) => {
+    setMostRecentOnly(checked);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('grades-mostRecentOnly', JSON.stringify(checked));
+    }
+    const q = lastQuery;
+    if (q) {
+      await fetchStudentGrades(q.filters, q.sortField, q.sortDirection, q.pageNumber, q.pageSize, checked);
+    }
   };
 
   const handleSaveView = async (viewData: {
@@ -111,7 +185,10 @@ const GradesPage = () => {
   };
 
   const multiSelectRemoteSource = async (columnId: string) => {
-    if (columnId === 'gradeCode') return gradeCodes.map(code => ({ value: code, label: code }));
+    if (columnId === 'gradeCode') {
+      const sortedGradeCodes = gradeCodeSort;
+      return sortedGradeCodes.map(code => ({ value: code, label: code }));
+    }
     return [];
   };
 
@@ -131,9 +208,17 @@ const GradesPage = () => {
     <div className="flex flex-col w-full h-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-gray-700">Grades</h3>
-        <div className="flex gap-2 justify-end">
+        <div className={cn("flex gap-4 items-center justify-end")}>          
           <SaveViewDialog onSave={handleSaveView} />
         </div>
+      </div>
+      <div className="flex mb-4 gap-2 justify-end">
+        <Switch
+          className="cursor-pointer"
+          checked={mostRecentOnly}
+          onCheckedChange={handleToggleMostRecent}
+        />
+        <span className="text-base font-medium text-gray-700">Only most recent</span>
       </div>
       
       {alertMessage && (
@@ -153,6 +238,7 @@ const GradesPage = () => {
           multiSelectRemoteSource={multiSelectRemoteSource}
           isLoading={isLoading}
           pageSize={currentPageSize}
+          mostRecentOnly={mostRecentOnly}
         />
       </div>
     </div>

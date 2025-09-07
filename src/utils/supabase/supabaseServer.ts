@@ -4,9 +4,12 @@ import { cookies } from 'next/headers'
 export async function createClient() {
   const cookieStore = await cookies()
 
+  //SUPABASE_INTERNAL_URL is only used locally with docker-compose. Not needed for production.
+  const supabaseUrl = process.env.SUPABASE_INTERNAL_URL ?? process.env.SUPABASE_URL!
+  
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    process.env.SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {

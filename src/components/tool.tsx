@@ -23,6 +23,7 @@ import {
   TableSchemaOutputComponent,
   ExecuteSqlOutputComponent,
   FilterStudentsOutputComponent,
+  FilterGradesOutputComponent,
   GetStudentGpaOutputComponent,
 } from './db-tool-outputs';
 import type {
@@ -30,6 +31,7 @@ import type {
   ListTablesOutput,
   GetTableSchemaOutput,
   FilterStudentsOutput,
+  FilterGradesOutput,
   GetStudentGpaOutput,
 } from '@/types/ChatToolTypes';
 
@@ -46,7 +48,7 @@ export type ToolHeaderProps = {
   type: ToolUIPart['type'];
   state: ToolUIPart['state'];
   className?: string;
-  output?: ExecuteSqlOutput | ListTablesOutput | GetTableSchemaOutput | FilterStudentsOutput | GetStudentGpaOutput | ReactNode;
+  output?: ExecuteSqlOutput | ListTablesOutput | GetTableSchemaOutput | FilterStudentsOutput | FilterGradesOutput | GetStudentGpaOutput | ReactNode;
   errorText?: ToolUIPart['errorText'];
 };
 
@@ -133,7 +135,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
 );
 
 export type ToolOutputProps = ComponentProps<'div'> & {
-  output: ExecuteSqlOutput | ListTablesOutput | GetTableSchemaOutput | FilterStudentsOutput | GetStudentGpaOutput | ReactNode;
+  output: ExecuteSqlOutput | ListTablesOutput | GetTableSchemaOutput | FilterStudentsOutput | FilterGradesOutput | GetStudentGpaOutput | ReactNode;
   errorText: ToolUIPart['errorText'];
   type?: ToolUIPart['type']; 
 };
@@ -174,6 +176,8 @@ export const ToolOutput = ({
         return <ExecuteSqlOutputComponent output={output as ExecuteSqlOutput} />;
       case 'tool-filter_students':
         return <FilterStudentsOutputComponent output={output as FilterStudentsOutput} />;
+      case 'tool-filter_grades':
+        return <FilterGradesOutputComponent output={output as FilterGradesOutput} />;
       case 'tool-get_student_gpa':
         return <GetStudentGpaOutputComponent output={output as GetStudentGpaOutput} />;
       default:

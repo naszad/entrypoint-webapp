@@ -6,9 +6,10 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 interface UseTableParamsProps {
   onParamsChange?: (params: { filters: FilterValue[], sorting: SortingState, pageNumber: number, pageSize: number }) => void;
   enablePagination?: boolean;
+  mostRecentOnly?: boolean;
 }
 
-export function useTableParams({ onParamsChange, enablePagination = false }: UseTableParamsProps) {
+export function useTableParams({ onParamsChange, enablePagination = false, mostRecentOnly = false }: UseTableParamsProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -247,30 +248,22 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
     const pageParam = searchParams.get('pageNumber');
     const sizeParam = searchParams.get('pageSize');
 
-    // If pageNumber is missing, reset to 1
-    if (!pageParam) {
-      setPageNumber(1);
-    } else {
+    // Only update pageNumber if URL param exists, is valid, and different from current state
+    if (pageParam) {
       const parsed = parseInt(pageParam, 10);
-      if (!isNaN(parsed) && parsed > 0) setPageNumber(parsed);
+      if (!isNaN(parsed) && parsed > 0 && parsed !== pageNumber) {
+        setPageNumber(parsed);
+      }
     }
 
-    // If pageSize is missing, reset to default/localStorage
-    if (!sizeParam) {
-      let defaultSize = 50;
-      if (typeof window !== 'undefined') {
-        const savedPageSize = localStorage.getItem('pagination-pageSize');
-        if (savedPageSize) {
-          const parsedLocal = parseInt(savedPageSize, 10);
-          if (!isNaN(parsedLocal) && parsedLocal > 0) defaultSize = parsedLocal;
-        }
-      }
-      setPageSize(defaultSize);
-    } else {
+    // Only update pageSize if URL param exists, is valid, and different from current state
+    if (sizeParam) {
       const parsed = parseInt(sizeParam, 10);
-      if (!isNaN(parsed) && parsed > 0) setPageSize(parsed);
+      if (!isNaN(parsed) && parsed > 0 && parsed !== pageSize) {
+        setPageSize(parsed);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, pageNumber, pageSize]);
 
   // Update URL and notify parent when params change
   useEffect(() => {
@@ -291,13 +284,14 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
       if (initialLoadRef.current) {
         initialLoadRef.current = false;
       }
-      const newSearchParams = new URLSearchParams();
-      // Copy existing params except filters, sort, pageNumber, pageSize
-      searchParams.forEach((value, key) => {
-        if (key !== 'filters' && key !== 'sort' && key !== 'pageNumber' && key !== 'pageSize') {
-          newSearchParams.set(key, value);
-        }
-      });
+      
+             const newSearchParams = new URLSearchParams();
+       // Copy existing params except filters, sort, pageNumber, pageSize, mostRecentOnly
+       searchParams.forEach((value, key) => {
+         if (key !== 'filters' && key !== 'sort' && key !== 'pageNumber' && key !== 'pageSize' && key !== 'mostRecentOnly') {
+           newSearchParams.set(key, value);
+         }
+       });
       // Add filters
       if (filterValues.length > 0) {
         const filtersString = filterValues
@@ -310,11 +304,15 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
         const { id, desc } = sorting[0];
         newSearchParams.set('sort', `${id}:${desc ? 'desc' : 'asc'}`);
       }
-      // Add pagination only if enabled
-      if (enablePagination) {
-        newSearchParams.set('pageNumber', String(pageNumber));
-        newSearchParams.set('pageSize', String(pageSize));
-      }
+             // Add pagination only if enabled
+       if (enablePagination) {
+         newSearchParams.set('pageNumber', String(pageNumber));
+         newSearchParams.set('pageSize', String(pageSize));
+       }
+       // Add mostRecentOnly if true
+       if (mostRecentOnly) {
+         newSearchParams.set('mostRecentOnly', 'true');
+       }
       const newQuery = newSearchParams.toString();
       const currentQuery = searchParams.toString();
       // Only update URL if it's actually different
@@ -323,7 +321,7 @@ export function useTableParams({ onParamsChange, enablePagination = false }: Use
         router.replace(newUrl);
       }
     }
-  }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination, compareParams]);
+     }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination, mostRecentOnly, compareParams]);
 
   // Filter handlers
   const handleFilterClick = (columnId: string, event: React.MouseEvent) => {

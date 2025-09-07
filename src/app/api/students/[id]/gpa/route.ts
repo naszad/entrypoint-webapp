@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/supabaseServer';
+import { fetchConfig } from '@/libs/configService';
 import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -13,10 +14,13 @@ export async function GET(
   const searchParams = req.nextUrl.searchParams;
   const method = searchParams.get('method');
   const bulk = searchParams.get('bulk') === 'true';
-
+  const finalOnly = searchParams.get('finalOnly') === 'true';
+  const userId = searchParams.get('userId') || null;
   if (!studentId) {
     return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
   }
+
+  const confg = await fetchConfig({userId: userId || undefined, configKeys: ['final_grade_codes', 'grade_code_sort']});
 
   // Get school-specific default method
   let resolvedMethod = method;
@@ -51,7 +55,10 @@ export async function GET(
   try {
     if (bulk) {
       // Return comprehensive GPA data in one response
-      return await getBulkGpaData(supabase, studentId, resolvedMethod, searchParams);
+      return await getBulkGpaData(supabase, studentId, resolvedMethod, searchParams, confg);
+    } else if (finalOnly) {
+      // Return final terms GPA data
+      return await getFinalTermsGpaData(supabase, studentId, userId, confg);
     } else {
       // Single GPA calculation (legacy support)
       return await getSingleGpa(supabase, studentId, resolvedMethod, searchParams);
@@ -66,13 +73,16 @@ async function getBulkGpaData(
   supabase: SupabaseClient, 
   studentId: string, 
   method: string,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  confg: { [key: string]: string[] }
 ) {
   // Allow customization via search params, default to all relevant codes
-  const defaultGradeCodes = [...ALL_GRADE_CODES];
+
+  const finalGradeCodes = confg['final_grade_codes'] ? confg['final_grade_codes'] : [...FINALIZED_GRADE_CODES];
+  const allGradeCodes = confg['grade_code_sort'] ? confg['grade_code_sort'] : [...ALL_GRADE_CODES];
   const gradeCodesParam = searchParams.get('gradeCodes');
-  const gradeCodes = gradeCodesParam?.split(',').map(s => s.trim()).filter(Boolean) || defaultGradeCodes;
-  
+  const gradeCodes = gradeCodesParam?.split(',').map(s => s.trim()).filter(Boolean) || allGradeCodes;
+
   // Parse grade levels filter
   const gradeLevelsParam = searchParams.get('gradeLevels');
   const gradeLevels = gradeLevelsParam
@@ -123,7 +133,7 @@ async function getBulkGpaData(
     .from('student_grades')
     .select('credit_type')
     .eq('student_id', studentId)
-    .in('grade_code', FINALIZED_GRADE_CODES)
+    .in('grade_code', finalGradeCodes as string[])
     .not('credit_type', 'is', null);
   
   const creditTypes = [...new Set(creditTypesData?.map((ct: { credit_type: string }) => ct.credit_type) || [])];
@@ -134,7 +144,7 @@ async function getBulkGpaData(
     supabase.rpc('calculate_gpa_dispatch', {
       p_student_id: studentId,
       p_method: method,
-      p_grade_codes: FINALIZED_GRADE_CODES,
+      p_grade_codes: finalGradeCodes,
       p_credit_types: null,
       p_year_labels: null, // All years
       p_grade_levels: gradeLevels,
@@ -155,7 +165,7 @@ async function getBulkGpaData(
       supabase.rpc('calculate_gpa_dispatch', {
         p_student_id: studentId,
         p_method: method,
-        p_grade_codes: FINALIZED_GRADE_CODES,
+        p_grade_codes: finalGradeCodes,
         p_credit_types: [creditType],
         p_year_labels: null, // All years
         p_grade_levels: gradeLevels,
@@ -164,7 +174,7 @@ async function getBulkGpaData(
     
     // Individual gradecode GPAs for each year
     ...allYearNames.flatMap(yearName => 
-      gradeCodes.map(code => 
+      gradeCodes.map((code: string) => 
         supabase.rpc('calculate_gpa_dispatch', {
           p_student_id: studentId,
           p_method: method,
@@ -178,12 +188,6 @@ async function getBulkGpaData(
   ];
 
   const results = await Promise.all(gpaPromises);
-  
-  console.log('Bulk GPA calculation results for student:', studentId);
-  console.log('Method:', method);
-  console.log('All years:', allYearNames);
-  console.log('Credit types:', creditTypes);
-  console.log('Results count:', results.length);
   
   // Round cumulative and current year GPAs to 2 decimals
   const cumulativeRaw = results[0].data;
@@ -211,7 +215,7 @@ async function getBulkGpaData(
   let resultIndex = 2 + creditTypes.length;
   allYearNames.forEach(yearName => {
     response.byYearAndGradeCode[yearName] = {};
-    gradeCodes.forEach(code => {
+    gradeCodes.forEach((code: string) => {
       const result = results[resultIndex++];
       if (!result.error && result.data !== null) {
         const raw = result.data as number;
@@ -257,11 +261,6 @@ async function getSingleGpa(
     p_grade_levels: gradeLevels,
   });
 
-  console.log('Single GPA calculation for student:', studentId);
-  console.log('Method:', method);
-  console.log('Parameters:', { gradeCodes, creditTypes, yearLabels });
-  console.log('Result:', { data, error });
-
   if (error) {
     throw error;
   }
@@ -271,3 +270,31 @@ async function getSingleGpa(
   const roundedGpa = typeof rawGpa === 'number' ? Number(rawGpa.toFixed(2)) : rawGpa;
   return NextResponse.json({ gpa: roundedGpa, method });
 } 
+
+async function getFinalTermsGpaData(
+  supabase: SupabaseClient, 
+  studentId: string, 
+  userId: string | null,
+  confg: { [key: string]: string[] }
+) {
+
+  const gradeCodes: string[] = confg['final_grade_codes'] ? confg['final_grade_codes'] : [...FINALIZED_GRADE_CODES];
+
+  const { data, error } = await supabase.rpc('get_last_n_years_final_terms_gpa', {
+    p_student_id: studentId,
+    p_n: 3,
+    p_grade_codes: gradeCodes,
+  });
+  
+  if (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to calculate final terms GPAs' }, { status: 500 });
+  }
+
+  const finalTermsGpas = data.map((row: { year_name: string; grade_code: string; gpa: number }) => ({
+    term: `${row.year_name} ${row.grade_code}`,
+    gpa: row.gpa,
+  }));
+
+  return NextResponse.json({ finalTermsGpas });
+}

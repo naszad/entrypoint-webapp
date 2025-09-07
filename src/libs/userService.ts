@@ -21,6 +21,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
       last_name,
       email,
       image_url,
+      eula_agree_timestamp,
       user_school_memberships(
         role,
         schools(
@@ -45,11 +46,14 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
     lastName: data.last_name,
     email: data.email,
     imageUrl: data.image_url,
+    eulaAgreeTimestamp: data.eula_agree_timestamp,
     isMultiSchoolUser: userSchoolMemberships.length > 1,
-    schools: userSchoolMemberships.map((membership) => ({
-      schoolId: membership.schools.school_id,
-      name: membership.schools.name,
-    })),
+    schools: userSchoolMemberships
+      .filter((membership) => membership.schools !== null)
+      .map((membership) => ({
+        schoolId: membership.schools.school_id,
+        name: membership.schools.name,
+      })),
   };
 
   return userProfile;

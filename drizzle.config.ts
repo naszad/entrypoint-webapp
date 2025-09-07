@@ -3,30 +3,24 @@ import dotenv from "dotenv";
 
 type Environment = 'local' | 'development' | 'production' | 'test';
 const env = (process.env.NODE_ENV || 'local') as Environment;
-const envFile = `.env.${env}`;
 
+let envFile = `.env.${env}`;
 let ssl = true;
+
 if(env === 'local') {
   ssl = false;
-}
+  envFile = `.env.local`;
+} 
 
 console.log('Using environment:', env);
 
 dotenv.config({ path: envFile });
-
-const databaseUrl = process.env.DATABASE_URL!;
-const { hostname, port, username, password, pathname } = new URL(databaseUrl);
 
 export default defineConfig({
   schema: './src/models/**/*.ts',
   out: './migrations',
   dialect: "postgresql",
   dbCredentials: {
-    host: hostname,
-    port: Number(port),
-    user: username,
-    password: password,
-    database: pathname.slice(1),
-    ssl: ssl
+    url: process.env.DATABASE_URL!,
   },
 });

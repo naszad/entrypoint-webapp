@@ -42,3 +42,5 @@ export const configuration = configSchema.table("configuration", {
     sql`${t.userId} IS NOT NULL`
   ),
 ]);
+
+export type Configuration = typeof configuration.$inferSelect;

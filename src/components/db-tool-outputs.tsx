@@ -20,6 +20,7 @@ import type {
   FilterStudentsOutput,
   GetStudentGpaOutput,
   TableSchema,
+  FilterGradesOutput,
 } from '@/types/ChatToolTypes';
 
 // Component for displaying list of tables
@@ -216,6 +217,38 @@ export const FilterStudentsOutputComponent = ({
         >
           <ExternalLinkIcon className="size-4 mr-2" />
           View Filtered Students
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Component for displaying filter grades results
+
+export const FilterGradesOutputComponent = ({ 
+  output, 
+  className 
+}: { 
+  output: FilterGradesOutput; 
+  className?: string; 
+}) => {
+  const router = useRouter();
+
+  return (
+    <div className={cn('space-y-3', className)}>
+      <div className="flex items-center gap-2">
+        <FilterIcon className="size-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Grades Filter Applied</span>
+      </div>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">{output.description}</p>
+        <Button 
+          onClick={() => router.push(output.url)}
+          className="w-full"
+          variant="default"
+        >
+          <ExternalLinkIcon className="size-4 mr-2" />
+          View Filtered Grades
         </Button>
       </div>
     </div>

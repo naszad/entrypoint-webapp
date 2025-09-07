@@ -1,6 +1,6 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import { FilterStudentsResult, FiltersApplied } from '@/types/ChatToolTypes'
+import { FilterResult, StudentsFiltersApplied } from '@/types/ChatToolTypes'
 import type { FilterStudentsInput, FilterStudentsOutput } from '@/types/ChatToolTypes';
 
 /**
@@ -8,7 +8,7 @@ import type { FilterStudentsInput, FilterStudentsOutput } from '@/types/ChatTool
  * @param filters - The filters that have been applied
  * @returns A string description of the filters, truncated if too long
  */
-const generateFilterDescription = (filters?: FiltersApplied): string => {
+const generateFilterDescription = (filters?: StudentsFiltersApplied): string => {
   if (!filters || Object.keys(filters).length === 0) {
     return 'View All Students';
   }
@@ -182,7 +182,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       url,
       filtersApplied: parsedFilters,
       description,
-    } as FilterStudentsResult
+    } as FilterResult;
   }
 })
 

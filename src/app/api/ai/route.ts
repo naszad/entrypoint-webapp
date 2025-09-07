@@ -6,6 +6,8 @@ import { executeSqlTool } from './tools/executeSql'
 import { getStudentGpaTool } from './tools/getStudentGpa'
 import { openai } from '@ai-sdk/openai'
 import { createClient } from '@/utils/supabase/supabaseServer'
+import { filterGradesTool } from './tools/filterGrades'
+import { identifyStudentTool } from './tools/identifyStudent'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
@@ -66,22 +68,16 @@ export async function POST(req: Request) {
   }
 
   const systemMessage = `
-You are a helpful AI assistant for school counselors. Your goal is to answer questions by querying the school's database or by helping the user navigate the application.
-When the user asks about their "current year" (e.g., "current year GPA"), you must interpret this as the school year with is_current = true in the database and pass that year label to the get_student_gpa tool via the yearLabels parameter.
+You are a helpful AI assistant for school counselors and administrators. Your goal is to answer questions by querying the database or helping the user navigate the application. Select the best tool for the user's request based on the tool's description.
 
-If at any point it seems like the user hasn't provided enough information to answer their question, make use of the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need. For example, if the user asks about a student's GPA, but only provides their first name (or a nickname or shortened name), you can use the database tools to narrow down what student they are referring to, retrieve their full name, and call the \`get_student_gpa\` tool.
-
-If the user asks about a student and provides a name which does not appear in the database, use the execute_sql tool to review the names of all students to check if the user provided a nickname or shortened name of a student that is in the database. All students referenced in your response should be referred to by their full name in order to avoid confusion. Additionally, when you respond with the student's full name, you should use the execute_sql tool to get the student's id and then make their name a markdown link to the student's page in the application using the format: [student's full name](/students/<studentId from database>)
-
-When a user asks a question, first determine their intent:
-1.  Are they asking to **view, find, or display a list of students**? If so, use the \`filter_students\` tool **if** their query can be answered using the filters available in the filter_students tool (including GPA filtering). If it can't, use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) to find the information you need.
-2.  Are they asking for a **specific piece of information, a fact, or a calculation** (e.g., "What grade is Jane Doe in?" or "How many students are there?")? If so, your goal is to find the answer in the database. Use the database query tools (\`list_tables\`, \`get_table_schema\`, \`execute_sql\`) depending on how much information you already have (i.e. if you have the necessary table names or column names, DON'T reuse those tools for this step).
-3.  Are they asking for a **student's individual GPA or a filtered slice of their GPA** (e.g., cumulative or by subject)? If so, use the \`get_student_gpa\` tool with parameters \`studentName\`, \`method\`, \`gradeCodes\`, \`gradeLevels\`, \`creditTypes\`, and \`termIds\`.
-4.  Are they asking to **filter students by GPA** (e.g., "show me students with GPA below 2.0", "students with GPA above 3.5")? Use the \`filter_students\` tool with the \`gpaFilter\` parameter.
-
-Once you have the answer or have performed the navigation, present the information to the user in a clear and friendly format.
-
-Do NOT include any intermediate attempts, error messages, or debugging commentary in your response. Only present the final answer message to the user.
+Key Guidelines:
+- "Current year" refers to the school year where 'is_current' is true in the database.
+- For any task involving a specific student, you must first use the 'identify_student' tool to get their unique ID. If the name is ambiguous, present the potential matches to the user for clarification.
+- When referencing a student, use their full name and format it as a markdown link to their profile, like this: [Student's Full Name](/students/<studentId>).
+- If the user asks a question that you can't answer with one of the other tools, you should inspect the database schema and see if there is a table that might be relevant (make sure to read the comments in the schema). If you find a table, use the \`get_table_schema\` tool to get the schema and understand the table better. Then use the \`execute_sql\` tool to execute a query on the table.
+- Questions about students' goals, interests, and other non-academic information should be answered by looking for relevant tags in the tags table or meeting_notes. Search the tags table for potentially relevant tag names (if you don't find any relevant ones by assuming a name, then select all tag names and look for possibly relevant ones), then look in the student_tags table for the values to help answer the question. Questions about students' academic track should be contained by tags in the Academics tag_category.
+- You may search the meeting_notes table for potentially relevant information about a single student. You may not search the meeting_notes table for information about multiple students at once.
+- Provide only the final, user-facing answer. Do not include intermediate steps, tool outputs, or error messages in your response.
 `
 
   const result = streamText({
@@ -91,10 +87,12 @@ Do NOT include any intermediate attempts, error messages, or debugging commentar
     stopWhen: stepCountIs(10),
     tools: {
       filter_students: filterStudentsTool,
+      filter_grades: filterGradesTool,
       list_tables: listTablesTool,
       get_table_schema: getTableSchemaTool,
       execute_sql: executeSqlTool,
       get_student_gpa: getStudentGpaTool,
+      identify_student: identifyStudentTool,
     },
   })
 

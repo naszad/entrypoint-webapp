@@ -1,0 +1,2632 @@
+{
+  "id": "f2b97611-3fc3-4683-8680-f4765c869333",
+  "prevId": "8b0da893-7c8a-4c8b-8f10-99103249c5ab",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "config.configuration": {
+      "name": "configuration",
+      "schema": "config",
+      "columns": {
+        "config_id": {
+          "name": "config_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "config_key": {
+          "name": "config_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_secret": {
+          "name": "is_secret",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_lookup": {
+          "name": "idx_lookup",
+          "columns": [
+            {
+              "expression": "config_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "school_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "uniq_global_config": {
+          "name": "uniq_global_config",
+          "columns": [
+            {
+              "expression": "config_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"config\".\"configuration\".\"customer_id\" IS NULL AND \"config\".\"configuration\".\"school_id\" IS NULL AND \"config\".\"configuration\".\"user_id\" IS NULL",
+          "concurrently": false
+        },
+        "uniq_customer_config": {
+          "name": "uniq_customer_config",
+          "columns": [
+            {
+              "expression": "config_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"config\".\"configuration\".\"customer_id\" IS NOT NULL AND \"config\".\"configuration\".\"school_id\" IS NULL AND \"config\".\"configuration\".\"user_id\" IS NULL",
+          "concurrently": false
+        },
+        "uniq_school_config": {
+          "name": "uniq_school_config",
+          "columns": [
+            {
+              "expression": "config_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "school_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"config\".\"configuration\".\"school_id\" IS NOT NULL AND \"config\".\"configuration\".\"user_id\" IS NULL",
+          "concurrently": false
+        },
+        "uniq_user_config": {
+          "name": "uniq_user_config",
+          "columns": [
+            {
+              "expression": "config_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"config\".\"configuration\".\"user_id\" IS NOT NULL",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "configuration_customer_id_customers_customer_id_fk": {
+          "name": "configuration_customer_id_customers_customer_id_fk",
+          "tableFrom": "configuration",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "configuration_school_id_schools_school_id_fk": {
+          "name": "configuration_school_id_schools_school_id_fk",
+          "tableFrom": "configuration",
+          "columnsFrom": [
+            "school_id"
+          ],
+          "tableTo": "schools",
+          "columnsTo": [
+            "school_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "configuration_user_id_users_user_id_fk": {
+          "name": "configuration_user_id_users_user_id_fk",
+          "tableFrom": "configuration",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_single_scope": {
+          "name": "chk_single_scope",
+          "value": "\n    (\"config\".\"configuration\".\"customer_id\" IS NOT NULL)::int + \n    (\"config\".\"configuration\".\"school_id\" IS NOT NULL)::int + \n    (\"config\".\"configuration\".\"user_id\" IS NOT NULL)::int <= 1\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.courses": {
+      "name": "courses",
+      "schema": "",
+      "columns": {
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "external_source": {
+          "name": "external_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Powerschool'"
+        },
+        "external_name": {
+          "name": "external_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key": {
+          "name": "external_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "local_course_code": {
+          "name": "local_course_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state_course_code": {
+          "name": "state_course_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "courses_school_id_schools_school_id_fk": {
+          "name": "courses_school_id_schools_school_id_fk",
+          "tableFrom": "courses",
+          "columnsFrom": [
+            "school_id"
+          ],
+          "tableTo": "schools",
+          "columnsTo": [
+            "school_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "courses_customer_id_customers_customer_id_fk": {
+          "name": "courses_customer_id_customers_customer_id_fk",
+          "tableFrom": "courses",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "courses_external_key_unique": {
+          "name": "courses_external_key_unique",
+          "columns": [
+            "external_key"
+          ],
+          "nullsNotDistinct": false
+        },
+        "courses_external_key_hash_unique": {
+          "name": "courses_external_key_hash_unique",
+          "columns": [
+            "external_key_hash"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "Allow Reading of Courses": {
+          "name": "Allow Reading of Courses",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      EXISTS (\n        SELECT 1\n        FROM\n          user_school_memberships usm\n          CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context\n        WHERE\n          usm.user_id = auth.uid() AND\n          usm.school_id = \"courses\".\"school_id\" AND\n          (\n            app_context.current_school_id IS NULL OR\n            usm.school_id = app_context.current_school_id\n          )\n      )\n    "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.customers": {
+      "name": "customers",
+      "schema": "",
+      "columns": {
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "customers_name_unique": {
+          "name": "customers_name_unique",
+          "columns": [
+            "name"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.meeting_notes": {
+      "name": "meeting_notes",
+      "schema": "",
+      "columns": {
+        "meeting_note_id": {
+          "name": "meeting_note_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "update_log": {
+          "name": "update_log",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "private": {
+          "name": "private",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "transcript": {
+          "name": "transcript",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "created_by",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "meeting_notes_user_id_users_user_id_fk": {
+          "name": "meeting_notes_user_id_users_user_id_fk",
+          "tableFrom": "meeting_notes",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "meeting_notes_student_id_students_student_id_fk": {
+          "name": "meeting_notes_student_id_students_student_id_fk",
+          "tableFrom": "meeting_notes",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "tableTo": "students",
+          "columnsTo": [
+            "student_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "Allow Access to Own Notes": {
+          "name": "Allow Access to Own Notes",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Access to Non-Private Notes for Students in User Schools": {
+          "name": "Allow Access to Non-Private Notes for Students in User Schools",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"private\" = false\n      AND EXISTS (\n        SELECT 1\n        FROM user_school_memberships AS usm\n        JOIN school_student_link AS ssl\n          ON usm.school_id = ssl.school_id\n        WHERE usm.user_id = auth.uid()\n          AND ssl.student_id = \"meeting_notes\".\"student_id\"\n      )\n    "
+        },
+        "Allow Insert Own Notes": {
+          "name": "Allow Insert Own Notes",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Update Own Notes": {
+          "name": "Allow Update Own Notes",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    ",
+          "withCheck": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        },
+        "Allow Delete Own Notes": {
+          "name": "Allow Delete Own Notes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      \"meeting_notes\".\"user_id\" = auth.uid()\n    "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reports": {
+      "name": "reports",
+      "schema": "",
+      "columns": {
+        "report_id": {
+          "name": "report_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "page_name": {
+          "name": "page_name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "params": {
+          "name": "params",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reports_user_id_users_user_id_fk": {
+          "name": "reports_user_id_users_user_id_fk",
+          "tableFrom": "reports",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.schools": {
+      "name": "schools",
+      "schema": "",
+      "columns": {
+        "school_id": {
+          "name": "school_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "school_number": {
+          "name": "school_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "principal_name": {
+          "name": "principal_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "principal_email": {
+          "name": "principal_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assistant_principal_name": {
+          "name": "assistant_principal_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assistant_principal_email": {
+          "name": "assistant_principal_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_source": {
+          "name": "external_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Powerschool'"
+        },
+        "external_name": {
+          "name": "external_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key": {
+          "name": "external_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gpa_config": {
+          "name": "gpa_config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "schools_customer_id_customers_customer_id_fk": {
+          "name": "schools_customer_id_customers_customer_id_fk",
+          "tableFrom": "schools",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "schools_external_key_unique": {
+          "name": "schools_external_key_unique",
+          "columns": [
+            "external_key"
+          ],
+          "nullsNotDistinct": false
+        },
+        "schools_external_key_hash_unique": {
+          "name": "schools_external_key_hash_unique",
+          "columns": [
+            "external_key_hash"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "Allow Reading of Schools": {
+          "name": "Allow Reading of Schools",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      EXISTS (\n        SELECT 1 FROM user_school_memberships usm\n        WHERE usm.user_id = auth.uid()\n        AND usm.school_id = \"schools\".\"school_id\"\n      )\n    "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.section_enrollments": {
+      "name": "section_enrollments",
+      "schema": "",
+      "columns": {
+        "section_enrollment_id": {
+          "name": "section_enrollment_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "term_id": {
+          "name": "term_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "absences": {
+          "name": "absences",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "tardies": {
+          "name": "tardies",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "transaction_date": {
+          "name": "transaction_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_source": {
+          "name": "external_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Powerschool'"
+        },
+        "external_name": {
+          "name": "external_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key": {
+          "name": "external_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "section_enrollments_section_id_sections_section_id_fk": {
+          "name": "section_enrollments_section_id_sections_section_id_fk",
+          "tableFrom": "section_enrollments",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "tableTo": "sections",
+          "columnsTo": [
+            "section_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "section_enrollments_student_id_students_student_id_fk": {
+          "name": "section_enrollments_student_id_students_student_id_fk",
+          "tableFrom": "section_enrollments",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "tableTo": "students",
+          "columnsTo": [
+            "student_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "section_enrollments_term_id_terms_term_id_fk": {
+          "name": "section_enrollments_term_id_terms_term_id_fk",
+          "tableFrom": "section_enrollments",
+          "columnsFrom": [
+            "term_id"
+          ],
+          "tableTo": "terms",
+          "columnsTo": [
+            "term_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "section_enrollments_customer_id_customers_customer_id_fk": {
+          "name": "section_enrollments_customer_id_customers_customer_id_fk",
+          "tableFrom": "section_enrollments",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "section_enrollments_external_key_unique": {
+          "name": "section_enrollments_external_key_unique",
+          "columns": [
+            "external_key"
+          ],
+          "nullsNotDistinct": false
+        },
+        "section_enrollments_external_key_hash_unique": {
+          "name": "section_enrollments_external_key_hash_unique",
+          "columns": [
+            "external_key_hash"
+          ],
+          "nullsNotDistinct": false
+        },
+        "section_enrollments_student_id_section_id_term_id_unique": {
+          "name": "section_enrollments_student_id_section_id_term_id_unique",
+          "columns": [
+            "student_id",
+            "section_id",
+            "term_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "Allow Reading of Section Enrollments": {
+          "name": "Allow Reading of Section Enrollments",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n        EXISTS (\n            SELECT 1\n            FROM sections s\n            JOIN courses c ON s.course_id = c.course_id\n            JOIN user_school_memberships usm ON usm.school_id = c.school_id\n            CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context\n            WHERE s.section_id = \"section_enrollments\".\"section_id\"\n            AND usm.user_id = auth.uid()\n            AND (\n                app_context.current_school_id IS NULL OR\n                c.school_id = app_context.current_school_id\n            )\n        )\n        "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sections": {
+      "name": "sections",
+      "schema": "",
+      "columns": {
+        "section_id": {
+          "name": "section_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "no_of_students": {
+          "name": "no_of_students",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "section_number": {
+          "name": "section_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "course_number": {
+          "name": "course_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade_level": {
+          "name": "grade_level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_date": {
+          "name": "transaction_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_source": {
+          "name": "external_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Powerschool'"
+        },
+        "external_name": {
+          "name": "external_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key": {
+          "name": "external_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sections_course_id_courses_course_id_fk": {
+          "name": "sections_course_id_courses_course_id_fk",
+          "tableFrom": "sections",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "tableTo": "courses",
+          "columnsTo": [
+            "course_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "sections_customer_id_customers_customer_id_fk": {
+          "name": "sections_customer_id_customers_customer_id_fk",
+          "tableFrom": "sections",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sections_external_key_unique": {
+          "name": "sections_external_key_unique",
+          "columns": [
+            "external_key"
+          ],
+          "nullsNotDistinct": false
+        },
+        "sections_external_key_hash_unique": {
+          "name": "sections_external_key_hash_unique",
+          "columns": [
+            "external_key_hash"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "Allow Reading of Sections": {
+          "name": "Allow Reading of Sections",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      EXISTS (\n        SELECT 1\n        FROM courses c\n        JOIN user_school_memberships usm ON usm.school_id = c.school_id\n        CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context\n        WHERE c.course_id = \"sections\".\"course_id\"\n          AND usm.user_id = auth.uid()\n          AND (\n            app_context.current_school_id IS NULL OR\n            c.school_id = app_context.current_school_id\n          )\n      )\n    "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.student_grades": {
+      "name": "student_grades",
+      "schema": "",
+      "columns": {
+        "grade_id": {
+          "name": "grade_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "term_id": {
+          "name": "term_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade_letter": {
+          "name": "grade_letter",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grade_code": {
+          "name": "grade_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade_percent": {
+          "name": "grade_percent",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gpa_points": {
+          "name": "gpa_points",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "credit_hours_earned": {
+          "name": "credit_hours_earned",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "potential_credit_hours": {
+          "name": "potential_credit_hours",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gpa_added_value": {
+          "name": "gpa_added_value",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exclude_from_gpa": {
+          "name": "exclude_from_gpa",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "credit_type": {
+          "name": "credit_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grade_status": {
+          "name": "grade_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment": {
+          "name": "comment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grade_level": {
+          "name": "grade_level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_api": {
+          "name": "source_api",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_updated_date": {
+          "name": "source_updated_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_source": {
+          "name": "external_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Powerschool'"
+        },
+        "external_name": {
+          "name": "external_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key": {
+          "name": "external_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "student_grades_student_id_students_student_id_fk": {
+          "name": "student_grades_student_id_students_student_id_fk",
+          "tableFrom": "student_grades",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "tableTo": "students",
+          "columnsTo": [
+            "student_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "student_grades_section_id_sections_section_id_fk": {
+          "name": "student_grades_section_id_sections_section_id_fk",
+          "tableFrom": "student_grades",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "tableTo": "sections",
+          "columnsTo": [
+            "section_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "student_grades_term_id_terms_term_id_fk": {
+          "name": "student_grades_term_id_terms_term_id_fk",
+          "tableFrom": "student_grades",
+          "columnsFrom": [
+            "term_id"
+          ],
+          "tableTo": "terms",
+          "columnsTo": [
+            "term_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "student_grades_course_id_courses_course_id_fk": {
+          "name": "student_grades_course_id_courses_course_id_fk",
+          "tableFrom": "student_grades",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "tableTo": "courses",
+          "columnsTo": [
+            "course_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "student_grades_customer_id_customers_customer_id_fk": {
+          "name": "student_grades_customer_id_customers_customer_id_fk",
+          "tableFrom": "student_grades",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "student_grades_external_key_unique": {
+          "name": "student_grades_external_key_unique",
+          "columns": [
+            "external_key"
+          ],
+          "nullsNotDistinct": false
+        },
+        "student_grades_external_key_hash_unique": {
+          "name": "student_grades_external_key_hash_unique",
+          "columns": [
+            "external_key_hash"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "Allow Reading of Student Grades": {
+          "name": "Allow Reading of Student Grades",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      EXISTS (\n        SELECT 1\n        FROM sections s\n        JOIN courses c ON s.course_id = c.course_id\n        JOIN user_school_memberships usm ON usm.school_id = c.school_id\n        CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context\n        WHERE s.section_id = \"student_grades\".\"section_id\"\n          AND usm.user_id = auth.uid()\n          AND (\n            app_context.current_school_id IS NULL OR\n            c.school_id = app_context.current_school_id\n          )\n      )\n    "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.students": {
+      "name": "students",
+      "schema": "",
+      "columns": {
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "middle_name": {
+          "name": "middle_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grade_level": {
+          "name": "grade_level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gender": {
+          "name": "gender",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_of_birth": {
+          "name": "date_of_birth",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "graduation_year": {
+          "name": "graduation_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enrollment_status": {
+          "name": "enrollment_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "homeroom_name": {
+          "name": "homeroom_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_source": {
+          "name": "external_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Powerschool'"
+        },
+        "external_name": {
+          "name": "external_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key": {
+          "name": "external_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "students_customer_id_customers_customer_id_fk": {
+          "name": "students_customer_id_customers_customer_id_fk",
+          "tableFrom": "students",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "students_external_key_unique": {
+          "name": "students_external_key_unique",
+          "columns": [
+            "external_key"
+          ],
+          "nullsNotDistinct": false
+        },
+        "students_external_key_hash_unique": {
+          "name": "students_external_key_hash_unique",
+          "columns": [
+            "external_key_hash"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "Allow Reading of Students": {
+          "name": "Allow Reading of Students",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n        EXISTS (\n          SELECT 1\n          FROM user_school_memberships AS usm\n          JOIN school_student_link       AS ssl\n            ON usm.school_id = ssl.school_id\n          WHERE usm.user_id = auth.uid()\n            AND ssl.student_id = \"students\".\"student_id\"\n        )\n      "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.school_student_link": {
+      "name": "school_student_link",
+      "schema": "",
+      "columns": {
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "school_student_link_student_id_students_student_id_fk": {
+          "name": "school_student_link_student_id_students_student_id_fk",
+          "tableFrom": "school_student_link",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "tableTo": "students",
+          "columnsTo": [
+            "student_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "school_student_link_school_id_schools_school_id_fk": {
+          "name": "school_student_link_school_id_schools_school_id_fk",
+          "tableFrom": "school_student_link",
+          "columnsFrom": [
+            "school_id"
+          ],
+          "tableTo": "schools",
+          "columnsTo": [
+            "school_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "school_student_link_student_id_school_id_pk": {
+          "name": "school_student_link_student_id_school_id_pk",
+          "columns": [
+            "student_id",
+            "school_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "Allow Reading of Student School Links": {
+          "name": "Allow Reading of Student School Links",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT 1\n            FROM\n              user_school_memberships usm\n              CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context\n            WHERE\n              usm.user_id = auth.uid() AND\n              usm.school_id = \"school_student_link\".\"school_id\" AND\n              (\n                app_context.current_school_id IS NULL OR\n                usm.school_id = app_context.current_school_id\n              )\n          )\n        "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.student_tags": {
+      "name": "student_tags",
+      "schema": "",
+      "columns": {
+        "student_tag_id": {
+          "name": "student_tag_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "canonical_value_id": {
+          "name": "canonical_value_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by_user_id": {
+          "name": "updated_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "student_tags_student_id_students_student_id_fk": {
+          "name": "student_tags_student_id_students_student_id_fk",
+          "tableFrom": "student_tags",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "tableTo": "students",
+          "columnsTo": [
+            "student_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "student_tags_tag_id_tags_tag_id_fk": {
+          "name": "student_tags_tag_id_tags_tag_id_fk",
+          "tableFrom": "student_tags",
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "tableTo": "tags",
+          "columnsTo": [
+            "tag_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "student_tags_canonical_value_id_tag_canonical_values_tag_canonical_value_id_fk": {
+          "name": "student_tags_canonical_value_id_tag_canonical_values_tag_canonical_value_id_fk",
+          "tableFrom": "student_tags",
+          "columnsFrom": [
+            "canonical_value_id"
+          ],
+          "tableTo": "tag_canonical_values",
+          "columnsTo": [
+            "tag_canonical_value_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "student_tags_created_by_user_id_users_user_id_fk": {
+          "name": "student_tags_created_by_user_id_users_user_id_fk",
+          "tableFrom": "student_tags",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "student_tags_updated_by_user_id_users_user_id_fk": {
+          "name": "student_tags_updated_by_user_id_users_user_id_fk",
+          "tableFrom": "student_tags",
+          "columnsFrom": [
+            "updated_by_user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "student_tags_student_id_tag_id_value_unique": {
+          "name": "student_tags_student_id_tag_id_value_unique",
+          "columns": [
+            "student_id",
+            "tag_id",
+            "value"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tag_canonical_values": {
+      "name": "tag_canonical_values",
+      "schema": "",
+      "columns": {
+        "tag_canonical_value_id": {
+          "name": "tag_canonical_value_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "search_key_words": {
+          "name": "search_key_words",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by_user_id": {
+          "name": "updated_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tag_canonical_values_tag_id_tags_tag_id_fk": {
+          "name": "tag_canonical_values_tag_id_tags_tag_id_fk",
+          "tableFrom": "tag_canonical_values",
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "tableTo": "tags",
+          "columnsTo": [
+            "tag_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "tag_canonical_values_created_by_user_id_users_user_id_fk": {
+          "name": "tag_canonical_values_created_by_user_id_users_user_id_fk",
+          "tableFrom": "tag_canonical_values",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "tag_canonical_values_updated_by_user_id_users_user_id_fk": {
+          "name": "tag_canonical_values_updated_by_user_id_users_user_id_fk",
+          "tableFrom": "tag_canonical_values",
+          "columnsFrom": [
+            "updated_by_user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tag_canonical_values_tag_id_value_unique": {
+          "name": "tag_canonical_values_tag_id_value_unique",
+          "columns": [
+            "tag_id",
+            "value"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tag_categories": {
+      "name": "tag_categories",
+      "schema": "",
+      "columns": {
+        "tag_category_id": {
+          "name": "tag_category_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tag_categories_name_unique": {
+          "name": "tag_categories_name_unique",
+          "columns": [
+            "name"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tags": {
+      "name": "tags",
+      "schema": "",
+      "columns": {
+        "tag_id": {
+          "name": "tag_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tag_category_id": {
+          "name": "tag_category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_multi_value": {
+          "name": "is_multi_value",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by_user_id": {
+          "name": "updated_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tags_tag_category_id_tag_categories_tag_category_id_fk": {
+          "name": "tags_tag_category_id_tag_categories_tag_category_id_fk",
+          "tableFrom": "tags",
+          "columnsFrom": [
+            "tag_category_id"
+          ],
+          "tableTo": "tag_categories",
+          "columnsTo": [
+            "tag_category_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "tags_customer_id_customers_customer_id_fk": {
+          "name": "tags_customer_id_customers_customer_id_fk",
+          "tableFrom": "tags",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "tags_created_by_user_id_users_user_id_fk": {
+          "name": "tags_created_by_user_id_users_user_id_fk",
+          "tableFrom": "tags",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "tags_updated_by_user_id_users_user_id_fk": {
+          "name": "tags_updated_by_user_id_users_user_id_fk",
+          "tableFrom": "tags",
+          "columnsFrom": [
+            "updated_by_user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tags_tag_category_id_customer_id_name_unique": {
+          "name": "tags_tag_category_id_customer_id_name_unique",
+          "columns": [
+            "tag_category_id",
+            "customer_id",
+            "name"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.terms": {
+      "name": "terms",
+      "schema": "",
+      "columns": {
+        "term_id": {
+          "name": "term_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "abbreviation": {
+          "name": "abbreviation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year_id": {
+          "name": "year_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_source": {
+          "name": "external_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Powerschool'"
+        },
+        "external_name": {
+          "name": "external_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key": {
+          "name": "external_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_key_hash": {
+          "name": "external_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "terms_school_id_schools_school_id_fk": {
+          "name": "terms_school_id_schools_school_id_fk",
+          "tableFrom": "terms",
+          "columnsFrom": [
+            "school_id"
+          ],
+          "tableTo": "schools",
+          "columnsTo": [
+            "school_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "terms_year_id_years_year_id_fk": {
+          "name": "terms_year_id_years_year_id_fk",
+          "tableFrom": "terms",
+          "columnsFrom": [
+            "year_id"
+          ],
+          "tableTo": "years",
+          "columnsTo": [
+            "year_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        },
+        "terms_customer_id_customers_customer_id_fk": {
+          "name": "terms_customer_id_customers_customer_id_fk",
+          "tableFrom": "terms",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onUpdate": "cascade",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "terms_external_key_unique": {
+          "name": "terms_external_key_unique",
+          "columns": [
+            "external_key"
+          ],
+          "nullsNotDistinct": false
+        },
+        "terms_external_key_hash_unique": {
+          "name": "terms_external_key_hash_unique",
+          "columns": [
+            "external_key_hash"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "Allow Reading of Terms": {
+          "name": "Allow Reading of Terms",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n      EXISTS (\n        SELECT 1\n        FROM\n          user_school_memberships usm\n          CROSS JOIN LATERAL (SELECT public.get_current_school_id() as current_school_id) as app_context\n        WHERE\n          usm.user_id = auth.uid() AND\n          usm.school_id = \"terms\".\"school_id\" AND\n          (\n            app_context.current_school_id IS NULL OR\n            usm.school_id = app_context.current_school_id\n          )\n      )\n    "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "auth_user_id": {
+          "name": "auth_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "middle_name": {
+          "name": "middle_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eula_agree_timestamp": {
+          "name": "eula_agree_timestamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "columns": [
+            "email"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_school_memberships": {
+      "name": "user_school_memberships",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_school_memberships_user_id_users_user_id_fk": {
+          "name": "user_school_memberships_user_id_users_user_id_fk",
+          "tableFrom": "user_school_memberships",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "user_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "user_school_memberships_school_id_schools_school_id_fk": {
+          "name": "user_school_memberships_school_id_schools_school_id_fk",
+          "tableFrom": "user_school_memberships",
+          "columnsFrom": [
+            "school_id"
+          ],
+          "tableTo": "schools",
+          "columnsTo": [
+            "school_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_school_memberships_user_id_school_id_pk": {
+          "name": "user_school_memberships_user_id_school_id_pk",
+          "columns": [
+            "user_id",
+            "school_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.years": {
+      "name": "years",
+      "schema": "",
+      "columns": {
+        "year_id": {
+          "name": "year_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "year_external_id": {
+          "name": "year_external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_year": {
+          "name": "start_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_year": {
+          "name": "end_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nominal_start_date": {
+          "name": "nominal_start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nominal_end_date": {
+          "name": "nominal_end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_current": {
+          "name": "is_current",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "years_year_external_id_unique": {
+          "name": "years_year_external_id_unique",
+          "columns": [
+            "year_external_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "years_name_unique": {
+          "name": "years_name_unique",
+          "columns": [
+            "name"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.created_by": {
+      "name": "created_by",
+      "schema": "public",
+      "values": [
+        "agent",
+        "user"
+      ]
+    },
+    "public.source": {
+      "name": "source",
+      "schema": "public",
+      "values": [
+        "manual",
+        "ai",
+        "import"
+      ]
+    }
+  },
+  "schemas": {
+    "config": "config"
+  },
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

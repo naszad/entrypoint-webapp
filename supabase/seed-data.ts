@@ -4,7 +4,12 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Client } from 'pg';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: `.env.${process.env.NODE_ENV || 'local'}` })
+type Environment = 'local' | 'development' | 'production' | 'test';
+const env = (process.env.NODE_ENV || 'local') as Environment;
+let envFile = `.env.${env}`;
+
+dotenv.config({ path: envFile })
+
 const verbose = process.argv.includes('--verbose');
 
 async function seedData() {

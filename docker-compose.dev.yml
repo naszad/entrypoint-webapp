@@ -1,0 +1,37 @@
+services:
+  webapp:
+    # Use a different container name to avoid conflicts with the production setup.
+    container_name: entrypoint_webapp_dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    ports:
+      - '3000:3000'
+    environment:
+      # For development, the server needs to know which host to listen on.
+      # 0.0.0.0 makes it accessible from your local machine (the host).
+      - HOST=0.0.0.0
+      - SUPABASE_INTERNAL_URL=http://kong:8000
+    env_file:
+      - ${ENV_FILE:-.env.local}
+    # This is the core of the hot-reloading setup.
+    # It mounts your local code directories into the container, so any changes
+    # you make are instantly reflected.
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./components.json:/app/components.json
+      - ./next.config.ts:/app/next.config.ts
+      - ./postcss.config.mjs:/app/postcss.config.mjs
+      - ./tailwind.config.ts:/app/tailwind.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+    networks:
+      - supabase_network
+    # Override the default CMD to ensure the dev server runs.
+    command: npm run dev
+
+networks:
+  supabase_network:
+    external: true
+    name: supabase_network_entrypoint-webapp
