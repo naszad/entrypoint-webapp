@@ -4,6 +4,36 @@
 import { createClient } from '@/utils/supabase/supabaseServer';
 import { StudentTagInfo, CategoryTagInfo } from '@/types/StudentTagInfo';
 
+/**
+ * Finds an existing canonical value for a tag value.
+ * This function implements fuzzy matching to find close canonical values if they exist.
+ */
+async function findCanonicalValue(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tagId: string,
+  value: string
+): Promise<string | null> {
+  try {
+    // First, try to find an exact match
+    const { data: exactMatch, error: exactError } = await supabase
+      .from('tag_canonical_values')
+      .select('tag_canonical_value_id')
+      .eq('tag_id', tagId)
+      .eq('value', value)
+      .single();
+
+    if (exactMatch && !exactError) {
+      return exactMatch.tag_canonical_value_id;
+    }
+
+    // No match found, return null
+    return null;
+  } catch (err) {
+    console.warn('Error in findCanonicalValue:', err);
+    return null;
+  }
+}
+
 export async function getStudentTags(studentId: string): Promise<StudentTagInfo> {
   try {
     const supabase = await createClient();
@@ -127,6 +157,13 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
       finalTagId = newTag.tag_id;
     }
 
+    // Find existing canonical value for the tag value (do not create new ones)
+    const canonicalValueId = finalTagId ? await findCanonicalValue(
+      supabase,
+      finalTagId,
+      params.value
+    ) : null;
+
     // Create the student_tags entry
     const { error: studentTagError } = await supabase
       .from('student_tags')
@@ -134,6 +171,7 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
         student_id: params.studentId,
         tag_id: finalTagId,
         value: params.value,
+        canonical_value_id: canonicalValueId,
         source: 'manual',
         created_by_user_id: user.id,
         updated_by_user_id: user.id,
@@ -160,10 +198,29 @@ export async function updateStudentTag(studentTagId: string, value: string): Pro
       throw new Error('User not authenticated');
     }
 
+    // First, get the tag_id from the student_tag record
+    const { data: studentTag, error: fetchError } = await supabase
+      .from('student_tags')
+      .select('tag_id')
+      .eq('student_tag_id', studentTagId)
+      .single();
+
+    if (fetchError || !studentTag) {
+      throw new Error(`Failed to find student tag: ${fetchError?.message}`);
+    }
+
+    // Find existing canonical value for the new tag value (do not create new ones)
+    const canonicalValueId = await findCanonicalValue(
+      supabase,
+      studentTag.tag_id,
+      value
+    );
+
     const { error: studentTagError } = await supabase
       .from('student_tags')
       .update({ 
         value,
+        canonical_value_id: canonicalValueId,
         updated_by_user_id: user.id,
         updated_at: new Date().toISOString()
       })

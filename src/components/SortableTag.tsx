@@ -10,6 +10,8 @@ interface SortableTagProps {
   name: string
   value: string
   studentTagId: string
+  tagId: string
+  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]
   isNew?: boolean
   onEdit?: (studentTagId: string, value: string) => void
   onDelete?: (studentTagId: string) => void
@@ -51,6 +53,8 @@ export function SortableTag(props: SortableTagProps) {
         name={props.name}
         value={props.value}
         studentTagId={props.studentTagId}
+        tagId={props.tagId}
+        allTags={props.allTags}
         isNew={props.isNew}
         onEdit={props.onEdit}
         onDelete={props.onDelete}

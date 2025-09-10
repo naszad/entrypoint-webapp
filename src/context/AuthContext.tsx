@@ -31,6 +31,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     document.cookie = `${key}=${value}; path=/`;
   }
 
+  const clearUserSession = () => {
+    sessionStorage.clear();
+    localStorage.clear();
+    setCookie('selectedSchoolId', '')
+    setCookie('isMultiSchoolUser', '')
+    setUser(null);
+  }
+
   useEffect(() => {
     const fetchUser = async () => {
       const supabase = await createClient()
@@ -76,15 +84,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user])
 
 const handleLogout = async () => {
-  sessionStorage.clear();
-  localStorage.clear();
-  setCookie('selectedSchoolId', '')
-  setCookie('isMultiSchoolUser', '')
-  setUser(null);
+  clearUserSession();
   await logout()
 }
 
 const login = async (email: string, password: string) => {
+    clearUserSession();
     const { data, error } = await loginWithCredentials(email, password)
 
     if (error || !data.user) {

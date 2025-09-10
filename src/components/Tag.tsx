@@ -10,6 +10,8 @@ interface TagProps {
   name: string
   value: string
   studentTagId: string
+  tagId: string
+  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]
   isNew?: boolean
   onEdit?: (studentTagId: string, value: string) => void
   onDelete?: (studentTagId: string) => void
@@ -21,11 +23,20 @@ interface TagProps {
   isDragging?: boolean
 }
 
-export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDelete, onMenuClick, isMenuOpen, isEditMode, onEditModeChange, dragHandleProps, isDragging }: TagProps) {
+export function Tag({ category, name, value, studentTagId, tagId, allTags, isNew, onEdit, onDelete, onMenuClick, isMenuOpen, isEditMode, onEditModeChange, dragHandleProps, isDragging }: TagProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
   const [isHovered, setIsHovered] = useState(false)
+  const [filteredTagValues, setFilteredTagValues] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const { bg, text, border, borderHex } = getTagColors(category)
+
+  // Get possible values for this tag
+  const possibleTagValues = React.useMemo(() => {
+    if (!allTags || !tagId) return []
+    const currentTag = allTags.find(t => t.tagId === tagId)
+    return currentTag?.values ?? []
+  }, [allTags, tagId])
 
   // Smooth entrance animation for newly added tags
   const [entered, setEntered] = useState(!isNew)
@@ -46,11 +57,35 @@ export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDele
     }
   }, [isEditMode, isEditing, value])
 
+  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    setEditValue(newValue)
+
+    if (newValue && possibleTagValues.length > 0) {
+      const filtered = possibleTagValues.filter(val =>
+        val.toLowerCase().includes(newValue.toLowerCase()) &&
+        val.toLowerCase() !== newValue.toLowerCase()
+      )
+      setFilteredTagValues(filtered)
+      setShowSuggestions(filtered.length > 0)
+    } else {
+      setFilteredTagValues([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const handleSelectTagValue = (tagValue: string) => {
+    setEditValue(tagValue)
+    setFilteredTagValues([])
+    setShowSuggestions(false)
+  }
+
   const handleSaveEdit = () => {
     if (onEdit && editValue.trim()) {
       onEdit(studentTagId, editValue.trim())
     }
     setIsEditing(false)
+    setShowSuggestions(false)
     if (onEditModeChange) {
       onEditModeChange(false)
     }
@@ -59,6 +94,7 @@ export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDele
   const handleCancelEdit = () => {
     setEditValue(value)
     setIsEditing(false)
+    setShowSuggestions(false)
     if (onEditModeChange) {
       onEditModeChange(false)
     }
@@ -75,17 +111,37 @@ export function Tag({ category, name, value, studentTagId, isNew, onEdit, onDele
   if (isEditing) {
     return (
       <div className="inline-flex items-center gap-2">
-        <input
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSaveEdit()
-            if (e.key === 'Escape') handleCancelEdit()
-          }}
-          className={`px-3 py-1 rounded-full text-sm font-medium border ${border} ${bg} ${text} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          autoFocus
-        />
+        <div className="relative">
+          <input
+            type="text"
+            value={editValue}
+            onChange={handleValueChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveEdit()
+              if (e.key === 'Escape') handleCancelEdit()
+            }}
+            onFocus={() => {
+              if (filteredTagValues.length > 0) {
+                setShowSuggestions(true)
+              }
+            }}
+            className={`px-3 py-1 rounded-full text-sm font-medium border ${border} ${bg} ${text} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            autoFocus
+          />
+          {showSuggestions && filteredTagValues.length > 0 && (
+            <ul className="absolute z-50 w-full max-w-xs bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg" style={{ minWidth: '200px' }}>
+              {filteredTagValues.map((tagValue) => (
+                <li
+                  key={tagValue}
+                  onClick={() => handleSelectTagValue(tagValue)}
+                  className="px-3 py-2 cursor-pointer text-sm hover:bg-gray-100"
+                >
+                  {tagValue}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <button
           onClick={handleSaveEdit}
           className="text-green-600 hover:text-green-800"
