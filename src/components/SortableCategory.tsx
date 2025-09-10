@@ -17,6 +17,7 @@ interface SortableCategoryProps {
     tagName: string
     tagValue: string
   }>
+  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]
   onTagEdit?: (studentTagId: string, value: string) => void
   onTagDelete?: (studentTagId: string) => void
   onTagMenuClick?: (studentTagId: string, rect: DOMRect) => void
@@ -33,6 +34,7 @@ export function SortableCategory({
   categoryId,
   categoryName,
   tags,
+  allTags,
   onTagEdit,
   onTagDelete,
   onTagMenuClick,
@@ -99,6 +101,8 @@ export function SortableCategory({
               name={tag.tagName}
               value={tag.tagValue}
               studentTagId={tag.studentTagId}
+              tagId={tag.tagId}
+              allTags={allTags}
               isNew={tag.studentTagId.startsWith('temp:')}
               onEdit={onTagEdit}
               onDelete={onTagDelete}

@@ -1,6 +1,7 @@
-import { pgTable,  uuid, text, timestamp, unique, } from "drizzle-orm/pg-core";
+import { pgTable,  uuid, text, timestamp, unique, pgPolicy, } from "drizzle-orm/pg-core";
 import { users } from "./Users";
 import { tags } from "./Tags";
+import { sql } from "drizzle-orm";
 
 export const tagCanonicalValues = pgTable("tag_canonical_values", {
   tagCanonicalValueId: uuid("tag_canonical_value_id").primaryKey().defaultRandom(),
@@ -14,4 +15,21 @@ export const tagCanonicalValues = pgTable("tag_canonical_values", {
 },
 (table) => ({
     unique: unique().on(table.tagId, table.value),
+    rls: pgPolicy('Allow Reading of Tag Canonical Values', {
+      for: 'select',
+      to: 'authenticated',
+      using: sql`
+        EXISTS (
+          SELECT 1
+          FROM tags t
+          JOIN user_school_memberships usm ON EXISTS (
+            SELECT 1 FROM schools s 
+            WHERE s.customer_id = t.customer_id 
+            AND s.school_id = usm.school_id
+          )
+          WHERE t.tag_id = ${table.tagId}
+          AND usm.user_id = auth.uid()
+        )
+      `,
+    }),
 }));

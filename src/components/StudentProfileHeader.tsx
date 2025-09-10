@@ -321,6 +321,7 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
                         categoryId={category.categoryId}
                         categoryName={category.categoryName}
                         tags={category.tags}
+                        allTags={allTags}
                         onTagEdit={onTagEdit}
                         onTagDelete={onTagDelete}
                         onTagMenuClick={handleTagMenuClick}
@@ -417,6 +418,8 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
                           name={tag.tagName}
                           value={tag.tagValue}
                           studentTagId={tag.studentTagId}
+                          tagId={tag.tagId}
+                          allTags={allTags}
                         />
                       ))}
                     </div>
@@ -429,6 +432,8 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
                     name={'tagName' in activeItem ? activeItem.tagName : ''}
                     value={'tagValue' in activeItem ? activeItem.tagValue : ''}
                     studentTagId={'studentTagId' in activeItem ? activeItem.studentTagId : ''}
+                    tagId={'tagId' in activeItem ? activeItem.tagId : ''}
+                    allTags={allTags}
                   />
                 </div>
               ) : null}
