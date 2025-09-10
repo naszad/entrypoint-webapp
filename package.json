@@ -16,6 +16,7 @@
     "drizzle:generate": "npx drizzle-kit generate",
     "drizzle:push": "npx drizzle-kit push",
     "drizzle:migrate": "npx drizzle-kit migrate",
+    "drizzle:migrate-linked": "PGSSLMODE=require NODE_EXTRA_CA_CERTS=supabase/ssl/supabase.crt NODE_ENV=development bash -c 'npx drizzle-kit migrate'",
     "drizzle": "npm run drizzle:generate && npm run drizzle:migrate",
     "seed": "npx tsx supabase/seed-data.ts && npx tsx supabase/seed-user.ts && npx tsx supabase/seed-meeting-notes.ts",
     "reset": "npx supabase db reset && npx drizzle-kit migrate && npx tsx supabase/seed-data.ts && npx tsx supabase/seed-user.ts && npx tsx supabase/seed-meeting-notes.ts",
