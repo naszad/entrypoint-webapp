@@ -51,7 +51,7 @@ export const EditReportDialog = ({
       return;
     }
 
-    const exists = await getReportExistsByName(viewName, user?.userId, reportId);
+    const exists = await getReportExistsByName(viewName, user?.user_id, reportId);
     if (exists) {
       setViewNameError(`Report with name '${viewName}' already exists`);
       return;

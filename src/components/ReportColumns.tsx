@@ -1,6 +1,6 @@
 "use client";
 
-import { Report } from "@/models/Reports";
+import { Report } from "@/types/Models";
 import { ColumnDef, VisibilityState } from "@tanstack/react-table";
 import { Button } from "./ui/button";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -34,7 +34,7 @@ export const createColumns = ({ onReportClick, onRowAction }: ReportColumnsProps
     cell: ({ row }) => (
       <div 
         className="py-1 cursor-pointer hover:text-blue-600"
-        onClick={() => onReportClick(row.original.reportId)}
+        onClick={() => onReportClick(row.original.report_id)}
       >
         <div className="font-medium">
           {row.original.name}
@@ -51,7 +51,7 @@ export const createColumns = ({ onReportClick, onRowAction }: ReportColumnsProps
     },
   },
   {
-    accessorKey: "updatedAt",
+    accessorKey: "updated_at",
     header: "Last Updated",
     enableHiding: false,
     meta: {
@@ -60,7 +60,7 @@ export const createColumns = ({ onReportClick, onRowAction }: ReportColumnsProps
       filterType: "date",
     },
     cell: ({ row }) => {
-      const date = row.original.updatedAt;
+      const date = row.original.updated_at;
       return date ? new Date(date).toLocaleString() : "N/A";
     },
   },
@@ -78,11 +78,11 @@ export const createColumns = ({ onReportClick, onRowAction }: ReportColumnsProps
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onRowAction?.(row.original.reportId, 'edit')}>
+              <DropdownMenuItem onClick={() => onRowAction?.(row.original.report_id, 'edit')}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onRowAction?.(row.original.reportId, 'delete')}>
+              <DropdownMenuItem onClick={() => onRowAction?.(row.original.report_id, 'delete')}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>

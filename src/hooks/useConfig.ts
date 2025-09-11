@@ -12,7 +12,7 @@ export function useConfig(configKeys: string[]) {
 
   useEffect(() => {
 
-    if (!user?.userId || configKeys.length === 0) {
+    if (!user?.user_id || configKeys.length === 0) {
       setLoading(false);
       return;
     }
@@ -23,7 +23,7 @@ export function useConfig(configKeys: string[]) {
         setError(null);
         
         const configKeysString = configKeys.join(',');
-        const response = await fetch(`/api/config?userId=${user.userId}&configKeys=${configKeysString}`);
+        const response = await fetch(`/api/config?userId=${user.user_id}&configKeys=${configKeysString}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch configuration');
@@ -41,7 +41,7 @@ export function useConfig(configKeys: string[]) {
     };
 
     fetchConfig();
-  }, [user?.userId, configKeys]);
+  }, [user?.user_id, configKeys]);
 
   // Getter functions with fallbacks
   const getGradeCodeSort = (): string[] => {  

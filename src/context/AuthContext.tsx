@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (user) {
           // Check if user needs to agree to EULA first
-          if (!user.eulaAgreeTimestamp) {
+          if (!user.eula_agree_timestamp) {
             setLoading(false);
             router.push('/eula');
             return;
@@ -99,7 +99,7 @@ const login = async (email: string, password: string) => {
       const userDetails = await getUserByAuthId(user.id);
       if (userDetails) {
          // If user hasn't agreed to EULA, send them to EULA screen first
-        if (!userDetails.eulaAgreeTimestamp) {
+        if (!userDetails.eula_agree_timestamp) {
           router.push('/eula');
           return;
         }

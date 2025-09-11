@@ -40,13 +40,13 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
   const userSchoolMemberships = data.user_school_memberships as unknown as UserSchoolMembership[];
 
   const userProfile: UserInfo = {
-    userId: data.user_id,
-    firstName: data.first_name,
-    middleName: data.middle_name,
-    lastName: data.last_name,
+    user_id: data.user_id,
+    first_name: data.first_name,
+    middle_name: data.middle_name,
+    last_name: data.last_name,
     email: data.email,
-    imageUrl: data.image_url,
-    eulaAgreeTimestamp: data.eula_agree_timestamp,
+    image_url: data.image_url,
+    eula_agree_timestamp: data.eula_agree_timestamp,
     isMultiSchoolUser: userSchoolMemberships.length > 1,
     schools: userSchoolMemberships
       .filter((membership) => membership.schools !== null)

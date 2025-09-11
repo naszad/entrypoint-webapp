@@ -137,23 +137,29 @@ There are two primary ways to run commands inside a container. The service name 
    ```
 
 ### Database Changes
-We use [Drizzle](https://orm.drizzle.team/docs/overview) to manage the database schema. All changes to the database should be made via the schema files in `/models`.
+We use [Supabase Migrations](https://supabase.com/docs/guides/deployment/database-migrations#diffing-changes) to manage the database schema. All changes to the database should be made in a local instance of the database.
 
-The development process is as follows. The below shell commands must be run inside the Docker container using one of the methods described above.
+The development process is as follows. The below shell commands should be run from the root of your local project.
 
-1. Make changes to schema files in `/models`.
-2. Run `drizzle:push` to apply changes to your local database without creating migration files.
-   ```bash
-   npm run drizzle:push
+1. Before starting new work, run `npm run reset` to ensure your database structure and `db.types.ts` file is clean.
+1. Make changes to the database directly (via direct postgres connection in your favorite db editor or the supabase local admin, usually at http://localhost:54323).
+1. (Optional) If you need updated TS Type definitions during app development, run:
+   ``` bash
+   # writes types file to (src/types/db.types.ts)
+   npm run supabase:gentypes
    ```
-3. When your feature is complete, generate the migration file:
-   ```bash
-   npm run drizzle:generate
+      * Do not edit `db.types.ts` directly. You can modify `src/types/Models.ts` if you require convenience type definitions or need to modify generated types. See [Generating Typscript Types](https://supabase.com/docs/guides/api/rest/generating-types) for more info.
+1. When your feature is complete, generate the migration file:
+   ``` bash
+   # generate migration sql file in supabase/migrations
+   npm run supabase:genmigration -- NAME_OF_MIGRATION
    ```
-4. Inspect the generated migration SQL, then apply it to your local instance:
-   ```bash
-   npm run drizzle:migrate
-   ```
+   where name `NAME_OF_MIGRATION` includes your ticket name(s) or branch name
+1. Commit and push your changes. For database related changes you should keep your eye on updates to:
+   * `src/types/db.types.ts`
+   * `src/types/Models.ts`
+   * `supabase/migrations/*`
+   
 
 **IMPORTANT!!** [Read here on how to resolve migration file conflicts.](https://entrypointsrm.atlassian.net/wiki/spaces/Tech/pages/64454661/Resolving+merge+conflicts)
 

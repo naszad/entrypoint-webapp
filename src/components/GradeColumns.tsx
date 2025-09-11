@@ -84,7 +84,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     },
     cell: ({ row }) => (
       <div className="font-medium">
-        {row.original.gradeLetter || '-'}
+        {row.original.grade_letter || '-'}
       </div>
     ),
   },
@@ -98,7 +98,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     },
     cell: ({ row }) => (
       <div className="font-medium">
-        {row.original.gradePercentage ? `${row.original.gradePercentage}%` : '-'}
+        {row.original.grade_percent ? `${row.original.grade_percent}%` : '-'}
       </div>
     ),
   },
@@ -112,7 +112,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     },
     cell: ({ row }) => (
       <div className="font-medium">
-        {row.original.gradeCode || '-'}
+        {row.original.grade_code || '-'}
       </div>
     ),
   },
@@ -127,7 +127,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     },
     cell: ({ row }) => (
       <div className="text-sm">
-        {row.original.updatedAt ? new Date(row.original.updatedAt).toLocaleDateString() : '-'}
+        {row.original.updated_at ? new Date(row.original.updated_at).toLocaleDateString() : '-'}
       </div>
     ),
   },

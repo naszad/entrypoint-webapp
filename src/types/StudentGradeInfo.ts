@@ -1,6 +1,5 @@
-import { StudentGrade } from "@/models/StudentGrades";
 import { StudentInfo } from "./StudentInfo";
-import { Course } from "@/models/Courses";
+import { Course, StudentGrade } from "@/types/Models";
 
 export interface StudentGradeInfo extends StudentGrade {
   student: StudentInfo;

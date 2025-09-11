@@ -46,7 +46,7 @@ export const SaveViewDialog = ({ onSave }: SaveViewDialogProps) => {
       return;
     }
 
-    const exists = await getReportExistsByName(viewName, user?.userId);
+    const exists = await getReportExistsByName(viewName, user?.user_id);
     if (exists) {
       setShowConfirmation(true);
     } else {

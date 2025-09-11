@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from '@/context/AuthContext'
 import { updateReport, deleteReport } from '@/libs/reportsService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Report } from "@/models/Reports";
+import { Report } from "@/types/Models";
 import { useRouter } from 'next/navigation';
 import { EditReportDialog } from "@/components/EditReportDialog";
 import {
@@ -33,13 +33,13 @@ const ReportsPage = () => {
 
   const handleReportClick = (reportId: string) => {
 
-    const report = reports.find(report => report.reportId === reportId);
-    if (report && report.pageName) {
+    const report = reports.find(report => report.report_id === reportId);
+    if (report && report.page_name) {
 
       const params = report.params ? JSON.parse(report.params) : {};
 
       const url = new URL(window.location.origin);
-      url.pathname = report.pageName;
+      url.pathname = report.page_name;
       
       // Dynamically add all params to URL searchParams
       Object.entries(params).forEach(([key, value]) => {
@@ -54,7 +54,7 @@ const ReportsPage = () => {
   };
 
   const handleRowAction = (reportId: string, action: string) => {
-    const report = reports.find(report => report.reportId === reportId);
+    const report = reports.find(report => report.report_id === reportId);
     if (report) {
       if (action === 'edit') {
         setSelectedReport(report);
@@ -73,10 +73,10 @@ const ReportsPage = () => {
     if (selectedReport) {
       const { name, description } = viewData;
       const { message } = await updateReport({
-        reportId: selectedReport.reportId,
+        reportId: selectedReport.report_id,
         name,
         description,
-        userId: user?.userId || ''
+        userId: user?.user_id || ''
       });
       if (message) {
         setAlertMessage({
@@ -91,7 +91,7 @@ const ReportsPage = () => {
 
   const handleDeleteConfirm = async () => {
     if (selectedReport) {
-      const { message } = await deleteReport(selectedReport.reportId, user?.userId || '');
+      const { message } = await deleteReport(selectedReport.report_id, user?.user_id || '');
       if (message) {
         setAlertMessage({
           type: 'success',
@@ -107,7 +107,7 @@ const ReportsPage = () => {
     try {
       setIsLoading(true);
       const filtersParam = filters.length > 0 ? filters.map(f => `${f.key}:${f.condition}:${f.value}`).join(',') : '';
-      const url = `/api/reports?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=1&pageSize=10&userId=${encodeURIComponent(user?.userId || '')}`;
+      const url = `/api/reports?filters=${encodeURIComponent(filtersParam)}&sortField=${encodeURIComponent(sortField)}&sortDirection=${encodeURIComponent(sortDirection)}&pageNumber=1&pageSize=10&userId=${encodeURIComponent(user?.user_id || '')}`;
       const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json();
@@ -179,7 +179,7 @@ const ReportsPage = () => {
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSave={handleEditSave}
-        reportId={selectedReport?.reportId}
+        reportId={selectedReport?.report_id}
         initialName={selectedReport?.name || ''}
         initialDescription={selectedReport?.description || ''}
       />

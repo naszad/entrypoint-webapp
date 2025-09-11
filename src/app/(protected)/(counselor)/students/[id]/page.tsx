@@ -102,7 +102,7 @@ const StudentProfilePage = () => {
 
   const fetchFinalTermsGpas = useCallback(async (studentId: string) => {
     try {
-      const url = `/api/students/${studentId}/gpa?finalOnly=true&userId=${user?.userId}`;
+      const url = `/api/students/${studentId}/gpa?finalOnly=true&userId=${user?.user_id}`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -124,7 +124,7 @@ const StudentProfilePage = () => {
         message: `Failed to fetch GPA History ${err instanceof Error ? err.message : ''}`
       });
     }
-  }, [user?.userId]);
+  }, [user?.user_id]);
 
   const fetchStudentAbsences = useCallback(async ( studentId: string ) => {
     try {

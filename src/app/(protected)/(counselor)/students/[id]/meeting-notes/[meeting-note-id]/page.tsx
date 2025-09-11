@@ -82,7 +82,7 @@ export default function MeetingNoteDetailPage() {
       },
       body: JSON.stringify({
         ...updateData,
-        userId: user?.userId,
+        userId: user?.user_id,
       }),
     });
 
@@ -101,7 +101,7 @@ export default function MeetingNoteDetailPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        userId: user?.userId,
+        userId: user?.user_id,
       }),
     });
 
@@ -207,7 +207,7 @@ export default function MeetingNoteDetailPage() {
                 <span className="text-base font-medium">Meeting Notes</span>
               </Link>
             </div>
-            {meetingNote?.userId === user?.userId && (
+            {meetingNote?.userId === user?.user_id && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2">
@@ -272,7 +272,7 @@ export default function MeetingNoteDetailPage() {
             </div>
           </div>
           <div className="flex gap-3 justify-end">
-            {meetingNote?.userId === user?.userId && (
+            {meetingNote?.userId === user?.user_id && (
               <>
                 {isEditing ? (
                   <>

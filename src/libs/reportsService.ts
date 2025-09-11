@@ -2,7 +2,7 @@
 
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { createClient } from '@/utils/supabase/supabaseServer';
-import { Report } from '@/models/Reports';
+import { Report } from '@/types/Models';
 
 type SaveReportParams = {
   name: string;
@@ -140,19 +140,8 @@ export async function fetchReportsByCriteria(request: ReportsRequest): Promise<R
       if (error) {
         throw new Error(error.message);
       } 
-      
-      const reports: Report[] = data.map((report) => ({
-        reportId: report.report_id,
-        userId: report.user_id,
-        name: report.name,
-        description: report.description,
-        pageName: report.page_name,
-        params: report.params,
-        createdAt: report.created_at,
-        updatedAt: report.updated_at
-      }));
 
-      return reports;
+      return data;
   } catch (error) {
     console.error('Error fetching reports:', error);
     return [] as Report[];

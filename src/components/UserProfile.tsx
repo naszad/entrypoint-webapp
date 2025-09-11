@@ -11,14 +11,14 @@ interface UserProfileProps {
 // Helper function to get user's full name
 const getUserFullName = (user: UserInfo | null): string => {
   if (!user) return '';
-  return `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  return `${user.first_name || ''} ${user.last_name || ''}`.trim();
 };
 
 // Helper function to get user initials
 const getUserInitials = (user: UserInfo | null): string => {
   if (!user) return '';
-  const firstInitial = user.firstName?.[0] || '';
-  const lastInitial = user.lastName?.[0] || '';
+  const firstInitial = user.first_name?.[0] || '';
+  const lastInitial = user.last_name?.[0] || '';
   return `${firstInitial}${lastInitial}`.toUpperCase();
 };
 
@@ -33,9 +33,9 @@ export const UserProfile = ({ user }: UserProfileProps) => {
   return (
     <div className="flex">
       <div>
-        {user?.imageUrl ? (
+        {user?.image_url ? (
           <Image
-            src={user.imageUrl}
+            src={user.image_url}
             width="10"
             height="10"
             alt={getUserFullName(user)}

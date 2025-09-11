@@ -11,13 +11,13 @@ export default function EulaPage() {
 
   // Redirect users who have already agreed to EULA
   useEffect(() => {
-    if (user && user.eulaAgreeTimestamp) {
+    if (user && user.eula_agree_timestamp) {
       router.push('/');
     }
   }, [user, router]);
 
   // Show loading while user data is being checked or if user has already agreed
-  if (user && user.eulaAgreeTimestamp) {
+  if (user && user.eula_agree_timestamp) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="text-center">

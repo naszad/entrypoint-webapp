@@ -44,7 +44,7 @@ const MeetingNotesPage = () => {
     try {      
       setIsLoading(true);
       const filtersParam = filters.length > 0 ? filters.map(f => `${f.key}:${f.condition}:${f.value}`).join(',') : '';
-      let queryParams = `?userId=${user?.userId}&filters=${encodeURIComponent(filtersParam)}`;
+      let queryParams = `?userId=${user?.user_id}&filters=${encodeURIComponent(filtersParam)}`;
       if (sortField) {
         queryParams += `&sort=${encodeURIComponent(sortField)}:${encodeURIComponent(sortDirection)}`;
       }

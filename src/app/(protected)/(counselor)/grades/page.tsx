@@ -167,14 +167,14 @@ const GradesPage = () => {
     params: string;
   }) => {
     try {
-      if (!user?.userId) {
+      if (!user?.user_id) {
         throw new Error('User ID is required');
       }
 
       const result = await saveReport({
         ...viewData,
         pageName: 'grades',
-        userId: user.userId
+        userId: user.user_id
       });
 
       setAlertMessage({ type: 'success', message: result.message });

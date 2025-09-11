@@ -36,7 +36,7 @@ const StudentMeetingNotesPage = () => {
     if (audioMp3) {
       const generateNotes = async () => {
         try {
-          const data = await generateMeetingNotesAction(audioMp3, user?.userId || '', studentId || '');
+          const data = await generateMeetingNotesAction(audioMp3, user?.user_id || '', studentId || '');
           setTranscriptionInfo(data);
           setShowSummary(true);
         } catch (error) {
@@ -50,7 +50,7 @@ const StudentMeetingNotesPage = () => {
 
       generateNotes();
     }
-  }, [audioMp3, user?.userId, studentId]);
+  }, [audioMp3, user?.user_id, studentId]);
 
   useEffect(() => {
     const fetchRecentMeetings = async () => {
@@ -123,7 +123,7 @@ const StudentMeetingNotesPage = () => {
     setIsGenerating(true);
     try {
       const data = await addMeetingNotes(
-        user?.userId || '', 
+        user?.user_id || '', 
         studentId || '', 
         noteData.notes, 
         noteData.date.toISOString(),
