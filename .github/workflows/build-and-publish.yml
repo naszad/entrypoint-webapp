@@ -8,6 +8,8 @@ on:
 
 env:
   IMAGE_NAME: "entrypoint-webapp"
+  GAR_LOCATION: ${{ vars.GAR_LOCATION }}
+  GAR_HOSTNAME: ${{ vars.GAR_HOSTNAME }}
 
 jobs:
   build-and-push:
@@ -20,7 +22,7 @@ jobs:
       id-token: "write"
 
     outputs:
-      image_path: ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      image_path: "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
 
     steps:
       - name: Checkout repository
