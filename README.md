@@ -8,7 +8,8 @@ This is the web application for [EntryPoint SRM](https://entrypointsrm.com). Thi
 - [Next.js](https://nextjs.org/docs) - React framework for production
 - [TypeScript](https://www.typescriptlang.org/docs/) - Type-safe JavaScript
 - [Supabase](https://supabase.com/docs) - Open source Firebase alternative which runs [PostgreSQL](https://www.postgresql.org/docs/)
-- [Drizzle ORM](https://orm.drizzle.team/docs/overview) - TypeScript ORM
+- [AI SDK](https://ai-sdk.dev/) - Typescript AI abstraction and tooling library
+- [OpenAI](https://platform.openai.com/docs/overview) - The underlying AI provider
 - [ShadCN](https://ui.shadcn.com/) - UI component framework
 
 
@@ -154,7 +155,7 @@ The development process is as follows. The below shell commands should be run fr
    # generate migration sql file in supabase/migrations
    npm run supabase:genmigration -- NAME_OF_MIGRATION
    ```
-   where name `NAME_OF_MIGRATION` includes your ticket name(s) or branch name
+   where name `NAME_OF_MIGRATION` includes your ticket name(s) or branch name. If you want to do a "dry run" and see the diff without generating the migration file, run `supabase db diff`.
 1. Commit and push your changes. For database related changes you should keep your eye on updates to:
    * `src/types/db.types.ts`
    * `src/types/Models.ts`
