@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { StudentInfo } from '@/types/StudentInfo';
 import { StudentTagInfo } from '@/types/StudentTagInfo';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/alert';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
@@ -197,9 +197,12 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
     
     if (error) {
         return (
-            <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <Alert  className="mb-4"
+              autoClose={true}
+              variant="destructive"
+              message={error}
+              onClose={() => {}}
+          />
         );
     }
 
@@ -222,6 +225,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
             gradeLevel={student.gradeLevel ?? ''}
             graduationYear={student.graduationYear ?? ''}
             studentId={student.externalId?.toString() ?? ''}
+            enrollmentStatus={student.enrollmentStatus ?? ''}
             email={student.email ?? ''}
             tags={studentTags?.categories}
             allTagCategories={allCategories}

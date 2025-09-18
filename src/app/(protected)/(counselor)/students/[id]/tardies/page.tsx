@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useSearchParams } from 'next/navigation';
 import { columns, defaultVisibility as initialVisibility } from "@/components/TardyColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import { StudentTardyInfo } from "@/types/StudentTardies";
 
 const TardiesPage = () => {
@@ -95,16 +95,6 @@ const TardiesPage = () => {
     await fetchStudentTardies(filters, sortId, sortDirection, params.pageNumber, params.pageSize);
   };
 
-  // Clear alert message after 5 seconds
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
-
   return (
     
     <div className="flex flex-col w-full h-full">
@@ -113,9 +103,12 @@ const TardiesPage = () => {
       </div>
       
       {alertMessage && (
-        <Alert variant={alertMessage.type} className="mb-4">
-          <AlertDescription>{alertMessage.message}</AlertDescription>
-        </Alert>
+         <Alert  className="mb-4"
+          autoClose={true}
+          variant={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
       <div className="flex-1 w-full h-50">
         <DataTable 

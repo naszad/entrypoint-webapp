@@ -2,9 +2,9 @@
 import { columns, defaultVisibility as initialVisibility } from "@/components/MeetingNotesColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { ActionItem } from "@/components/DataTable/DataTableToolbar";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from '@/context/AuthContext'
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MeetingNoteInfo } from "@/types/MeetingNoteInfo";
 
@@ -88,16 +88,6 @@ const MeetingNotesPage = () => {
     router.push(`/students/${meetingNote.studentId}/meeting-notes/${meetingNote.meetingNoteId}`);
   };
 
-  // Clear alert message after 5 seconds
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
-
   return (
 
     
@@ -107,9 +97,12 @@ const MeetingNotesPage = () => {
       </div>
       
       {alertMessage && (
-        <Alert variant={alertMessage.type} className="mb-4">
-          <AlertDescription>{alertMessage.message}</AlertDescription>
-        </Alert>
+        <Alert  className="mb-4"
+          autoClose={true}
+          variant={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
       <div className="flex-1 w-full h-50">
         <DataTable 

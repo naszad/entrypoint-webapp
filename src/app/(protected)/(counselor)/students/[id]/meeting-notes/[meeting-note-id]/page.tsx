@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Pencil, ArrowLeft, Trash2 } from 'lucide-react'
 import { MeetingNoteInfo } from '@/types/MeetingNoteInfo'
 import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert } from '@/components/ui/alert'
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
@@ -58,16 +58,6 @@ export default function MeetingNoteDetailPage() {
 
     fetchMeetingNote();
   }, [params]);
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        setError(null)
-      }, 5000)
-
-      return () => clearTimeout(timer)
-    }
-  }, [error ])
 
   const updateMeetingNoteAPI = async (updateData: {
     notes: string;
@@ -194,9 +184,14 @@ export default function MeetingNoteDetailPage() {
 
   return (
     <div className="w-full h-full mx-auto py-8">
-      {error && <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>}
+      {error && (
+        <Alert  className="mb-4"
+          autoClose={true}
+          variant="destructive"
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
       {meetingNote && (
         <>
           {/* Back Button and Meeting Notes Link */}

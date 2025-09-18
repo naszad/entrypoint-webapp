@@ -160,9 +160,9 @@ The development process is as follows. The below shell commands should be run fr
    * `src/types/db.types.ts`
    * `src/types/Models.ts`
    * `supabase/migrations/*`
-   
 
-**IMPORTANT!!** [Read here on how to resolve migration file conflicts.](https://entrypointsrm.atlassian.net/wiki/spaces/Tech/pages/64454661/Resolving+merge+conflicts)
+If you pull down a migration and want to apply it to your existing local database, run `supabase migration up`.
+
 
 ## Pull requests
 Before opening a pull request, check:

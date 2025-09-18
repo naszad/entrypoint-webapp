@@ -1,11 +1,15 @@
 import Link from "next/link";
-import { useMenu } from "@/context/MenuContext";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { NavigationItem } from "@/types/NavigationItem";
 import {
   CircleHelp,
   Settings,
-  LogOut
+  LogOut,
+  Notebook,
+  UsersIcon,
+  FileDigit,
+  File
 } from "lucide-react"
 import {
   Sidebar,
@@ -19,15 +23,24 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { NavigationItem } from "@/context/MenuContext";
 import { UserProfile } from "@/components/UserProfile"; 
 
 export const AppSidebar = () => {
+  const primaryMenu = [
+    { name: "Students", href: "/students", icon: UsersIcon },
+    { name: "Reports", href: "/reports", icon: File },
+    { name: "Grades", href: "/grades", icon: FileDigit },
+    { name: "Meeting Notes", href: "/notes", icon: Notebook },
+  ];
   const secondaryMenu = [
     { name: "Help", href: "#", icon: CircleHelp },
     { name: "Preferences", href: "/preferences", icon: Settings },
   ];
-  const { menu } = useMenu();
+
+  const adminMenu = [
+    { name: "Users", href: "/users", icon: UsersIcon },
+  ];
+
   const { user, handleLogout } = useAuth();
   const pathname = usePathname();
 
@@ -43,7 +56,7 @@ export const AppSidebar = () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menu.map((item: NavigationItem) => (
+              {primaryMenu.map((item: NavigationItem) => (
                 <SidebarMenuItem key={item.name} className="px-2 mr-2">
                   <SidebarMenuButton asChild isActive={item.href === pathname} className="py-5">
                     <Link href={item.href} className="px-4 py-2">
@@ -63,6 +76,16 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {secondaryMenu.map((item: NavigationItem) => (
+                <SidebarMenuItem key={item.name} className="px-2 mr-2">
+                  <SidebarMenuButton asChild isActive={item.href === pathname} className="py-5">
+                    <Link href={item.href} className="px-4 py-2">
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              {user?.role === 'admin' && adminMenu.map((item: NavigationItem) => (
                 <SidebarMenuItem key={item.name} className="px-2 mr-2">
                   <SidebarMenuButton asChild isActive={item.href === pathname} className="py-5">
                     <Link href={item.href} className="px-4 py-2">

@@ -5,7 +5,7 @@ import GradeLetter from '@/components/GradeLetter';
 import GradeCodeSelector from '@/components/GradeCodeSelector';
 import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInfo';
 import { useParams } from 'next/navigation';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useConfig } from '@/hooks/useConfig';
 import React from 'react';
@@ -179,26 +179,17 @@ const StudentGradesPage = () => {
     });
   };
 
-  // Clear alert message after 3 seconds
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
-
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 overflow-x-auto flex flex-col items-center">
+      <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center">
         {/* Loading skeleton for header */}
         <div className="mb-4">
           <Skeleton className="h-6 w-48" />
         </div>
         
         {/* Loading skeleton for table */}
-        <table className="table-auto border-collapse text-sm">
+        <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <table className="table-auto border-collapse text-sm mx-auto" style={{ minWidth: '800px' }}>
           <thead>
             <tr className="border-b border-gray-200">
               <th className="text-left px-3 py-2 w-32">
@@ -273,17 +264,21 @@ const StudentGradesPage = () => {
               ))}
             </tr>
           </tfoot>
-        </table>
+          </table>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 overflow-x-auto flex flex-col items-center">
+    <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center">
       {alertMessage && (
-        <Alert variant={alertMessage.type}>
-          <AlertDescription>{alertMessage.message}</AlertDescription>
-        </Alert>
+        <Alert  className="mb-4"
+          autoClose={true}
+          variant={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
       
       {studentTermGradeInfo.length > 0 ? (
@@ -295,7 +290,14 @@ const StudentGradesPage = () => {
             }
           </h2>
           
-          <table className="table-auto border-collapse text-sm">
+          {/* Scrollable table container */}
+          <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <table 
+              className="table-auto border-collapse text-sm mx-auto" 
+              style={{ 
+                minWidth: `${Math.max(800, (studentTermGradeInfo.length * 200) + 200)}px` 
+              }}
+            >
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap">Category</th>
@@ -480,7 +482,8 @@ const StudentGradesPage = () => {
                 })()}
               </tr>
             </tfoot>
-          </table>
+            </table>
+          </div>
         </>
       ) : (
         <div className="text-center text-gray-500 py-8">

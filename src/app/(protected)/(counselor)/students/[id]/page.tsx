@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StudentCurrentGrades } from "@/types/StudentCurrentGrades";
@@ -163,22 +163,15 @@ const StudentProfilePage = () => {
     }
   }, [params, fetchGpa, fetchStudentCurrentGrades, fetchFinalTermsGpas, fetchStudentAbsences]);
 
-    // Clear alert message after 3 seconds
-    useEffect(() => {
-      if (alertMessage) {
-        const timer = setTimeout(() => {
-          setAlertMessage(null);
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
-    }, [alertMessage]);
-
   return (
     <>
-      {alertMessage && (
-        <Alert variant={alertMessage.type}>
-          <AlertDescription>{alertMessage.message}</AlertDescription>
-        </Alert>
+     {alertMessage && (
+        <Alert  className="mb-4"
+          autoClose={true}
+          variant={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
       <div className="flex flex-row gap-6">
          {/* Current grades panel */}

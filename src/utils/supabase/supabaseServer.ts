@@ -1,15 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export async function createClient() {
+export async function createClient(isAdmin: boolean = false) {
   const cookieStore = await cookies()
 
   //SUPABASE_INTERNAL_URL is only used locally with docker-compose. Not needed for production.
   const supabaseUrl = process.env.SUPABASE_INTERNAL_URL ?? process.env.SUPABASE_URL!
+  const supabaseKey = isAdmin ? process.env.SUPABASE_SERVICE_KEY! : process.env.SUPABASE_ANON_KEY!
   
   return createServerClient(
     supabaseUrl,
-    process.env.SUPABASE_ANON_KEY!,
+    supabaseKey,
     {
       cookies: {
         getAll() {

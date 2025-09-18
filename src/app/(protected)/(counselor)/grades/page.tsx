@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { columns, defaultVisibility as initialVisibility } from "@/components/GradeColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { saveReport } from '@/libs/reportsService';
 import { StudentGradeInfo } from "@/types/StudentGradeInfo";
@@ -194,16 +194,6 @@ const GradesPage = () => {
     return [];
   };
 
-  // Clear alert message after 5 seconds
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
-
   return (
 
     
@@ -224,9 +214,12 @@ const GradesPage = () => {
       </div>
       
       {alertMessage && (
-        <Alert variant={alertMessage.type} className="mb-4">
-          <AlertDescription>{alertMessage.message}</AlertDescription>
-        </Alert>
+        <Alert  className="mb-4"
+          autoClose={true}
+          variant={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
       <div className="flex-1 w-full h-50">
         <DataTable 

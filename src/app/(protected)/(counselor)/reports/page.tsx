@@ -1,10 +1,10 @@
 'use client';
 import { createColumns, defaultVisibility as initialVisibility } from "@/components/ReportColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from '@/context/AuthContext'
 import { updateReport, deleteReport } from '@/libs/reportsService';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import { Report } from "@/types/Models";
 import { useRouter } from 'next/navigation';
 import { EditReportDialog } from "@/components/EditReportDialog";
@@ -140,15 +140,6 @@ const ReportsPage = () => {
     await fetchReports(filters, sortId, sortDirection);
   }
 
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
-
   const columns = createColumns({ 
     onReportClick: handleReportClick,
     onRowAction: handleRowAction
@@ -160,9 +151,12 @@ const ReportsPage = () => {
         <h3 className="text-2xl font-bold text-gray-700">Reports</h3>
       </div>
       {alertMessage && (
-        <Alert variant={alertMessage.type} className="mb-4">
-          <AlertDescription>{alertMessage.message}</AlertDescription>
-        </Alert>
+        <Alert  className="mb-4"
+          autoClose={true}
+          variant={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
       <div className="flex-1 w-full h-50">
         <DataTable 

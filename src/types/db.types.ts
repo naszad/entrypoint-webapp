@@ -1088,6 +1088,7 @@ export type Database = {
           email: string
           eula_agree_timestamp: string | null
           first_name: string
+          full_name: string | null
           image_url: string | null
           last_name: string
           middle_name: string | null
@@ -1098,6 +1099,7 @@ export type Database = {
           email: string
           eula_agree_timestamp?: string | null
           first_name: string
+          full_name?: string | null
           image_url?: string | null
           last_name: string
           middle_name?: string | null
@@ -1108,6 +1110,7 @@ export type Database = {
           email?: string
           eula_agree_timestamp?: string | null
           first_name?: string
+          full_name?: string | null
           image_url?: string | null
           last_name?: string
           middle_name?: string | null
@@ -1335,6 +1338,17 @@ export type Database = {
           p_year_labels?: string[]
         }
         Returns: number
+      }
+      create_user_with_membership: {
+        Args: {
+          p_email: string
+          p_encrypted_password: string
+          p_first_name: string
+          p_last_name: string
+          p_membership_role?: string
+          p_school_id: string
+        }
+        Returns: string
       }
       execute_safe_select: {
         Args: { p_selected_school_id?: string; query_text: string }

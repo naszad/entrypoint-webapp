@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             router.push('/eula');
             return;
           }
-          setUser({ ...user, role: "Counselor" });
+          setUser(user);
           
           if (user.isMultiSchoolUser) {
             setCookie('isMultiSchoolUser', user.isMultiSchoolUser.toString())
@@ -84,8 +84,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user])
 
 const handleLogout = async () => {
+  await logout();
   clearUserSession();
-  await logout()
 }
 
 const login = async (email: string, password: string) => {
@@ -103,7 +103,7 @@ const login = async (email: string, password: string) => {
           router.push('/eula');
           return;
         }
-        setUser({ ...userDetails, role: "Counselor" });
+        setUser(userDetails);
 
         if (userDetails.isMultiSchoolUser) {
           setCookie('isMultiSchoolUser', userDetails.isMultiSchoolUser.toString())

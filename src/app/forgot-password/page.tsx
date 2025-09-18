@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { MoveLeft } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/utils/supabase/supabaseClient'
 import { useRouter } from 'next/navigation'
@@ -46,17 +46,6 @@ const handleResetPassword = async (e: React.FormEvent) => {
       setFullScreenMessage('Password updated successfully. Please login with your new password.');
     }
   }
-
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage('')
-      }, 5000)
-  
-      // Cleanup the timer when the component unmounts or error changes
-      return () => clearTimeout(timer)
-    }
-  }, [message])
 
   useEffect(() => {
     const handlePasswordRecovery = async () => {
@@ -113,9 +102,12 @@ const handleResetPassword = async (e: React.FormEvent) => {
           </div>
 
           {message && (
-            <Alert variant="destructive">
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
+            <Alert  className="mb-4"
+              autoClose={true}
+              variant="destructive"
+              message={message}
+              onClose={() => setMessage('')}
+            />
           )}
         </div>
       </div>
@@ -173,9 +165,12 @@ const handleResetPassword = async (e: React.FormEvent) => {
           </div>
 
           {message && (
-            <Alert variant="destructive">
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
+            <Alert  className="mb-4"
+              autoClose={true}
+              variant="destructive"
+              message={message}
+              onClose={() => setMessage('')}
+            />
           )}
         </form>
       </div>

@@ -37,6 +37,7 @@ interface StudentProfileHeaderProps {
   gradeLevel: string | number;
   graduationYear: string | number;
   studentId: string;
+  enrollmentStatus: string;
   email: string;
   photoUrl?: string;
   tags?: CategoryTagInfo[];
@@ -62,6 +63,7 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
   gradeLevel,
   graduationYear,
   studentId,
+  enrollmentStatus,
   email,
   photoUrl,
   tags,
@@ -284,6 +286,7 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
             <div className="text-gray-600 font-medium">
               Grade {gradeLevel} • Class of {graduationYear}
               {studentId ? ` • ID: ${studentId}` : ''}
+              {enrollmentStatus !== 'active' ? ` • Status: ${enrollmentStatus}` : ''}
             </div>
           </div>
         </div>

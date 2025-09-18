@@ -2,12 +2,12 @@
 import { columns, defaultVisibility as initialVisibility } from "@/components/StudentColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { ActionItem } from "@/components/DataTable/DataTableToolbar";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
 import { saveReport } from '@/libs/reportsService';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -150,19 +150,8 @@ const StudentsPage = () => {
     }
   };
 
-  // Clear alert message after 5 seconds
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
-
   return (
 
-    
     <div className="flex flex-col w-full h-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-2xl font-bold text-gray-700">Students</h3>
@@ -176,9 +165,12 @@ const StudentsPage = () => {
       </div>
       
       {alertMessage && (
-        <Alert variant={alertMessage.type} className="mb-4">
-          <AlertDescription>{alertMessage.message}</AlertDescription>
-        </Alert>
+        <Alert  className="mb-4"
+          autoClose={true}
+          variant={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
       <div className="flex-1 w-full h-50">
         <DataTable 

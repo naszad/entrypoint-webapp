@@ -1,8 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import LoginHeader from '@/components/LoginHeader'
 import { Input } from '@/components/ui/input'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert } from '@/components/ui/alert'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
@@ -24,17 +24,6 @@ export default function LoginPage() {
       }
     }
   }
-
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage('')
-      }, 5000)
-  
-      // Cleanup the timer when the component unmounts or error changes
-      return () => clearTimeout(timer)
-    }
-  }, [message])
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
@@ -110,9 +99,11 @@ export default function LoginPage() {
           </div>
 
           {message && (
-            <Alert variant="destructive">
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
+            <Alert  className="mb-4"
+              variant="destructive"
+              message={message}
+              onClose={() => setMessage('')}
+            />
           )}
         </div>
       </div>

@@ -18,6 +18,7 @@ type SeedUser = {
   password: string;
   first_name: string;
   last_name: string;
+  full_name: string;
 }
 
 let seedUsers: SeedUser[];
@@ -27,6 +28,7 @@ if(process.env.SEED_USER) {
     password: process.env.SEED_PASSWORD || 'password',
     first_name: "Seed",
     last_name: "User",
+    full_name: 'Seed User',
   }]
 } else {
   seedUsers = [
@@ -35,36 +37,42 @@ if(process.env.SEED_USER) {
       password: 'password',
       first_name: 'Dev',
       last_name: 'User',
+      full_name: 'Dev User',
     },
     {
       email: 'yasir@conversotech.com',
       password: 'password',
       first_name: 'Yasir',
       last_name: 'Ali',
+      full_name: 'Yasir Ali',
     },
     {
       email: 'juniad@conversotech.com',
       password: 'password',
       first_name: 'Juniad',
       last_name: 'Khokhar',
+      full_name: 'Juniad Khokhar',
     },
     {
       email: 'mrogers@entrypointsrm.com',
       password: 'password',
       first_name: 'Matt',
       last_name: 'Rogers',
+      full_name: 'Matt Rogers',
     },
     {
       email: 'sjwilson11822@gmail.com',
       password: 'password',
       first_name: 'Seth',
       last_name: 'Wilson',
+      full_name: 'Seth Wilson',
     },
     {
       email: 'nszadowski@gmail.com',
       password: 'password',
       first_name: 'Nathan',
       last_name: 'Szadowski',
+      full_name: 'Nathan Szadowski',
     }
   ]
 }
@@ -87,6 +95,7 @@ async function seed(seedUser: SeedUser, schoolName: string = 'Lincoln High Schoo
     auth_user_id: authUser.id,
     first_name: seedUser.first_name,
     last_name: seedUser.last_name,
+    full_name: seedUser.full_name,
     email: authUser.email,
   }])
   .select()
