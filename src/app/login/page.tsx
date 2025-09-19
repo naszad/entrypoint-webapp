@@ -9,8 +9,9 @@ import { useRouter } from 'next/navigation'
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth();
-  const [email, setEmail] = useState('test@email.com')
-  const [password, setPassword] = useState('password')
+  const isLocalDevelopment = process.env.NODE_ENV === 'development';
+  const [email, setEmail] = useState(isLocalDevelopment ? 'test@email.com' : '')
+  const [password, setPassword] = useState(isLocalDevelopment ? 'password' : '')
 
   const [message, setMessage] = useState('')
 
@@ -41,7 +42,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
-                placeholder="counselor@example.k12.in.us"
+                placeholder="username@example.k12.in.us"
                 label="Email"
               />
             </div>

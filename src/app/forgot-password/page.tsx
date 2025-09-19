@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
-import { MoveLeft } from 'lucide-react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/utils/supabase/supabaseClient'
@@ -57,7 +56,7 @@ const handleResetPassword = async (e: React.FormEvent) => {
       setMessage(error.message);
     } else {
       setShowUpdatePassword(false);
-      setFullScreenMessage('Password updated successfully. Please login with your new password.');
+      setFullScreenMessage('Password updated successfully.');
     }
   }
 
@@ -132,8 +131,7 @@ const handleResetPassword = async (e: React.FormEvent) => {
             <div className="text-center">
               <h1 className="text-2xl font-bold text-gray-500">{fullScreenMessage}</h1>
               <Button variant="primary" className="mt-4" onClick={() => router.push('/login')}>
-                <MoveLeft className="w-4 h-4" />
-                <span className="text-md">Back</span>
+                <span className="text-md">Continue</span>
               </Button>
             </div>
           </div>
