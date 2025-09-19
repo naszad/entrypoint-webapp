@@ -5,11 +5,12 @@ import { MoveLeft } from 'lucide-react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/utils/supabase/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import LoginHeader from '@/components/LoginHeader'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [showUpdatePassword, setShowUpdatePassword] = useState(false);
   const [password, setPassword] = useState('');
@@ -19,15 +20,27 @@ export default function LoginPage() {
 
 const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim()) {
+      setMessage('Please enter your email address');
+      return;
+    }
+    
     const supabase = await createClient()
+    
+    // Use a more robust redirect URL with fallback
+    const redirectUrl = window.env?.APP_URL 
+      ? `${window.env.APP_URL}/forgot-password`
+      : `${window.location.origin}/forgot-password`;
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.env.APP_URL}/forgot-password`
+      redirectTo: redirectUrl
     })
 
     if (error) {
-      setMessage(error.message);
+      setMessage(`Error: ${error.message}`);
     } else {
-    setFullScreenMessage('Password reset email sent. Please check your email.');
+      setFullScreenMessage('Password reset email sent. Please check your email and spam folder.');
     }
   }
 
@@ -43,21 +56,17 @@ const handleResetPassword = async (e: React.FormEvent) => {
     if (error) {
       setMessage(error.message);
     } else {
+      setShowUpdatePassword(false);
       setFullScreenMessage('Password updated successfully. Please login with your new password.');
     }
   }
 
   useEffect(() => {
-    const handlePasswordRecovery = async () => {
-    const supabase = await createClient()
-    await supabase.auth.onAuthStateChange(async (event) => {
-      if (event == "PASSWORD_RECOVERY") {
-        setShowUpdatePassword(true);
-      }
-    })
-  }
-  handlePasswordRecovery();
-  }, [])
+    const code = searchParams.get('code');
+    if (code) {
+      setShowUpdatePassword(true);
+    }
+  }, [searchParams]);
 
   if (showUpdatePassword) {
 
@@ -124,7 +133,7 @@ const handleResetPassword = async (e: React.FormEvent) => {
               <h1 className="text-2xl font-bold text-gray-500">{fullScreenMessage}</h1>
               <Button variant="primary" className="mt-4" onClick={() => router.push('/login')}>
                 <MoveLeft className="w-4 h-4" />
-                <span className="text-md">Back to Login</span>
+                <span className="text-md">Back</span>
               </Button>
             </div>
           </div>

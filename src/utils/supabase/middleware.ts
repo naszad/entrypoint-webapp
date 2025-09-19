@@ -55,7 +55,7 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect authenticated users away from the login page
   // Note: EULA check is handled in AuthContext which will redirect to /eula if needed
-  if (user && request.nextUrl.pathname === '/login') {    
+  if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/forgot-password'))) {    
     const url = request.nextUrl.clone()
     url.pathname = '/students'
     return NextResponse.redirect(url)
