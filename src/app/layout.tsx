@@ -4,6 +4,8 @@ import { AuthProvider } from '@/context/AuthContext'
 import { NavigationEvents } from "@/components/navigation-events";
 import { TransitionIndicator } from "@/components/ui/transition-indicator";
 import "../styles/globals.css";
+import MixpanelProvider from "@/components/MixpanelProvider";
+import MixpanelPageTracker from "@/components/MixpanelPageTracker";
 
 // This is necessary to allow the environment variables to be set on the window object
 export const dynamic = 'force-dynamic'
@@ -20,7 +22,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "EntryPointSRM",
-  description: "This is a SaaS product called EntryPoint. It is a tool initially aimed at high school counselors and school administrators, to help them improve student outcomes by saving time. EntryPoint removes administrative burden by making it easier to access key data and reports from their SIS (Student Information System) that will help them monitor student progress — grades, attendance, etc.",
+  description: "Build a better future",
 };
 
 export default function RootLayout({
@@ -33,6 +35,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+  <MixpanelProvider />
+  <MixpanelPageTracker />
         {/*
           The following script injects server-side environment variables into the client-side
           window object. This allows the Supabase client to be initialized with the correct

@@ -12,12 +12,14 @@ import { getUserByAuthId } from '@/libs/userService';
 import { UserInfo } from '@/types/UserInfo';
 import { createClient } from '@/utils/supabase/supabaseClient';
 import { loginWithCredentials, logout } from '@/libs/authService';
+import { identifyUser, refreshSuperProperties, resetMixpanel } from '@/libs/mixpanelClient';
+import { saveSelectedSchool } from '@/utils/selectedSchoolStorage';
 
 interface AuthContextType {
   user: UserInfo | null
   setRefreshUser: (value: boolean) => void
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<UserInfo | null>
   handleLogout: () => Promise<void>
 }
 
@@ -30,15 +32,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   const setCookie = (key: string, value: string) => {
-    document.cookie = `${key}=${value}; path=/`;
+    document.cookie = `${key}=${encodeURIComponent(value)}; path=/`;
   }
 
   const clearUserSession = () => {
+    saveSelectedSchool(null);
     sessionStorage.clear();
     localStorage.clear();
     setCookie('selectedSchoolId', '')
     setCookie('isMultiSchoolUser', '')
+    setCookie('customer_id', '')
+    resetMixpanel(); // Clear Mixpanel user data on logout
     setUser(null);
+  }
+
+  const setupMixpanelUser = (user: UserInfo) => {
+    identifyUser(user.user_id, {
+      $email: user.email,
+      $name: `${user.first_name} ${user.last_name}`,
+    });
   }
 
   useEffect(() => {
@@ -59,14 +71,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
           setUser(user);
+          setupMixpanelUser(user);
           
           if (user.isMultiSchoolUser) {
             setCookie('isMultiSchoolUser', user.isMultiSchoolUser.toString())
+            saveSelectedSchool(null);
             // Don't redirect here - let middleware handle it
           } else {
-            setCookie('selectedSchoolId', user.schools?.[0]?.schoolId || '')
-            sessionStorage.setItem('selectedSchool', user.schools?.[0] ? JSON.stringify(user.schools?.[0]) : '' )
+            const primarySchool = user.schools?.[0] || null;
+            saveSelectedSchool(primarySchool);
           }
+          refreshSuperProperties();
           setLoading(false);
           setRefreshUser(false);
           return;
@@ -86,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user || refreshUser) {
       fetchUser()
     }
-  }, [user, refreshUser])
+  }, [user, refreshUser, router])
 
 
 const handleLogout = async () => {
@@ -104,21 +119,28 @@ const login = async (email: string, password: string) => {
       const { user } = data;
       const userDetails = await getUserByAuthId(user.id);
       if (userDetails) {
+        
+        setUser({ ...userDetails});
+        setupMixpanelUser(userDetails);
+
          // If user hasn't agreed to EULA, send them to EULA screen first
         if (!userDetails.eula_agree_timestamp) {
           router.push('/eula');
-          return;
+          return null;
         }
         setUser(userDetails);
 
         if (userDetails.isMultiSchoolUser) {
           setCookie('isMultiSchoolUser', userDetails.isMultiSchoolUser.toString())
+          saveSelectedSchool(null);
           router.push('/select-school')
         } else {
-          setCookie('selectedSchoolId', userDetails.schools?.[0]?.schoolId || '')
-          sessionStorage.setItem('selectedSchool', userDetails.schools?.[0] ? JSON.stringify(userDetails.schools?.[0]) : '' )
+          const primarySchool = userDetails.schools?.[0] || null;
+          saveSelectedSchool(primarySchool);
           router.push('/students')
         }
+        refreshSuperProperties();
+        return userDetails;
       } else {
         throw new Error('Error fetching user details')
       }

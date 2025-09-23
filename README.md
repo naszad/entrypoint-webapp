@@ -194,3 +194,15 @@ npm run db:restore
 
 - This command executes the script at `supabase/restore-data.ts`.
 - **Warning**: This will overwrite existing data in your database.
+
+## Analytics Events
+
+The app sends a limited set of Mixpanel events (page views, students table interactions, saved report activity) using a privacy-first, low-cardinality convention. Only structural metadata (e.g. which columns were filtered) is tracked—never raw filter values, student names, or IDs.
+
+For the full catalog of current events, naming rules, and how to add new ones safely, see `docs/analytics-events.md`.
+
+Quick principles:
+- Object + verb style names (e.g. `Students Export`, `Report Opened`).
+- No PII; collapse dynamic IDs.
+- Use minimal boolean / count properties.
+- Update the analytics doc when introducing a new event.

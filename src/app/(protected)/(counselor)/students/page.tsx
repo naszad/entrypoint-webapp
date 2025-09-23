@@ -2,7 +2,7 @@
 import { columns, defaultVisibility as initialVisibility } from "@/components/StudentColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { ActionItem } from "@/components/DataTable/DataTableToolbar";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
@@ -13,6 +13,8 @@ import { DownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
 import { cn } from "@/utils/utils"
+import { useStudentsAnalytics } from '@/hooks/useStudentsAnalytics';
+import { trackEvent } from '@/libs/mixpanelClient';
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +25,8 @@ const StudentsPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isChatAssistantOpen } = useChatAssistantOpen();
+  const { trackExport, trackFiltersChanged } = useStudentsAnalytics();
+  const lastFilterKeysRef = useRef<string>('');
 
   const initialPageSize = (() => {
     const sizeParam = searchParams.get('pageSize');
@@ -87,6 +91,13 @@ const StudentsPage = () => {
     const sortDirection = sorting[0]?.desc ? 'desc' : 'asc';
     setCurrentPageSize(params.pageSize);
     await fetchStudents(filters, sortId, sortDirection, params.pageNumber, params.pageSize);
+
+    // Track filter applications (avoid duplicate firing if unchanged)
+    const keySignature = Array.from(new Set(filters.map(f => f.key))).sort().join('|');
+    if (keySignature !== lastFilterKeysRef.current) {
+      trackFiltersChanged({ filterValues: filters });
+      lastFilterKeysRef.current = keySignature;
+    }
   };
 
   const action: ActionItem[] = [];
@@ -108,6 +119,12 @@ const StudentsPage = () => {
       });
 
       setAlertMessage({ type: 'success', message: result.message });
+      // Track report saved (we do not include the name to reduce PII / cardinality)
+      trackEvent('Students Report Saved', {
+        page: '/students',
+        has_description: !!viewData.description,
+        param_length: viewData.params?.length || 0,
+      });
     } catch (err) {
       setAlertMessage({ 
         type: 'destructive', 
@@ -147,6 +164,22 @@ const StudentsPage = () => {
       a.download = 'students.csv';
       a.click();
       window.URL.revokeObjectURL(url);
+
+      // Track export after successful generation
+      const activeFilters: FilterValue[] = [];
+      const filtersParam = searchParams.get('filters');
+      if (filtersParam) {
+        try {
+          filtersParam.split(',').forEach(f => {
+            const parts = f.split(':');
+            if (parts.length === 3) {
+              const [key, condition, value] = parts;
+              activeFilters.push({ key, condition, value });
+            }
+          });
+        } catch {}
+      }
+      trackExport({ filterValues: activeFilters, columnCount: columns.split(',').length });
     }
   };
 

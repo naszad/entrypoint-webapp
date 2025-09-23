@@ -9,6 +9,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { TypingAnimation } from './TypingAnimation/TypingAnimation';
 import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
+import mixpanel from 'mixpanel-browser';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -302,6 +303,10 @@ export function ChatAssistant() {
     localStorage.setItem('chatAssistantOpen', JSON.stringify(newState))
     window.dispatchEvent(new Event('storage'))
   }
+  // Ensure Mixpanel super property is set on mount and when state changes
+  useEffect(() => {
+    mixpanel.register({ chat_panel_open: isChatAssistantOpen });
+  }, [isChatAssistantOpen])
 
   return (
     <>

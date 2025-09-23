@@ -31,7 +31,11 @@ type UserSchoolMembership = {
   schools: {
     school_id: string;
     name: string;
-  };
+    customer_id?: string | null;
+    customers?: {
+      name?: string | null;
+    } | null;
+  } | null;
 };
 
 const getUserColumnName = (key: string) => {
@@ -175,7 +179,9 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
         role,
         schools(
           school_id,
-          name
+          name,
+          customer_id,
+          customers(name)
         )
       )
     `)
@@ -201,10 +207,15 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
     role: userSchoolMemberships[0].role as 'user' | 'admin',
     schools: userSchoolMemberships
       .filter((membership) => membership.schools !== null)
-      .map((membership) => ({
-        schoolId: membership.schools.school_id,
-        name: membership.schools.name,
-      })),
+      .map((membership) => {
+        const school = membership.schools!;
+        return {
+          schoolId: school.school_id,
+          name: school.name,
+          customerId: school.customer_id ?? undefined,
+          customerName: school.customers?.name ?? undefined,
+        };
+      }),
   };
 
   return userProfile;

@@ -6,6 +6,8 @@ export interface UserInfo extends Omit<User, 'auth_user_id' | 'school_id'> {
   updatedAt?: Date,
   schools?: {
     schoolId?: string,
-    name?: string
+    name?: string,
+    customerId?: string,
+    customerName?: string
   }[]
 }

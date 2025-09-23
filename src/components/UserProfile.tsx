@@ -3,6 +3,7 @@ import Image from "next/image";
 import { stringToColor } from "@/utils/utils";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { loadSelectedSchool } from '@/utils/selectedSchoolStorage';
 
 interface UserProfileProps {
   user: UserInfo | null;
@@ -23,9 +24,9 @@ const getUserInitials = (user: UserInfo | null): string => {
 };
 
 const getUserSchool = (): string => {
-  const selectedSchool = sessionStorage.getItem('selectedSchool')
+  const selectedSchool = loadSelectedSchool();
   if (!selectedSchool) return '';
-  return JSON.parse(selectedSchool).name || '';
+  return selectedSchool.name || '';
 };
 
 export const UserProfile = ({ user }: UserProfileProps) => {

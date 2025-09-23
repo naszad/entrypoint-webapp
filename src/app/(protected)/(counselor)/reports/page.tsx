@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useReportsAnalytics } from '@/hooks/useReportsAnalytics';
 
 const ReportsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +31,7 @@ const ReportsPage = () => {
   const [currentSortDirection, setCurrentSortDirection] = useState<'asc' | 'desc'>('asc');
   const { user } = useAuth();
   const router = useRouter();
+  const { trackReportOpened } = useReportsAnalytics();
 
   const handleReportClick = (reportId: string) => {
 
@@ -48,6 +50,22 @@ const ReportsPage = () => {
         }
       });
       router.push(url.toString());
+      // Track report opened (filters presence derived from stored params string if any)
+      try {
+        const paramsObj = report.params ? JSON.parse(report.params) : {};
+        const filtersRaw = (paramsObj.filters as string) || '';
+        const filterKeys = filtersRaw
+          ? filtersRaw.split(',')
+              .map((f: string) => f.split(':')[0])
+              .filter((k: string) => !!k)
+          : [];
+        const distinctKeys = Array.from(new Set(filterKeys)).sort();
+        trackReportOpened({
+          pageName: report.page_name,
+          hasFilters: distinctKeys.length > 0,
+          filterKeys: distinctKeys,
+        });
+      } catch {}
     } else {
       // report corrupted do nothing
     }

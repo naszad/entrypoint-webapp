@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth();
@@ -15,7 +16,7 @@ export default function LoginPage() {
 
   const [message, setMessage] = useState('')
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       await login(email, password);
@@ -32,7 +33,7 @@ export default function LoginPage() {
         {/* Header */}
         <LoginHeader description="" />
         {/* Login Form */}
-        <div className="mt-8 space-y-6">
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
               <Input
@@ -93,7 +94,7 @@ export default function LoginPage() {
             <Button
               variant="primary"
               className='w-full'
-              onClick={handleLogin}
+              type="submit"
             >
               <span className='text-lg'>Log In</span>
             </Button>
@@ -106,7 +107,7 @@ export default function LoginPage() {
               onClose={() => setMessage('')}
             />
           )}
-        </div>
+        </form>
       </div>
     </main>
   );
