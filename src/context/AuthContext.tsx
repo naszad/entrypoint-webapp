@@ -15,6 +15,7 @@ import { loginWithCredentials, logout } from '@/libs/authService';
 
 interface AuthContextType {
   user: UserInfo | null
+  setRefreshUser: (value: boolean) => void
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   handleLogout: () => Promise<void>
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserInfo | null>(null)
+  const [refreshUser, setRefreshUser] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter();
 
@@ -66,22 +68,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             sessionStorage.setItem('selectedSchool', user.schools?.[0] ? JSON.stringify(user.schools?.[0]) : '' )
           }
           setLoading(false);
+          setRefreshUser(false);
           return;
         } else {
           setLoading(false)
+          setRefreshUser(false);
           return
         }
 
       } else {
         setLoading(false)
+        setRefreshUser(false);
         return
       }
     }
 
-    if (!user) {
+    if (!user || refreshUser) {
       fetchUser()
     }
-  }, [user])
+  }, [user, refreshUser])
+
 
 const handleLogout = async () => {
   await logout();
@@ -125,7 +131,7 @@ const login = async (email: string, password: string) => {
       <p className="text-xl text-gray-600">Loading...</p>
     </div>
   ) : (
-    <AuthContext.Provider value={{ user, loading, login, handleLogout }}>
+    <AuthContext.Provider value={{ user, setRefreshUser, loading, login, handleLogout }}>
       {children}
     </AuthContext.Provider>
   )

@@ -84,6 +84,7 @@ const UsersPage = () => {
     firstName: string;
     lastName: string;
     email: string;
+    role: string;
   }) => {
     // Add new user
     const response = await fetch('/api/users', {
@@ -97,7 +98,11 @@ const UsersPage = () => {
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to add user');
+      setAlertMessage({
+        type: 'destructive',
+        message: result.error || 'Failed to add user'
+      });
+      return;
     }
 
     // Refresh the users list to get the updated data
@@ -123,7 +128,11 @@ const UsersPage = () => {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to delete user');
+          setAlertMessage({
+            type: 'destructive',
+            message: result.error || 'Failed to delete user'
+          });
+          return;
         }
 
         // Remove the user from the local state
@@ -136,7 +145,7 @@ const UsersPage = () => {
       } catch (err) {
         setAlertMessage({
           type: 'destructive',
-          message: err instanceof Error ? err.message : 'An error occurred'
+          message: err instanceof Error ? err.message : 'Failed to delete user'
         });
       } finally {
         setIsLoading(false);

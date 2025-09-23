@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchUsersByFilterCriteria, addUser, deleteUser } from '@/libs/userService';
+import { fetchUsersByFilterCriteria, addUser, deleteUser, updateUserProfile } from '@/libs/userService';
 import { FilterValue } from '@/components/DataTable/DataTable';
 
 export async function GET(req: Request) {
@@ -35,16 +35,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email } = body;
+    const { firstName, lastName, email, role } = body;
 
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || !role) {
       return NextResponse.json(
-        { error: 'First name, last name, and email are required' },
+        { error: 'First name, last name, email, and role are required' },
         { status: 400 }
       );
     }
 
-    const userId = await addUser({ firstName, lastName, email });
+    const userId = await addUser({ firstName, lastName, email, role });
     return NextResponse.json({ userId }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -66,6 +66,44 @@ export async function DELETE(req: Request) {
 
     await deleteUser(userId);
     return NextResponse.json({ message: 'User deleted successfully' });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { profile } = body;
+
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Profile parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const { firstName, lastName, password, currentPassword } = profile;
+
+    if (!firstName || !lastName) {
+      return NextResponse.json(
+        { error: 'First name and last name are required' },
+        { status: 400 }
+      );
+    }
+
+    // If updating password, current password is required
+    if (password && !currentPassword) {
+      return NextResponse.json(
+        { error: 'Current password is required to update password' },
+        { status: 400 }
+      );
+    }
+
+    await updateUserProfile(profile);
+    return NextResponse.json({ message: 'User profile updated successfully' });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

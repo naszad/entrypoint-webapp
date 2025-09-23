@@ -52,7 +52,7 @@ export const createColumns = ({ onRowAction }: UserColumnsProps): ColumnDef<User
           <div className="font-medium">
             {row.original.full_name}
           </div>
-          <div className="text-xs text-gray-500">Role: {row.original.role}</div>
+          <div className="text-xs text-gray-500">Role: {row.original.role ? row.original.role.charAt(0).toUpperCase() + row.original.role.slice(1) : 'N/A'}</div>
         </div>
       </div>
     ),

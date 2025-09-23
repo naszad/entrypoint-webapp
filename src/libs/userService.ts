@@ -16,6 +16,15 @@ type UsersRequest = {
   };
 };
 
+type UpdateUserProfileRequest = {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  currentPassword?: string;
+  password?: string;
+  role: string;
+};
+
 type UserSchoolMembership = {
   role: string;
   updated_at: Date;
@@ -225,6 +234,7 @@ export async function fetchUsersByFilterCriteria(request: UsersRequest): Promise
     let query = supabase
       .from('user_school_memberships')
       .select(`
+        user_id,
         role,
         school_id,
         created_at,
@@ -244,8 +254,8 @@ export async function fetchUsersByFilterCriteria(request: UsersRequest): Promise
           name
         )
       `)
-      .eq('role', 'user')
-      .eq('school_id', selectedSchoolId);
+      .eq('school_id', selectedSchoolId)
+      .neq("user_id", currentUser.user_id); 
 
     // Apply filters to main query
     query = applyUserFilters(query, filters);
@@ -310,6 +320,7 @@ export async function addUser(userData: {
   firstName: string;
   lastName: string;
   email: string;
+  role: string;
 }): Promise<string> {
   try {
     const supabase = await createClient();
@@ -427,5 +438,60 @@ export async function deleteUser(userId: string): Promise<void> {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     throw new Error(`Failed to delete user. Error: ${message}`);
+  }
+}
+
+export async function updateUserProfile(profile: UpdateUserProfileRequest): Promise<void> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Update password if provided
+    if (profile.password && profile.currentPassword) {
+      // First, reauthenticate with current password
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: profile.currentPassword
+      });
+      
+      if (reauthError) {
+        throw new Error(`Current password is incorrect.`);
+      }
+
+      // Now update the password
+      const { error: passwordError } = await supabase.auth.updateUser({ 
+        password: profile.password 
+      });
+      
+      if (passwordError) {
+        throw new Error(`Failed to update user password: ${passwordError.message}`);
+      }
+    }
+
+    const fullName = [profile.firstName, profile.middleName, profile.lastName]
+      .filter(name => name && name.trim())
+      .join(' ');
+
+    const { error: profileError } = await supabase
+      .from('users')
+      .update({
+        first_name: profile.firstName,
+        middle_name: profile.middleName,
+        last_name: profile.lastName,
+        full_name: fullName,
+      })
+      .eq('user_id', user.id);
+
+    if (profileError) {
+      throw new Error(`Error: ${profileError.message}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    throw new Error(`Error: ${message}`);
   }
 }

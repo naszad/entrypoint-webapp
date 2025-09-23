@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface SaveUserDialogProps {
   onSave: (userData: {
     firstName: string;
     lastName: string;
     email: string;
+    role: string;
   }) => Promise<void>;
 }
 
@@ -24,6 +26,7 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [firstNameError, setFirstNameError] = useState('');
   const [lastNameError, setLastNameError] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -35,6 +38,10 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
 
   const openSaveUserDialog = () => {
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setRole('user');
     setFirstNameError('');
     setLastNameError('');
     setEmailError('');
@@ -86,6 +93,7 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
+      role: role,
     };
     
     try {
@@ -98,6 +106,7 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
       setFirstName('');
       setLastName('');
       setEmail('');
+      setRole('user');
       setFirstNameError('');
       setLastNameError('');
       setEmailError('');
@@ -131,7 +140,8 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to check email');
+        setEmailError(result.error || 'Failed to check email');
+        return;
       }
 
       if (result.exists) {
@@ -178,12 +188,10 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email *
-              </label>
                <Input
                  required
                  type="email"
+                 label="Email *"
                  id="email"
                  placeholder="Enter email address"
                  value={email}
@@ -204,12 +212,10 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
               )}
             </div>
             <div className="space-y-2">
-              <label htmlFor="firstName" className="text-sm font-medium">
-                First Name *
-              </label>
               <Input
                 required
                 id="firstName"
+                label="First Name *"
                 placeholder="Enter first name"
                 value={firstName}
                 onChange={(e) => {
@@ -224,12 +230,10 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="lastName" className="text-sm font-medium">
-                Last Name *
-              </label>
               <Input
                 required
                 id="lastName"
+                label="Last Name *"
                 placeholder="Enter last name"
                 value={lastName}
                 onChange={(e) => {
@@ -241,6 +245,22 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
               {lastNameError && (
                 <p className="text-sm text-red-500">{lastNameError}</p>
               )}
+            </div>
+            <div className="space-y-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="inline-flex w-full items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground px-4 py-2"
+                >
+                  Role: {role.charAt(0).toUpperCase() + role.slice(1)}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full">
+                  {['user', 'admin'].map((role) => (
+                    <DropdownMenuItem key={role} onClick={() => setRole(role as 'user' | 'admin')}>
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
