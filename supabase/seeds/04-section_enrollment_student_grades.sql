@@ -24,9 +24,11 @@ DECLARE
   year_2223_id uuid;
   year_2324_id uuid;
   year_2425_id uuid;
+  year_2526_id uuid;
 
   -- Term IDs
   q1_2425_term_id uuid; q2_2425_term_id uuid; q3_2425_term_id uuid; q4_2425_term_id uuid; s1_2425_term_id uuid; s2_2425_term_id uuid;
+  q1_2526_term_id uuid; -- future year (only Q1 needed now)
   q1_2324_term_id uuid; q2_2324_term_id uuid; q3_2324_term_id uuid; q4_2324_term_id uuid; s1_2324_term_id uuid; s2_2324_term_id uuid;
   q1_2223_term_id uuid; q2_2223_term_id uuid; q3_2223_term_id uuid; q4_2223_term_id uuid; s1_2223_term_id uuid; s2_2223_term_id uuid;
   q1_2122_term_id uuid; q2_2122_term_id uuid; q3_2122_term_id uuid; q4_2122_term_id uuid; s1_2122_term_id uuid; s2_2122_term_id uuid;
@@ -82,9 +84,11 @@ BEGIN
   SELECT year_id INTO year_2223_id FROM years WHERE name = '2022-2023' LIMIT 1;
   SELECT year_id INTO year_2324_id FROM years WHERE name = '2023-2024' LIMIT 1;
   SELECT year_id INTO year_2425_id FROM years WHERE name = '2024-2025' LIMIT 1;
+  SELECT year_id INTO year_2526_id FROM years WHERE name = '2025-2026' LIMIT 1;
 
   -- Get Term IDs
   SELECT term_id INTO q1_2425_term_id FROM terms WHERE abbreviation = 'Q1' AND year_id = year_2425_id LIMIT 1;
+  SELECT term_id INTO q1_2526_term_id FROM terms WHERE abbreviation = 'Q1' AND year_id = year_2526_id LIMIT 1;
   SELECT term_id INTO q2_2425_term_id FROM terms WHERE abbreviation = 'Q2' AND year_id = year_2425_id LIMIT 1;
   SELECT term_id INTO q3_2425_term_id FROM terms WHERE abbreviation = 'Q3' AND year_id = year_2425_id LIMIT 1;
   SELECT term_id INTO q4_2425_term_id FROM terms WHERE abbreviation = 'Q4' AND year_id = year_2425_id LIMIT 1;
@@ -617,4 +621,103 @@ BEGIN
     ('48aac272-392f-4086-9dd3-4e4defaf3c18', lincoln_high_school_id, emma_johnson_student_id, year_2324_id, '2023-11-12', 'A_EMMA_20231112', 'ABS_EMMA_20231112', encode(digest('ABS_EMMA_20231112', 'sha256'), 'hex'), 'S', 'Tardy', 'mock_source'),
     ('48aac272-392f-4086-9dd3-4e4defaf3c18', lincoln_high_school_id, emma_johnson_student_id, year_2425_id, '2024-09-03', 'A_EMMA_20240903', 'ABS_EMMA_20240903', encode(digest('ABS_EMMA_20240903', 'sha256'), 'hex'), 'E', 'Excused', 'mock_source');
 
+END $$;
+DO $$
+DECLARE
+  emma_johnson_student_id uuid;
+  michael_chen_student_id uuid;
+  year_2526_id uuid;
+  q1_2526_term_id uuid;
+  english_12b_section_id uuid; english_12b_course_id uuid;
+  govt12b_section_id uuid; govt_12b_course_id uuid;
+  econ12b_section_id uuid; econ_12b_course_id uuid;
+  eng11a_section_id uuid; eng11a_course_id uuid;
+  ushista_section_id uuid; us_history_a_course_id uuid;
+  alg2a_section_id uuid; algebra_2a_course_id uuid;
+  biology_a_section_id uuid; biology_a_course_id uuid;
+BEGIN
+  SELECT student_id INTO emma_johnson_student_id FROM students WHERE email='emma.johnson@student.edu' LIMIT 1;
+  SELECT student_id INTO michael_chen_student_id FROM students WHERE email='michael.chen@student.edu' LIMIT 1;
+  SELECT year_id INTO year_2526_id FROM years WHERE name='2025-2026' LIMIT 1;
+  SELECT term_id INTO q1_2526_term_id FROM terms WHERE abbreviation='Q1' AND year_id=year_2526_id LIMIT 1;
+  SELECT course_id INTO english_12b_course_id FROM courses WHERE name='English 12 B' LIMIT 1;
+  SELECT section_id INTO english_12b_section_id FROM sections WHERE external_key='SEC_ENG12B_106_LHS' LIMIT 1;
+  SELECT course_id INTO govt_12b_course_id FROM courses WHERE name='Government 12 B' LIMIT 1;
+  SELECT section_id INTO govt12b_section_id FROM sections WHERE external_key='SEC_GOVT12B_602_LHS' LIMIT 1;
+  SELECT course_id INTO econ_12b_course_id FROM courses WHERE name='Economics 12 B' LIMIT 1;
+  SELECT section_id INTO econ12b_section_id FROM sections WHERE external_key='SEC_ECON12B_604_LHS' LIMIT 1;
+  SELECT course_id INTO eng11a_course_id FROM courses WHERE name='English 11 A' LIMIT 1;
+  SELECT section_id INTO eng11a_section_id FROM sections WHERE external_key='SEC_ENG11A_103_LHS' LIMIT 1;
+  SELECT course_id INTO us_history_a_course_id FROM courses WHERE name='US History A' LIMIT 1;
+  SELECT section_id INTO ushista_section_id FROM sections WHERE external_key='SEC_USHISTA_301_LHS' LIMIT 1;
+  SELECT course_id INTO algebra_2a_course_id FROM courses WHERE name='Algebra II A' LIMIT 1;
+  SELECT section_id INTO alg2a_section_id FROM sections WHERE external_key='SEC_ALG2A_501_LHS' LIMIT 1;
+  SELECT course_id INTO biology_a_course_id FROM courses WHERE name='Biology A' LIMIT 1;
+  SELECT section_id INTO biology_a_section_id FROM sections WHERE external_key='SEC_BIO1A_401_LHS' LIMIT 1;
+
+  INSERT INTO section_enrollments (student_id, section_id, term_id, start_date, absences, tardies, external_key, external_id, external_key_hash, external_source) VALUES
+    (emma_johnson_student_id, english_12b_section_id, q1_2526_term_id, '2025-08-15', 0, 0, 'ENRL_EMMA_ENG12B_Q1_2526', 'E_EMMA_ENG12B_Q1_2526', encode(digest('ENRL_EMMA_ENG12B_Q1_2526','sha256'),'hex'), 'mock_source'),
+    (emma_johnson_student_id, govt12b_section_id, q1_2526_term_id, '2025-08-15', 0, 0, 'ENRL_EMMA_GOVT12B_Q1_2526', 'E_EMMA_GOVT12B_Q1_2526', encode(digest('ENRL_EMMA_GOVT12B_Q1_2526','sha256'),'hex'), 'mock_source'),
+    (emma_johnson_student_id, econ12b_section_id, q1_2526_term_id, '2025-08-15', 0, 0, 'ENRL_EMMA_ECON12B_Q1_2526', 'E_EMMA_ECON12B_Q1_2526', encode(digest('ENRL_EMMA_ECON12B_Q1_2526','sha256'),'hex'), 'mock_source'),
+    (michael_chen_student_id, eng11a_section_id, q1_2526_term_id, '2025-08-15', 0, 0, 'ENRL_MICHAEL_ENG11A_Q1_2526', 'E_MICHAEL_ENG11A_Q1_2526', encode(digest('ENRL_MICHAEL_ENG11A_Q1_2526','sha256'),'hex'), 'mock_source'),
+    (michael_chen_student_id, ushista_section_id, q1_2526_term_id, '2025-08-15', 0, 0, 'ENRL_MICHAEL_USHISTA_Q1_2526', 'E_MICHAEL_USHISTA_Q1_2526', encode(digest('ENRL_MICHAEL_USHISTA_Q1_2526','sha256'),'hex'), 'mock_source'),
+    (michael_chen_student_id, alg2a_section_id, q1_2526_term_id, '2025-08-15', 0, 0, 'ENRL_MICHAEL_ALG2A_Q1_2526', 'E_MICHAEL_ALG2A_Q1_2526', encode(digest('ENRL_MICHAEL_ALG2A_Q1_2526','sha256'),'hex'), 'mock_source'),
+    (michael_chen_student_id, biology_a_section_id, q1_2526_term_id, '2025-08-15', 0, 0, 'ENRL_MICHAEL_BIO1A_Q1_2526', 'E_MICHAEL_BIO1A_Q1_2526', encode(digest('ENRL_MICHAEL_BIO1A_Q1_2526','sha256'),'hex'), 'mock_source');
+END $$;
+-- 2025-2026 Q1 Snapshot Grades (minimal current-year sample)
+DO $$
+DECLARE
+  emma_johnson_student_id uuid;
+  michael_chen_student_id uuid;
+  sophia_rodriguez_student_id uuid; -- alumni (no new grades, kept for potential example)
+  q1_2526_term_id uuid;
+  year_2526_id uuid;
+  -- Reuse existing course/section mappings for continuity (English 12B etc.)
+  english_12b_section_id uuid; english_12b_course_id uuid;
+  govt12b_section_id uuid; govt_12b_course_id uuid;
+  econ12b_section_id uuid; econ_12b_course_id uuid;
+  eng11a_section_id uuid; eng11a_course_id uuid; -- Michael now in Grade 11 English 11 A
+  ushista_section_id uuid; us_history_a_course_id uuid; -- Michael Grade 11 History A
+  alg2a_section_id uuid; algebra_2a_course_id uuid; -- Michael Algebra II A
+  biology_a_section_id uuid; biology_a_course_id uuid; -- Michael Biology A (assuming progression)
+BEGIN
+  SELECT student_id INTO emma_johnson_student_id FROM students WHERE email = 'emma.johnson@student.edu' LIMIT 1;
+  SELECT student_id INTO michael_chen_student_id FROM students WHERE email = 'michael.chen@student.edu' LIMIT 1;
+  SELECT student_id INTO sophia_rodriguez_student_id FROM students WHERE email = 'sophia.rodriguez@student.edu' LIMIT 1;
+  SELECT year_id INTO year_2526_id FROM years WHERE name = '2025-2026' LIMIT 1;
+  SELECT term_id INTO q1_2526_term_id FROM terms WHERE abbreviation = 'Q1' AND year_id = year_2526_id LIMIT 1;
+
+  -- Fetch course + section ids needed
+  SELECT course_id INTO english_12b_course_id FROM courses WHERE name = 'English 12 B' LIMIT 1;
+  SELECT section_id INTO english_12b_section_id FROM sections WHERE external_key = 'SEC_ENG12B_106_LHS' LIMIT 1;
+  SELECT course_id INTO govt_12b_course_id FROM courses WHERE name = 'Government 12 B' LIMIT 1;
+  SELECT section_id INTO govt12b_section_id FROM sections WHERE external_key = 'SEC_GOVT12B_602_LHS' LIMIT 1;
+  SELECT course_id INTO econ_12b_course_id FROM courses WHERE name = 'Economics 12 B' LIMIT 1;
+  SELECT section_id INTO econ12b_section_id FROM sections WHERE external_key = 'SEC_ECON12B_604_LHS' LIMIT 1;
+
+  SELECT course_id INTO eng11a_course_id FROM courses WHERE name = 'English 11 A' LIMIT 1;
+  SELECT section_id INTO eng11a_section_id FROM sections WHERE external_key = 'SEC_ENG11A_103_LHS' LIMIT 1;
+  SELECT course_id INTO us_history_a_course_id FROM courses WHERE name = 'US History A' LIMIT 1;
+  SELECT section_id INTO ushista_section_id FROM sections WHERE external_key = 'SEC_USHISTA_301_LHS' LIMIT 1;
+  SELECT course_id INTO algebra_2a_course_id FROM courses WHERE name = 'Algebra II A' LIMIT 1;
+  SELECT section_id INTO alg2a_section_id FROM sections WHERE external_key = 'SEC_ALG2A_501_LHS' LIMIT 1;
+  SELECT course_id INTO biology_a_course_id FROM courses WHERE name = 'Biology A' LIMIT 1;
+  SELECT section_id INTO biology_a_section_id FROM sections WHERE external_key = 'SEC_BIO1A_401_LHS' LIMIT 1;
+
+  -- Insert Emma's Grade 12 Q1 (continuation into second semester-style B courses; treat as senior fall snapshot)
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source)
+  VALUES
+    (emma_johnson_student_id, english_12b_section_id, q1_2526_term_id, english_12b_course_id, 'A-', 'Q1', 92.00, 3.70, 0.5, 0.5, 0, false, 'English', 'Final', 'Senior fall progress', '12', 'StoredGrades', '2025-10-18', 'GRADE_EMMA_ENG12B_Q1_2526', 'G_EMMA_ENG12B_Q1_2526', encode(digest('GRADE_EMMA_ENG12B_Q1_2526', 'sha256'), 'hex'), 'mock_source'),
+    (emma_johnson_student_id, govt12b_section_id, q1_2526_term_id, govt_12b_course_id, 'B+', 'Q1', 88.00, 3.30, 0.5, 0.5, 0, false, 'History', 'Final', 'Senior fall progress', '12', 'StoredGrades', '2025-10-18', 'GRADE_EMMA_GOVT12B_Q1_2526', 'G_EMMA_GOVT12B_Q1_2526', encode(digest('GRADE_EMMA_GOVT12B_Q1_2526', 'sha256'), 'hex'), 'mock_source'),
+    (emma_johnson_student_id, econ12b_section_id, q1_2526_term_id, econ_12b_course_id, 'B', 'Q1', 84.00, 3.00, 0.5, 0.5, 0, false, 'History', 'Final', 'Senior fall progress', '12', 'StoredGrades', '2025-10-18', 'GRADE_EMMA_ECON12B_Q1_2526', 'G_EMMA_ECON12B_Q1_2526', encode(digest('GRADE_EMMA_ECON12B_Q1_2526', 'sha256'), 'hex'), 'mock_source');
+
+  -- Insert Michael's Grade 11 Q1
+  INSERT INTO student_grades (student_id, section_id, term_id, course_id, grade_letter, grade_code, grade_percent, gpa_points, credit_hours_earned, potential_credit_hours, gpa_added_value, exclude_from_gpa, credit_type, grade_status, comment, grade_level, source_api, source_updated_date, external_key, external_id, external_key_hash, external_source)
+  VALUES
+    (michael_chen_student_id, eng11a_section_id, q1_2526_term_id, eng11a_course_id, 'A', 'Q1', 94.00, 4.00, 0.5, 0.5, 0, false, 'English', 'Final', 'Junior fall progress', '11', 'StoredGrades', '2025-10-18', 'GRADE_MICHAEL_ENG11A_Q1_2526', 'G_MICHAEL_ENG11A_Q1_2526', encode(digest('GRADE_MICHAEL_ENG11A_Q1_2526', 'sha256'), 'hex'), 'mock_source'),
+    (michael_chen_student_id, ushista_section_id, q1_2526_term_id, us_history_a_course_id, 'A-', 'Q1', 92.00, 3.70, 0.5, 0.5, 0, false, 'History', 'Final', 'Junior fall progress', '11', 'StoredGrades', '2025-10-18', 'GRADE_MICHAEL_USHISTA_Q1_2526', 'G_MICHAEL_USHISTA_Q1_2526', encode(digest('GRADE_MICHAEL_USHISTA_Q1_2526', 'sha256'), 'hex'), 'mock_source'),
+    (michael_chen_student_id, alg2a_section_id, q1_2526_term_id, algebra_2a_course_id, 'A-', 'Q1', 91.00, 3.70, 0.5, 0.5, 0, false, 'Math', 'Final', 'Junior fall progress', '11', 'StoredGrades', '2025-10-18', 'GRADE_MICHAEL_ALG2A_Q1_2526', 'G_MICHAEL_ALG2A_Q1_2526', encode(digest('GRADE_MICHAEL_ALG2A_Q1_2526', 'sha256'), 'hex'), 'mock_source'),
+    (michael_chen_student_id, biology_a_section_id, q1_2526_term_id, biology_a_course_id, 'A', 'Q1', 95.00, 4.00, 0.5, 0.5, 0, false, 'Science', 'Final', 'Junior fall progress', '11', 'StoredGrades', '2025-10-18', 'GRADE_MICHAEL_BIOA_Q1_2526', 'G_MICHAEL_BIOA_Q1_2526', encode(digest('GRADE_MICHAEL_BIOA_Q1_2526', 'sha256'), 'hex'), 'mock_source');
+
+  -- Sophia graduated in 2024-2025; no 2025-2026 grades inserted.
 END $$;

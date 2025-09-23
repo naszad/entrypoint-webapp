@@ -22,7 +22,7 @@ INSERT INTO students (
     'Johnson',
     'emma.johnson@student.edu',
     '555-0101',
-    11,
+    12,
     'female',
     '2007-05-15',
     'mock_source',
@@ -30,7 +30,7 @@ INSERT INTO students (
     1001,
     encode(digest('STUDENT_001', 'sha256'), 'hex'),
     'Emma J',
-    2025,
+    2026,
     'active',
     'Room 101',
     'Emma Johnson'

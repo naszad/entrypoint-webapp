@@ -7,12 +7,14 @@
 DO $$
 DECLARE
   lincoln_hs_id uuid;
+  year_35_id uuid;
   year_34_id uuid;
   year_33_id uuid;
   year_32_id uuid;
   year_31_id uuid;
 BEGIN
   SELECT school_id INTO lincoln_hs_id FROM schools WHERE name = 'Lincoln High School' LIMIT 1;
+  SELECT year_id INTO year_35_id FROM years WHERE name = '2025-2026' LIMIT 1;
   SELECT year_id INTO year_34_id FROM years WHERE name = '2024-2025' LIMIT 1;
   SELECT year_id INTO year_33_id FROM years WHERE name = '2023-2024' LIMIT 1;
   SELECT year_id INTO year_32_id FROM years WHERE name = '2022-2023' LIMIT 1;
@@ -23,6 +25,13 @@ BEGIN
     term_id, school_id, start_date, end_date, abbreviation, year_id,
     external_id, external_name, external_key, external_key_hash, external_source
   ) VALUES
+  -- 2025-2026 Terms (new current year, dates shifted one year forward from 2024-2025 pattern)
+  (gen_random_uuid(), lincoln_hs_id, '2025-08-15', '2025-10-17', 'Q1', year_35_id, 'TERM_Q1_2526_LHS', 'Quarter 1 2025-2026', 'LHS_Q1_2526', encode(digest('LHS_Q1_2526', 'sha256'), 'hex'), 'mock_source'),
+  (gen_random_uuid(), lincoln_hs_id, '2025-10-20', '2025-12-19', 'Q2', year_35_id, 'TERM_Q2_2526_LHS', 'Quarter 2 2025-2026', 'LHS_Q2_2526', encode(digest('LHS_Q2_2526', 'sha256'), 'hex'), 'mock_source'),
+  (gen_random_uuid(), lincoln_hs_id, '2026-01-05', '2026-03-13', 'Q3', year_35_id, 'TERM_Q3_2526_LHS', 'Quarter 3 2025-2026', 'LHS_Q3_2526', encode(digest('LHS_Q3_2526', 'sha256'), 'hex'), 'mock_source'),
+  (gen_random_uuid(), lincoln_hs_id, '2026-03-16', '2026-05-22', 'Q4', year_35_id, 'TERM_Q4_2526_LHS', 'Quarter 4 2025-2026', 'LHS_Q4_2526', encode(digest('LHS_Q4_2526', 'sha256'), 'hex'), 'mock_source'),
+  (gen_random_uuid(), lincoln_hs_id, '2025-08-15', '2025-12-19', 'S1', year_35_id, 'TERM_S1_2526_LHS', 'Semester 1 2025-2026', 'LHS_S1_2526', encode(digest('LHS_S1_2526', 'sha256'), 'hex'), 'mock_source'),
+  (gen_random_uuid(), lincoln_hs_id, '2026-01-05', '2026-05-22', 'S2', year_35_id, 'TERM_S2_2526_LHS', 'Semester 2 2025-2026', 'LHS_S2_2526', encode(digest('LHS_S2_2526', 'sha256'), 'hex'), 'mock_source'),
   -- 2024-2025 Terms
   (gen_random_uuid(), lincoln_hs_id, '2024-08-15', '2024-10-18', 'Q1', year_34_id, 'TERM_Q1_2425_LHS', 'Quarter 1 2024-2025', 'LHS_Q1_2425', encode(digest('LHS_Q1_2425', 'sha256'), 'hex'), 'mock_source'),
   (gen_random_uuid(), lincoln_hs_id, '2024-10-21', '2024-12-20', 'Q2', year_34_id, 'TERM_Q2_2425_LHS', 'Quarter 2 2024-2025', 'LHS_Q2_2425', encode(digest('LHS_Q2_2425', 'sha256'), 'hex'), 'mock_source'),
