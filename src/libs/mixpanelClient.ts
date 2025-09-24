@@ -148,6 +148,18 @@ export const refreshSuperProperties = () => {
   registerSessionContext();
 };
 
+export const registerSuperProperties = (props: MixpanelEventProps) => {
+  if (!props || Object.keys(props).length === 0) return;
+  if (!ensureReady()) return;
+  try {
+    mixpanel.register(props);
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Mixpanel register failed', error);
+    }
+  }
+};
+
 export const identifyUser = (
   distinctId: string,
   traits?: MixpanelUserProps

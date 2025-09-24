@@ -14,7 +14,7 @@ This document defines conventions for Mixpanel event names and properties in the
 8. Keep property keys snake_case; event names Title Case.  
 9. Use the `page` prop to indicate the origin context (where action was taken).  
 10. Fail silent if analytics not initialized (never block UX).
-11. Register persistent context (`customer_*`, `school_*`) via `mixpanelClient` helpers—do not duplicate this work in feature code.
+11. Register persistent context (`customer_*`, `school_*`, panel state, etc.) via `mixpanelClient` helpers—do not duplicate this work in feature code.
 
 ## Event Naming Patterns
 
@@ -88,9 +88,23 @@ Avoid trailing punctuation, internal slashes, or dynamic fragments.
 3. Properties: Keep minimal. Use existing keys when semantics match.  
 4. Cardinality Review: Ensure no unbounded unique values (IDs, free text).  
 5. Implement: Use `trackEvent(name, props)` from `mixpanelClient`. The helper queues events until Mixpanel is ready and injects registered context automatically—send only action-specific props.  
-6. For user identity/context updates (login, logout, school switch) call the exported helpers (`identifyUser`, `refreshSuperProperties`, `resetMixpanel`) instead of touching the SDK directly.  
+6. For user identity/context updates (login, logout, school switch) or when you need to set persistent super properties, call the exported helpers (`identifyUser`, `refreshSuperProperties`, `registerSuperProperties`, `resetMixpanel`) instead of touching the SDK directly.  
 7. Test Locally: In dev, `window.mixpanel` is exposed—verify in console.  
 8. Update This Doc: Add event under catalog with when + props table.  
+
+### Registering Super Properties
+
+- Use `registerSuperProperties({ key: value })` from `mixpanelClient` to persist contextual flags (e.g., current panel state).  
+- The helper checks initialization and silently no-ops if Mixpanel is unavailable, so do not import `mixpanel-browser` directly.  
+- Call it inside React effects or other lifecycle hooks when the underlying state changes:  
+
+```tsx
+useEffect(() => {
+  registerSuperProperties({ chat_panel_open: isChatAssistantOpen });
+}, [isChatAssistantOpen]);
+```
+
+- Avoid registering empty objects; the helper already guards against this.
 
 ## Do / Don't Examples
 
