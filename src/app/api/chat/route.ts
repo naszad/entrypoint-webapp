@@ -42,7 +42,7 @@ Key Guidelines:
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5"
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103"
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
 
 **Date Filter Instructions:**
@@ -59,14 +59,22 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           email: z.string().optional().describe('Email domain or part of email to search for'),
           gpaFilter: z.object({
             value: z.number().describe('The GPA value to filter by'),
-            operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte']).default('eq').describe('The comparison operator for the GPA filter: "eq" (equal to), "gt" (greater than), "lt" (less than), "gte" (greater than or equal to), "lte" (less than or equal to)')
+            operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte', 'not']).default('eq').describe('The comparison operator for the GPA filter: "eq" (equal to), "gt" (greater than), "lt" (less than), "gte" (greater than or equal to), "lte" (less than or equal to), "not" (not equal to)')
           }).optional().describe('Filter students by cumulative GPA. For example, "students with GPA above 3.5" or "students with GPA below 2.0".'),
           ageFilter: z.object({
             age: z.number().describe('The age to filter by'),
-            operator: z.enum(['eq', 'gte', 'lte']).default('eq').describe('The comparison operator for the age filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to)')
+            operator: z.enum(['eq', 'gte', 'lte', 'not']).default('eq').describe('The comparison operator for the age filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to), "not" (not equal to)')
           }).optional().describe('Filter students by age. For example, "students older than 15" or "10-year-old students".'),
           createdAtRecentOnly: z.number().positive().optional().describe('Filter students created in the last N days. Use when user asks for students "created", "added", or "registered" in recent time period.'),
-          updatedAtRecentOnly: z.number().positive().optional().describe('Filter students updated in the last N days. Use when user asks for students "updated", "modified", or "changed" in recent time period.')
+          updatedAtRecentOnly: z.number().positive().optional().describe('Filter students updated in the last N days. Use when user asks for students "updated", "modified", or "changed" in recent time period.'),
+          // New negative and empty value filters
+          fullNameNot: z.string().optional().describe('Name that should NOT be in the student name (for "not equal" or "does not contain" queries)'),
+          emailNot: z.string().optional().describe('Email that should NOT be in the student email (for "not equal" or "does not contain" queries)'),
+          homeroomNameNot: z.string().optional().describe('Homeroom name that should NOT be in the student homeroom (for "not equal" or "does not contain" queries)'),
+          emailEmpty: z.boolean().optional().describe('Filter for students with empty/null email addresses'),
+          emailNotEmpty: z.boolean().optional().describe('Filter for students with non-empty email addresses'),
+          fullNameEmpty: z.boolean().optional().describe('Filter for students with empty/null full names'),
+          fullNameNotEmpty: z.boolean().optional().describe('Filter for students with non-empty full names')
         }),
         execute: async (parsedFilters) => {
           console.log('Executing filter_students tool with filters:', parsedFilters);
@@ -87,6 +95,35 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
               case 'homeroomName':
               case 'email':
                 filters.push(`${key}:contains:${encodeURIComponent(value as string)}`);
+                break;
+              case 'fullNameNot':
+                filters.push(`fullName:not_contains:${encodeURIComponent(value as string)}`);
+                break;
+              case 'emailNot':
+                filters.push(`email:not_contains:${encodeURIComponent(value as string)}`);
+                break;
+              case 'homeroomNameNot':
+                filters.push(`homeroomName:not_contains:${encodeURIComponent(value as string)}`);
+                break;
+              case 'emailEmpty':
+                if (value === true) {
+                  filters.push(`email:is_empty:true`);
+                }
+                break;
+              case 'emailNotEmpty':
+                if (value === true) {
+                  filters.push(`email:is_not_empty:true`);
+                }
+                break;
+              case 'fullNameEmpty':
+                if (value === true) {
+                  filters.push(`fullName:is_empty:true`);
+                }
+                break;
+              case 'fullNameNotEmpty':
+                if (value === true) {
+                  filters.push(`fullName:is_not_empty:true`);
+                }
                 break;
               case 'createdAtRecentOnly':
                 filters.push(`createdAtRecentOnly:in:${value}`);

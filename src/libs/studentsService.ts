@@ -99,7 +99,7 @@ const getGradeColumnName = (key: string) => {
   switch (key) {
     case 'fullName':
       return 'full_name';
-    case 'course_localCourseCode':
+    case 'course_local_course_code':
       return 'local_course_code';
     case 'course_name':
       return 'name';
@@ -185,6 +185,24 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
       case 'not':
         q = q.neq(targetColumn, filter.value);
         break;
+      case 'not_contains':
+        q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+        break;
+      case 'is_empty': {
+        const expr = `${columnName}.is.null,${columnName}.eq.`;
+        q = filterOnStudentTable ? q.or(expr, { foreignTable: 'students' }) : q.or(expr);
+        break;
+      }
+      case 'is_not_empty': {
+        if (filterOnStudentTable) {
+          q = q.not('students', 'is', null, { referencedTable: 'students' });
+          q = q.neq(`students.${columnName}`, '');
+        } else {
+          q = q.not(columnName, 'is', null);
+          q = q.neq(columnName, '');
+        }
+        break;
+      }
       case 'gt':
         q = q.gt(targetColumn, filter.value);
         break;
@@ -230,7 +248,11 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
       return; // Skip empty filters
     }
 
+    console.log('baseColumnKey filter for grade filters', baseColumnKey);
+
     const columnName = getGradeColumnName(baseColumnKey);
+
+    console.log('columnName for grade filters', columnName);
     
     let targetColumn = columnName;
     // Handle different table columns
@@ -240,6 +262,9 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
     } else if (['local_course_code', 'name'].includes(columnName)) {
       targetColumn = `course.${columnName}`;
     } 
+    const foreignTableForLogic = targetColumn.startsWith('student.') ? 'student' : (targetColumn.startsWith('course.') ? 'course' : null);
+
+    console.log('foreignTableForLogic for grade filters', foreignTableForLogic);
 
     if (filter.key.endsWith('RecentOnly')) {
       const today = new Date();
@@ -268,6 +293,20 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
         case 'not':
           q = q.neq(targetColumn, filter.value);
           break;
+        case 'not_contains':
+          q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+          break;
+        case 'is_empty': {
+          const expr = `${columnName}.is.null,${columnName}.eq.`;
+          q = foreignTableForLogic ? q.or(expr, { referencedTable: foreignTableForLogic }) : q.or(expr);
+          break;
+        }
+        case 'is_not_empty': {
+          // Use dotted targetColumn path so PostgREST targets the related table
+          q = q.not(targetColumn, 'is', null);
+          q = q.neq(targetColumn, '');
+          break;
+        }
         case 'gt':
           q = q.gt(targetColumn, filter.value);
           break;
@@ -957,7 +996,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       let foreignTable = null;
       if (['full_name'].includes(sortColumn)) {
         foreignTable = 'student';
-      } else if (['local_course_code', 'name'].includes(sortColumn)) {
+      } else if (['course_local_course_code', 'name'].includes(sortColumn)) {
         foreignTable = 'course';
       }
 
@@ -974,6 +1013,8 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       const to = from + pagingInfo.pageSize - 1;
       query = query.range(from, to);
     }
+
+    console.log('final query', query);
 
     // Execute query
     const { data, error } = await query;

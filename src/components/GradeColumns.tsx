@@ -57,7 +57,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     ),
   },
   {
-    accessorKey: "course.localCourseCode",
+    accessorKey: "course.local_course_code",
     header: "Course Number",
     enableHiding: false,
     meta: {

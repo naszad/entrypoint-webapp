@@ -99,6 +99,18 @@ export async function fetchReportsByCriteria(request: ReportsRequest): Promise<R
           case 'not':
             query = query.neq(columnName, filter.value);
             break;
+          case 'not_contains':
+            query = query.not(columnName, 'ilike', `%${filter.value}%`);
+            break;
+          case 'is_empty': {
+            query = query.or(`${columnName}.is.null,${columnName}.eq.`);
+            break;
+          }
+          case 'is_not_empty': {
+            query = query.not(columnName, 'is', null);
+            query = query.neq(columnName, '');
+            break;
+          }
           case 'gt':
             query = query.gt(columnName, filter.value);
             break;
