@@ -248,11 +248,7 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
       return; // Skip empty filters
     }
 
-    console.log('baseColumnKey filter for grade filters', baseColumnKey);
-
     const columnName = getGradeColumnName(baseColumnKey);
-
-    console.log('columnName for grade filters', columnName);
     
     let targetColumn = columnName;
     // Handle different table columns
@@ -263,8 +259,6 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
       targetColumn = `course.${columnName}`;
     } 
     const foreignTableForLogic = targetColumn.startsWith('student.') ? 'student' : (targetColumn.startsWith('course.') ? 'course' : null);
-
-    console.log('foreignTableForLogic for grade filters', foreignTableForLogic);
 
     if (filter.key.endsWith('RecentOnly')) {
       const today = new Date();
@@ -1013,8 +1007,6 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       const to = from + pagingInfo.pageSize - 1;
       query = query.range(from, to);
     }
-
-    console.log('final query', query);
 
     // Execute query
     const { data, error } = await query;
