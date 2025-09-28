@@ -194,13 +194,8 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
         break;
       }
       case 'is_not_empty': {
-        if (filterOnStudentTable) {
-          q = q.not('students', 'is', null, { referencedTable: 'students' });
-          q = q.neq(`students.${columnName}`, '');
-        } else {
-          q = q.not(columnName, 'is', null);
-          q = q.neq(columnName, '');
-        }
+        q = q.not(targetColumn, 'is', null);
+        q = q.neq(targetColumn, '');
         break;
       }
       case 'gt':
