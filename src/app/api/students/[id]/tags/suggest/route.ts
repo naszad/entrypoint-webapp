@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { getAllTagsForCustomer, getStudentTags, getAllTagCategories } from '@/libs/tagsService';
 
 const suggestedTagSchema = z.object({
@@ -96,11 +96,11 @@ ${Array.from(studentTagValues).join(', ')}`;
           role: 'user',
           content: `Based on this meeting summary and notes, suggest relevant tags:
 
-SUMMARY: ${summary}
+  SUMMARY: ${summary}
 
-NOTES: ${notes}
+  NOTES: ${notes}
 
-Remember: Only suggest tags for KEY, IMPORTANT information. Skip minor or temporary details.`
+  Remember: Only suggest tags for KEY, IMPORTANT information. Skip minor or temporary details.`
         }
       ],
       schema: suggestedTagSchema,

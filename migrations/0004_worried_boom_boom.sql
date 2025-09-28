@@ -1,2 +1,0 @@
-ALTER TABLE "user_school_memberships" ADD CONSTRAINT "user_school_memberships_user_id_users_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_school_memberships" ADD CONSTRAINT "user_school_memberships_school_id_schools_school_id_fk" FOREIGN KEY ("school_id") REFERENCES "public"."schools"("school_id") ON DELETE no action ON UPDATE no action;
