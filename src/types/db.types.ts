@@ -127,6 +127,7 @@ export type Database = {
         Row: {
           course_id: string
           created_at: string | null
+          credit_type: string | null
           customer_id: string | null
           external_id: string
           external_key: string
@@ -142,6 +143,7 @@ export type Database = {
         Insert: {
           course_id?: string
           created_at?: string | null
+          credit_type?: string | null
           customer_id?: string | null
           external_id: string
           external_key: string
@@ -157,6 +159,7 @@ export type Database = {
         Update: {
           course_id?: string
           created_at?: string | null
+          credit_type?: string | null
           customer_id?: string | null
           external_id?: string
           external_key?: string
