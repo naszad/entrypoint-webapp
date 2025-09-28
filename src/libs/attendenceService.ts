@@ -324,14 +324,13 @@ const applyTardyFilters = (q: any, filters: FilterValue[]) => {
 
     const columnName = getTardyColumnName(filter.key);
 
-    const forighnTable = ['name', 'local_course_code'].includes(columnName) ? 'sections.courses' : ['abbreviation'].includes(columnName) ? 'terms' : columnName === 'name' && filter.key === 'yearName' ? 'terms.years' : null;
+    const foreignTable = ['name', 'local_course_code'].includes(columnName) ? 'sections.courses' : ['abbreviation'].includes(columnName) ? 'terms' : columnName === 'name' && filter.key === 'yearName' ? 'terms.years' : null;
     
     let targetColumn = columnName;
     // Handle foreign table columns
-    if (forighnTable) {
-      targetColumn = `${forighnTable}.${columnName}`;
+    if (foreignTable) {
+      targetColumn = `${foreignTable}.${columnName}`;
     }
-
 
     try {
       switch (filter.condition) {
@@ -352,7 +351,7 @@ const applyTardyFilters = (q: any, filters: FilterValue[]) => {
           break;
         case 'is_empty': {
           const expr = `${columnName}.is.null,${columnName}.eq.`;
-          q = forighnTable ? q.or(expr, { referencedTable: forighnTable }) : q.or(expr);
+          q = foreignTable ? q.or(expr, { referencedTable: foreignTable }) : q.or(expr);
           break;
         }
         case 'is_not_empty': {
