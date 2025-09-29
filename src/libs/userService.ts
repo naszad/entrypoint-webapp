@@ -134,6 +134,19 @@ const applyUserFilters = (q: any, filters: FilterValue[]) => {
       case 'not':
         q = q.neq(targetColumn, filter.value);
         break;
+      case 'not_contains':
+        q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+        break;
+      case 'is_empty': {
+        const expr = `${columnName}.is.null,${columnName}.eq.`;
+        q = filterOnUserTable ? q.or(expr, { foreignTable: 'users' }) : q.or(expr);
+        break;
+      }
+      case 'is_not_empty': {
+        q = q.not(targetColumn, 'is', null);
+        q = q.neq(targetColumn, '');
+        break;
+      }
       case 'gt':
         q = q.gt(targetColumn, filter.value);
         break;

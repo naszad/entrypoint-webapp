@@ -8,8 +8,10 @@ export const TEXT_FILTER_CONDITIONS: FilterCondition[] = [
   { id: 'eq', displayValue: 'Equals' },
   { id: 'starts', displayValue: 'Starts with' },
   { id: 'ends', displayValue: 'Ends with' },
-  { id: 'not', displayValue: 'Not' },
-  { id: 'in', displayValue: 'In' }
+  { id: 'not', displayValue: 'Not Equal' },
+  { id: 'not_contains', displayValue: 'Does not contain' },
+  { id: 'is_empty', displayValue: 'Is Empty' },
+  { id: 'is_not_empty', displayValue: 'Is Not Empty' },
 ];
 
 export const NUMBER_FILTER_CONDITIONS: FilterCondition[] = [
@@ -18,8 +20,7 @@ export const NUMBER_FILTER_CONDITIONS: FilterCondition[] = [
   { id: 'lt', displayValue: 'Less than' },
   { id: 'gte', displayValue: 'Greater than or equal to' },
   { id: 'lte', displayValue: 'Less than or equal to' },
-  { id: 'not', displayValue: 'Not' },
-  { id: 'in', displayValue: 'In' }
+  { id: 'not', displayValue: 'Not Equal' },
 ];
 
 export const DEFAULT_FILTER_CONDITIONS: FilterCondition[] = [
@@ -41,6 +42,7 @@ export const getDisplayValueById = (id: string): string => {
   const allConditions = [
     ...TEXT_FILTER_CONDITIONS,
     ...NUMBER_FILTER_CONDITIONS,
+    {id: 'in', displayValue: 'In'}
   ];
   const condition = allConditions.find(c => c.id === id);
   return condition?.displayValue || 'Equals';

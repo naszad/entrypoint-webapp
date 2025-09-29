@@ -199,20 +199,23 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       const filterValuesForColumn = filterValues.filter(f => f.key.includes(openFilterColumn));    
       
       if (filterValuesForColumn.length > 0) {
+        const conditionSelect = filterConditionRefs.current[openFilterColumn];
+        const mainFilter = filterValuesForColumn.find(f => f.key === openFilterColumn);
+        if (conditionSelect && mainFilter) {
+          conditionSelect.value = mainFilter.condition;
+        }
+
         filterValuesForColumn.forEach(filterValue => {
           const input = filterInputRefs.current[filterValue.key];
           if (input) {
-            input.value = filterValue.value;
+            // Do not populate input for is_empty / is_not_empty
+            if (mainFilter && (mainFilter.condition === 'is_empty' || mainFilter.condition === 'is_not_empty')) {
+              input.value = '';
+            } else {
+              input.value = filterValue.value;
+            }
           }
         });
-
-        const conditionSelect = filterConditionRefs.current[openFilterColumn];
-        if (conditionSelect) {
-          const mainFilter = filterValuesForColumn.find(f => f.key === openFilterColumn);
-          if (mainFilter) {
-            conditionSelect.value = mainFilter.condition;
-          }
-        }
       }
     }
   }, [openFilterColumn, filterValues]);
@@ -401,23 +404,43 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         }
         return [...prev, newFilter];
       });
-    } else if (input && input.value) {
+    } else {
       const condition = conditionSelect?.value || 'eq';
-      setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
-      setFilterValues(prev => {
-        const existingFilterIndex = prev.findIndex(f => f.key === columnId);
-        const newFilter = {
-          key: columnId,
-          value: input.value,
-          condition,
-        };
-        if (existingFilterIndex >= 0) {
-          const newFilters = [...prev];
-          newFilters[existingFilterIndex] = newFilter;
-          return newFilters;
-        }
-        return [...prev, newFilter];
-      });
+
+      // Allow applying when condition is is_empty or is_not_empty even if input is empty
+      if (condition === 'is_empty' || condition === 'is_not_empty') {
+        setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
+        setFilterValues(prev => {
+          const existingFilterIndex = prev.findIndex(f => f.key === columnId);
+          const newFilter = {
+            key: columnId,
+            value: 'true',
+            condition,
+          };
+          if (existingFilterIndex >= 0) {
+            const newFilters = [...prev];
+            newFilters[existingFilterIndex] = newFilter;
+            return newFilters;
+          }
+          return [...prev, newFilter];
+        });
+      } else if (input && input.value) {
+        setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
+        setFilterValues(prev => {
+          const existingFilterIndex = prev.findIndex(f => f.key === columnId);
+          const newFilter = {
+            key: columnId,
+            value: input.value,
+            condition,
+          };
+          if (existingFilterIndex >= 0) {
+            const newFilters = [...prev];
+            newFilters[existingFilterIndex] = newFilter;
+            return newFilters;
+          }
+          return [...prev, newFilter];
+        });
+      }
     }
     setOpenFilterColumn(null);
   };

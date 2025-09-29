@@ -99,7 +99,7 @@ const getGradeColumnName = (key: string) => {
   switch (key) {
     case 'fullName':
       return 'full_name';
-    case 'course_localCourseCode':
+    case 'course_local_course_code':
       return 'local_course_code';
     case 'course_name':
       return 'name';
@@ -185,6 +185,19 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
       case 'not':
         q = q.neq(targetColumn, filter.value);
         break;
+      case 'not_contains':
+        q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+        break;
+      case 'is_empty': {
+        const expr = `${columnName}.is.null,${columnName}.eq.`;
+        q = filterOnStudentTable ? q.or(expr, { foreignTable: 'students' }) : q.or(expr);
+        break;
+      }
+      case 'is_not_empty': {
+        q = q.not(targetColumn, 'is', null);
+        q = q.neq(targetColumn, '');
+        break;
+      }
       case 'gt':
         q = q.gt(targetColumn, filter.value);
         break;
@@ -240,6 +253,7 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
     } else if (['local_course_code', 'name'].includes(columnName)) {
       targetColumn = `course.${columnName}`;
     } 
+    const foreignTableForLogic = targetColumn.startsWith('student.') ? 'student' : (targetColumn.startsWith('course.') ? 'course' : null);
 
     if (filter.key.endsWith('RecentOnly')) {
       const today = new Date();
@@ -268,6 +282,20 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
         case 'not':
           q = q.neq(targetColumn, filter.value);
           break;
+        case 'not_contains':
+          q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+          break;
+        case 'is_empty': {
+          const expr = `${columnName}.is.null,${columnName}.eq.`;
+          q = foreignTableForLogic ? q.or(expr, { referencedTable: foreignTableForLogic }) : q.or(expr);
+          break;
+        }
+        case 'is_not_empty': {
+          // Use dotted targetColumn path so PostgREST targets the related table
+          q = q.not(targetColumn, 'is', null);
+          q = q.neq(targetColumn, '');
+          break;
+        }
         case 'gt':
           q = q.gt(targetColumn, filter.value);
           break;
@@ -903,6 +931,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
         course:courses (
           course_id,
           name,
+          credit_type,
           local_course_code,
           state_course_code,
           external_source,
@@ -1026,6 +1055,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
         course: {
           course_id: gradeRecord.course.course_id,
           name: gradeRecord.course.name,
+          credit_type: gradeRecord.course.credit_type,
           local_course_code: gradeRecord.course.local_course_code,
           state_course_code: gradeRecord.course.state_course_code,
           external_source: gradeRecord.course.external_source,

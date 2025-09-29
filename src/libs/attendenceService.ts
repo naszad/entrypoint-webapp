@@ -105,10 +105,12 @@ const applyAbsenceFilters = (q: any, filters: FilterValue[]) => {
     }
 
     const columnName = getAbsenceColumnName(baseColumnKey);
+
+    const filterOnYears = ['name'].includes(columnName);
     
     let targetColumn = columnName;
     // Handle foreign table columns
-    if (['name'].includes(columnName)) {
+    if (filterOnYears) {
       targetColumn = `years.${columnName}`;
     }
 
@@ -141,6 +143,19 @@ const applyAbsenceFilters = (q: any, filters: FilterValue[]) => {
         case 'not':
           q = q.neq(targetColumn, filter.value);
           break;
+        case 'not_contains':
+          q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+          break;
+          case 'is_empty': {
+            const expr = `${columnName}.is.null,${columnName}.eq.`;
+            q = filterOnYears ? q.or(expr, { referencedTable: 'years' }) : q.or(expr);
+            break;
+          }
+        case 'is_not_empty': {
+          q = q.not(targetColumn, 'is', null);
+          q = q.neq(targetColumn, '');
+          break;
+        }
         case 'gt':
           q = q.gt(targetColumn, filter.value);
           break;
@@ -308,17 +323,14 @@ const applyTardyFilters = (q: any, filters: FilterValue[]) => {
     }
 
     const columnName = getTardyColumnName(filter.key);
+
+    const foreignTable = ['name', 'local_course_code'].includes(columnName) ? 'sections.courses' : ['abbreviation'].includes(columnName) ? 'terms' : columnName === 'name' && filter.key === 'yearName' ? 'terms.years' : null;
     
     let targetColumn = columnName;
     // Handle foreign table columns
-    if (['name', 'local_course_code'].includes(columnName)) {
-      targetColumn = `sections.courses.${columnName}`;
-    } else if (['abbreviation'].includes(columnName)) {
-      targetColumn = `terms.${columnName}`;
-    } else if (columnName === 'name' && filter.key === 'yearName') {
-      targetColumn = `terms.years.${columnName}`;
+    if (foreignTable) {
+      targetColumn = `${foreignTable}.${columnName}`;
     }
-
 
     try {
       switch (filter.condition) {
@@ -334,6 +346,19 @@ const applyTardyFilters = (q: any, filters: FilterValue[]) => {
         case 'not':
           q = q.neq(targetColumn, filter.value);
           break;
+        case 'not_contains':
+          q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+          break;
+        case 'is_empty': {
+          const expr = `${columnName}.is.null,${columnName}.eq.`;
+          q = foreignTable ? q.or(expr, { referencedTable: foreignTable }) : q.or(expr);
+          break;
+        }
+        case 'is_not_empty': {
+          q = q.not(targetColumn, 'is', null);
+          q = q.neq(targetColumn, '');
+          break;
+        }
         case 'gt':
           q = q.gt(targetColumn, filter.value);
           break;
