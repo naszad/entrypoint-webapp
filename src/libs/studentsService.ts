@@ -931,6 +931,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
         course:courses (
           course_id,
           name,
+          credit_type,
           local_course_code,
           state_course_code,
           external_source,
@@ -1054,6 +1055,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
         course: {
           course_id: gradeRecord.course.course_id,
           name: gradeRecord.course.name,
+          credit_type: gradeRecord.course.credit_type,
           local_course_code: gradeRecord.course.local_course_code,
           state_course_code: gradeRecord.course.state_course_code,
           external_source: gradeRecord.course.external_source,
