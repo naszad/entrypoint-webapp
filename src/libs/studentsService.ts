@@ -985,7 +985,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       let foreignTable = null;
       if (['full_name'].includes(sortColumn)) {
         foreignTable = 'student';
-      } else if (['course_local_course_code', 'name'].includes(sortColumn)) {
+      } else if (['local_course_code', 'name'].includes(sortColumn)) {
         foreignTable = 'course';
       }
 
