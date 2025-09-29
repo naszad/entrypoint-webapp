@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { SortingState } from '@tanstack/react-table';
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -14,13 +14,10 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
   const pathname = usePathname();
   const router = useRouter();
   
-  // Helper function to deeply compare params objects
-  const compareParams = (prev: { filters: FilterValue[], sorting: SortingState }, current: { filters: FilterValue[], sorting: SortingState }) => {
-    return compareFilters(prev.filters, current.filters) && compareSorting(prev.sorting, current.sorting);
-  };
+
 
   // Helper function to compare filter arrays
-  const compareFilters = (prev: FilterValue[], current: FilterValue[]) => {
+  const compareFilters = useCallback((prev: FilterValue[], current: FilterValue[]) => {
     if (prev.length !== current.length) return false;
     for (let i = 0; i < prev.length; i++) {
       const prevFilter = prev[i];
@@ -32,10 +29,10 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       }
     }
     return true;
-  };
+  }, []);
 
   // Helper function to compare sorting arrays
-  const compareSorting = (prev: SortingState, current: SortingState) => {
+  const compareSorting = useCallback((prev: SortingState, current: SortingState) => {
     if (prev.length !== current.length) return false;
     for (let i = 0; i < prev.length; i++) {
       const prevSort = prev[i];
@@ -45,7 +42,12 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       }
     }
     return true;
-  };
+  }, []);
+
+  // Helper function to deeply compare params objects
+  const compareParams = useCallback((prev: { filters: FilterValue[], sorting: SortingState }, current: { filters: FilterValue[], sorting: SortingState }) => {
+    return compareFilters(prev.filters, current.filters) && compareSorting(prev.sorting, current.sorting);
+  }, [compareFilters, compareSorting]);
 
   // Filter state
   const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
@@ -189,7 +191,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       }
       return prev;
     });
-  }, [searchParams]);
+  }, [searchParams, compareFilters, compareSorting]);
 
   // Set input and condition values when filter dropdown opens
   useEffect(() => {

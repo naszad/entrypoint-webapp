@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import ReactMarkdown from "react-markdown";
-import { MessagesSquare, Send, X, MoveDown, Trash2 } from 'lucide-react'
+import { MessagesSquare, Send, ChevronRight, MoveDown, Plus, ChevronDown, Trash2, Edit3, X, Check, Sparkles, Settings, ThumbsUp, ThumbsDown, Minus } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
 import { Button } from './ui/button'
@@ -12,6 +12,7 @@ import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
 import { registerSuperProperties } from '@/libs/mixpanelClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ChatMessage } from '@/types/Models';
 
 type FiltersApplied = {
   gradeLevel?: number;
@@ -40,6 +41,13 @@ type GradesFiltersApplied = {
   credit_type?: string;
   updatedAfter?: string;
   updatedBefore?: string;
+};
+
+type ChatInfo = {
+  chat_id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type ToolInvocation = {
@@ -166,6 +174,81 @@ export function ChatAssistant() {
     return null;
   });
 
+  // Current chat ID state with timeout checking
+  // Environment variable: CHAT_TIMEOUT_HOURS (default: 24 hours)
+  // Controls how long a chat ID is kept before expiring and creating a new chat
+  const [currentChatId, setCurrentChatId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const storedData = localStorage.getItem('currentChatData');
+      if (storedData) {
+        try {
+          const { chatId, timestamp } = JSON.parse(storedData);
+          const timeoutHours = parseInt(window.env.CHAT_TIMEOUT_HOURS != 'undefined' ? window.env.CHAT_TIMEOUT_HOURS : '24');
+          const timeoutMs = timeoutHours * 60 * 60 * 1000; // Convert hours to milliseconds
+          if ((Date.now() - timestamp) < timeoutMs) {
+            return chatId;
+          } else {
+            // Chat has expired, remove it
+            localStorage.removeItem('currentChatData');
+            return null;
+          }
+        } catch {
+          // Invalid stored data, remove it
+          localStorage.removeItem('currentChatData');
+          return null;
+        }
+      }
+    }
+    return null;
+  });
+
+  // Track when we're loading existing messages vs receiving new ones
+  const [isLoadingExistingChat, setIsLoadingExistingChat] = useState(false);
+  
+  // Track initialization to prevent multiple chat creation using ref for immediate updates
+  const initializationRef = useRef({
+    isInitializing: false,
+    hasInitialized: false
+  });
+
+  // Track chat switching to prevent navigation - using ref for immediate access
+  const isSwitchingChatsRef = useRef(false);
+
+  // Chat list state
+  const [chatList, setChatList] = useState<ChatInfo[]>([]);
+  const [showChatDropdown, setShowChatDropdown] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Title editing state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [isTitleHovered, setIsTitleHovered] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+
+  // Dev options state
+  const [showDevOptions, setShowDevOptions] = useState(false);
+  const [isDevOptionsEnabled, setIsDevOptionsEnabled] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-4o');
+  const devOptionsRef = useRef<HTMLDivElement>(null);
+
+  // Available OpenAI models for dev options
+  const availableModels = useMemo(() => [
+    { value: 'gpt-5', label: 'GPT-5' },
+    { value: 'gpt-5-mini', label: 'GPT-5 Mini' },
+    { value: 'gpt-5-nano', label: 'GPT-5 Nano' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
+  ], []);
+
+  // Message feedback state - maps message ID to sentiment
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 'positive' | 'neutral' | 'negative'>>({});
+  
+  // Track which messages have had their feedback loaded
+  const [loadedFeedbackMessages, setLoadedFeedbackMessages] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (lastNavigatedMessageId) {
@@ -176,79 +259,535 @@ export function ChatAssistant() {
     }
   }, [lastNavigatedMessageId]);
 
-  // Load initial messages from localStorage for persistence
-  const [initialMessages] = useState(() => {
+  // Persist current chat ID with timestamp
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('chatAssistantMessages');
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch (err) {
-          console.error('Failed to parse stored chat messages', err);
-        }
+      if (currentChatId) {
+        const chatData = {
+          chatId: currentChatId,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('currentChatData', JSON.stringify(chatData));
+      } else {
+        localStorage.removeItem('currentChatData');
       }
     }
-    return [];
-  });
+  }, [currentChatId]);
+
+  // Exit editing mode when assistant closes
+  useEffect(() => {
+    if (!isChatAssistantOpen && isEditingTitle) {
+      cancelEditingTitle();
+    }
+  }, [isChatAssistantOpen, isEditingTitle]);
+
+  // Check for dev options environment setting
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDevOptionsEnabledInEnv = window.env?.ENABLE_DEV_OPTIONS === 'true';
+      
+      // Enable dev options if environment allows it
+      setIsDevOptionsEnabled(isDevOptionsEnabledInEnv);
+      
+      // Load saved model from localStorage
+      const savedModel = localStorage.getItem('devSelectedModel');
+      if (savedModel && availableModels.some(model => model.value === savedModel)) {
+        setSelectedModel(savedModel);
+      }
+    }
+  }, [availableModels]);
+
+  // Handle click outside dev options dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (devOptionsRef.current && !devOptionsRef.current.contains(event.target as Node)) {
+        setShowDevOptions(false);
+      }
+    }
+
+    if (showDevOptions) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDevOptions]);
+
+  // Local state for input since AI SDK v5 doesn't provide it
+  const [input, setInput] = useState('');
 
   const {
     messages,
-    input,
-    handleInputChange,
-    handleSubmit: handleChatSubmit,
+    sendMessage,
     status,
     setMessages,
-    setInput,
   } = useChat({
-    id: 'chat-assistant',
-    initialMessages,
+    id: 'chat-assistant'
   });
 
-  // Handler to clear chat history
-  const clearChat = () => {
+  // Load feedback for assistant messages when messages change
+  useEffect(() => {
+    if (messages.length > 0 && currentChatId) {
+      messages
+        .filter(message => message.role === 'assistant')
+        .forEach(message => {
+          // Only load if we haven't already loaded feedback for this message
+          if (!loadedFeedbackMessages.has(message.id)) {
+            loadMessageFeedback(message.id);
+            // Mark this message as having its feedback loaded
+            setLoadedFeedbackMessages(prev => new Set(prev).add(message.id));
+          }
+        });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, currentChatId]);
+
+  // Function to create a new empty chat
+  const createNewChat = async () => {
+    console.log('createNewChat called');
+    try {
+      const response = await fetch('/api/chat/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: null })
+      });
+      
+      if (response.ok) {
+        const { chatId } = await response.json();
+        console.log('New chat created with ID:', chatId);
+        setCurrentChatId(chatId);
+        updateChatTimestamp(chatId);
+        return chatId;
+      } else {
+        console.error('Failed to create chat - response not ok:', response.status);
+      }
+    } catch (error) {
+      console.error('Failed to create new chat:', error);
+    }
+    return null;
+  };
+
+  // Function to load user's chat list
+  const loadChatList = async () => {
+    try {
+      setIsLoadingChats(true);
+      const response = await fetch('/api/chat');
+      if (response.ok) {
+        const { chats } = await response.json();
+        setChatList(chats || []);
+        return chats;
+      } else {
+        console.error('Failed to load chat list:', response.status);
+        setChatList([]);
+      }
+    } catch (error) {
+      console.error('Failed to load chat list:', error);
+      setChatList([]);
+    } finally {
+      setIsLoadingChats(false);
+    }
+    return [];
+  };
+
+  // Function to load chat from database
+  const loadChat = async (chatId: string) => {
+    try {
+      setIsLoadingExistingChat(true);
+      const response = await fetch(`/api/chat/${chatId}`);
+      if (response.ok) {
+        const { chat, messages: chatMessages } = await response.json();
+        
+        // Convert database messages to AI SDK format
+        const convertedMessages = chatMessages.map((msg:ChatMessage) => ({
+          id: msg.message_id,
+          role: msg.role,
+          parts: Array.isArray(msg.parts) ? msg.parts : [{ type: 'text', text: msg.parts }]
+        }));
+        
+        setMessages(convertedMessages);
+        setCurrentChatId(chatId);
+        updateChatTimestamp(chatId);
+        
+        return chat;
+      }
+    } catch (error) {
+      console.error('Failed to load chat:', error);
+    } finally {
+      setIsLoadingExistingChat(false);
+    }
+    return null;
+  };
+
+  // Function to load feedback for a specific message
+  const loadMessageFeedback = async (messageId: string) => {
+    if (!currentChatId) return;
+    
+    try {
+      const response = await fetch(`/api/chat/${currentChatId}/messages/${messageId}/feedback`);
+      if (response.ok) {
+        const { feedback } = await response.json();
+        if (feedback) {
+          setMessageFeedback(prev => ({
+            ...prev,
+            [messageId]: feedback.sentiment
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load message feedback:', error);
+    }
+  };
+
+  // Function to switch to a different chat
+  const switchToChat = async (chatId: string) => {
+    if (chatId === currentChatId) {
+      setShowChatDropdown(false);
+      return;
+    }
+    
+    setShowChatDropdown(false);
+    
+    // Set switching flag immediately (synchronous)
+    isSwitchingChatsRef.current = true;
+    
+    const chat = await loadChat(chatId);
+    if (chat) {
+      // Reset navigation tracking to prevent auto-navigation on chat switch
+      setLastNavigatedMessageId(null);
+      // Clear loaded feedback tracking for the new chat
+      setLoadedFeedbackMessages(new Set());
+    }
+    
+    // Reset switching flag after a delay to ensure navigation effect doesn't trigger
+    setTimeout(() => {
+      isSwitchingChatsRef.current = false;
+    }, 200);
+  };
+
+  // Function to delete a chat (soft delete)
+  const deleteChat = async (chatId: string) => {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId })
+      });
+
+      if (response.ok) {
+        // If we deleted the current chat, load the most recent remaining chat
+        if (chatId === currentChatId) {
+          // Refresh the chat list and set the most recent chat as current
+          const updatedChats = await loadChatList();
+          if (updatedChats && updatedChats.length > 0) {
+            // Load the most recent chat (first in the list since it's ordered by updated_at desc)
+            const mostRecentChat = updatedChats[0];
+            await loadChat(mostRecentChat.chat_id);
+          } else {
+            // No chats left, create a new one
+            await clearChat();
+          }
+        } else {
+          // Just refresh the chat list
+          await loadChatList();
+        }
+      } else {
+        console.error('Failed to delete chat');
+      }
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+    }
+  };
+
+  // Title editing functions
+  const startEditingTitle = () => {
+    if (currentChatId && chatList.length > 0) {
+      const currentChat = chatList.find(chat => chat.chat_id === currentChatId);
+      setEditingTitle(currentChat?.title || '');
+      setIsEditingTitle(true);
+    }
+  };
+
+  const cancelEditingTitle = () => {
+    setIsEditingTitle(false);
+    setEditingTitle('');
+  };
+
+  const saveTitle = async () => {
+    if (!currentChatId) {
+      cancelEditingTitle();
+      return;
+    }
+
+    const trimmedTitle = editingTitle.trim();
+    const currentChat = chatList.find(chat => chat.chat_id === currentChatId);
+    const currentTitle = currentChat?.title || '';
+
+    // If title didn't change, just exit edit mode without API call
+    if (trimmedTitle === currentTitle) {
+      setIsEditingTitle(false);
+      setEditingTitle('');
+      return;
+    }
+
+    // Don't allow empty titles
+    if (!trimmedTitle) {
+      cancelEditingTitle();
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: currentChatId, title: trimmedTitle })
+      });
+
+      if (response.ok) {
+        // Refresh the chat list to get updated timestamp and proper ordering
+        await loadChatList();
+        setIsEditingTitle(false);
+        setEditingTitle('');
+      } else {
+        console.error('Failed to update chat title');
+      }
+    } catch (error) {
+      console.error('Failed to update chat title:', error);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveTitle();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEditingTitle();
+    }
+  };
+
+  const generateTitle = async () => {
+    if (!currentChatId || isGeneratingTitle) {
+      return;
+    }
+
+    setIsGeneratingTitle(true);
+    try {
+      const response = await fetch('/api/chat/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: currentChatId })
+      });
+
+      if (response.ok) {
+        const { title } = await response.json();
+        setEditingTitle(title);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to generate title:', errorData.error);
+        // Optionally show user-friendly error message
+      }
+    } catch (error) {
+      console.error('Failed to generate title:', error);
+    } finally {
+      setIsGeneratingTitle(false);
+    }
+  };
+
+  // Dev options functions
+  const handleModelChange = (modelValue: string) => {
+    setSelectedModel(modelValue);
+    localStorage.setItem('devSelectedModel', modelValue);
+    setShowDevOptions(false);
+  };
+
+  // Feedback functions
+  const submitFeedback = async (messageId: string, sentiment: 'positive' | 'neutral' | 'negative') => {
+    if (!currentChatId) return;
+    
+    try {
+      const response = await fetch(`/api/chat/${currentChatId}/messages/${messageId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sentiment })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setMessageFeedback(prev => ({
+          ...prev,
+          [messageId]: sentiment
+        }));
+      } else {
+        console.error('Failed to submit feedback');
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    }
+  };
+
+  // Handler to clear chat history and create new chat
+  const clearChat = async () => {
     setMessages([]);
     setInput('');
-    localStorage.removeItem('chatAssistantMessages');
     setLastNavigatedMessageId(null);
+    setMessageFeedback({}); // Clear feedback state
+    setLoadedFeedbackMessages(new Set()); // Clear loaded feedback tracking
+    
+    // Reset initialization state to allow new chat creation
+    initializationRef.current.hasInitialized = false;
+    
+    // Create a new empty chat
+    const newChatId = await createNewChat();
+    if (newChatId) {
+      setCurrentChatId(newChatId);
+      updateChatTimestamp(newChatId);
+      initializationRef.current.hasInitialized = true;
+      // Reload chat list to include the new chat
+      await loadChatList();
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  // Update chat timestamp to prevent timeout during active usage
+  const updateChatTimestamp = (chatId: string) => {
+    if (typeof window !== 'undefined') {
+      const chatData = {
+        chatId: chatId,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('currentChatData', JSON.stringify(chatData));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
+    
+    // Prevent submission if already processing
+    if (status === 'streaming' || status === 'submitted') return;
 
-    // `handleChatSubmit` will automatically append the user's message (from `input`)
-    // and send it to the API. The `useChat` hook manages the message list and
-    // will handle the full request-response cycle with tools.
-    handleChatSubmit(e as React.FormEvent<HTMLFormElement>);
+    // Ensure we have a chat ID
+    let chatId = currentChatId;
+    if (!chatId) {
+      chatId = await createNewChat();
+      if (!chatId) {
+        console.error('Failed to create chat');
+        return;
+      }
+    }
+
+    const messageText = input.trim();
+    
+    // Update chat timestamp to keep it active
+    updateChatTimestamp(chatId);
+    
+    // Send the message using the AI SDK v5 API with chat context
+    // Backend will handle saving both user and AI messages
+    sendMessage({ text: messageText }, {
+      body: {
+        chatId: currentChatId,
+        ...(isDevOptionsEnabled && { selectedModel })
+      }
+    });
+    
+    setInput(''); // Clear input after sending
   };
 
-  // Persist chat messages to localStorage on change
+  // Initialize chat on component mount
   useEffect(() => {
-    try {
-      localStorage.setItem('chatAssistantMessages', JSON.stringify(messages));
-    } catch (err) {
-      console.error('Failed to store chat messages', err);
-    }
-  }, [messages]);
+    const initializeChat = async () => {
+      // Prevent multiple initializations using ref for immediate synchronous check
+      if (initializationRef.current.isInitializing || initializationRef.current.hasInitialized) {
+        console.log('Skipping initialization - already in progress or completed');
+        return;
+      }
+      
+      console.log('Starting chat initialization');
+      initializationRef.current.isInitializing = true;
+      
+      try {
+        // Always load chat list first
+        await loadChatList();
+        
+        if (currentChatId) {
+          console.log('Loading existing chat:', currentChatId);
+          // Try to load existing chat from database
+          const chat = await loadChat(currentChatId);
+          if (!chat) {
+            console.log('Failed to load chat, creating new one');
+            // If loading fails, create a new chat
+            await createNewChat();
+            // Reload chat list to include the new chat
+            await loadChatList();
+          }
+        } else {
+          console.log('No chat ID found, creating new chat');
+          // No chat ID, create a new chat
+          await createNewChat();
+          // Reload chat list to include the new chat
+          await loadChatList();
+        }
+      } finally {
+        initializationRef.current.isInitializing = false;
+        initializationRef.current.hasInitialized = true;
+        console.log('Chat initialization completed');
+      }
+    };
+
+    initializeChat();
+  }); // Only run on mount
+
+  // Messages are now persisted in database, no local storage needed
+
 
   // Automatic navigation when a filter_students tool result is available
+  // Only navigate for NEW AI responses, not when loading existing chats
   useEffect(() => {
     if (messages.length === 0) return;
+    
+    // Don't navigate if we're currently switching chats (immediate check via ref)
+    if (isSwitchingChatsRef.current) return;
+    
+    // Don't navigate if we're currently loading existing chat messages
+    if (isLoadingExistingChat) return;
+    
+    // Only trigger navigation if we just finished streaming a response
+    if (status !== 'ready') return;
+    
     const lastMessage = messages[messages.length - 1];
 
+    // Skip if we already navigated for this message
     if (lastMessage.id === lastNavigatedMessageId) return;
 
-    if (lastMessage.role === 'assistant' && lastMessage.toolInvocations) {
-      const toolInvocation = (lastMessage.toolInvocations as ToolInvocation[]).find(
-        (inv) => inv.toolName === 'filter_students' || inv.toolName === 'filter_grades'
+    // Only navigate for assistant messages with tool results
+    if (lastMessage.role === 'assistant' && lastMessage.parts) {
+      // Look for tool parts in the message parts array
+      const toolParts = lastMessage.parts.filter((part) => 
+        part.type === 'tool-filter_students' || 
+        part.type === 'tool-filter_grades' ||
+        (part.type === 'dynamic-tool' && 
+         'toolName' in part &&
+         (part.toolName === 'filter_students' || part.toolName === 'filter_grades'))
       );
+      
+      const toolPart = toolParts.find((part) => {
+        // Check if tool part has output with our expected structure
+        return 'output' in part && 
+               part.output && 
+               typeof part.output === 'object' && 
+               'url' in part.output;
+      });
 
-      if (toolInvocation?.result?.url) {
-        router.push(toolInvocation.result.url);
+      if (toolPart && 'output' in toolPart && toolPart.output && 
+          typeof toolPart.output === 'object' && toolPart.output !== null && 
+          'url' in toolPart.output) {
+        router.push((toolPart.output as { url: string }).url);
         setLastNavigatedMessageId(lastMessage.id);
       }
     }
-  }, [messages, router, lastNavigatedMessageId]);
+  }, [messages, router, lastNavigatedMessageId, status, isLoadingExistingChat]);
 
   // Load saved state from localStorage
   useEffect(() => {
@@ -296,6 +835,20 @@ export function ChatAssistant() {
     }
   }, [messages])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowChatDropdown(false);
+      }
+    };
+
+    if (showChatDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showChatDropdown]);
+
   // Save state to localStorage and emit storage event
   const handleToggle = () => {
     const newState = !isChatAssistantOpen
@@ -327,36 +880,173 @@ export function ChatAssistant() {
         )}
       >
         <div className="p-4 h-full flex flex-col">
-          <div className="flex items-center justify-between mb-4 border-b pb-4">
-            <div className="flex items-center gap-2 flex-1">
-              <MessagesSquare size={20} className="text-blue-500" />
-              <h2 className="text-lg font-semibold">Assistant</h2>
+          <div className="flex items-center justify-between border-b pb-4">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div 
+                className={cn(
+                  "flex-shrink-0",
+                  currentChatId && !isEditingTitle ? "cursor-pointer" : "cursor-default"
+                )}
+                onMouseEnter={() => currentChatId && !isEditingTitle && setIsTitleHovered(true)}
+                onMouseLeave={() => setIsTitleHovered(false)}
+                onClick={currentChatId && !isEditingTitle ? startEditingTitle : (isEditingTitle ? generateTitle : undefined)}
+              >
+                {isEditingTitle ? (
+                  <Sparkles 
+                    size={20} 
+                    className={cn(
+                      "text-purple-500",
+                      isGeneratingTitle ? "animate-pulse" : "cursor-pointer hover:text-purple-600"
+                    )} 
+                  />
+                ) : isTitleHovered && currentChatId ? (
+                  <Edit3 size={20} className="text-blue-500" />
+                ) : (
+                  <MessagesSquare size={20} className="text-blue-500" />
+                )}
+              </div>
+              
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <Input
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    className="text-lg font-semibold flex-1"
+                    placeholder="Enter chat title"
+                    autoFocus
+                  />
+                  <Button
+                    onClick={saveTitle}
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Save title"
+                  >
+                    <Check size={16} className="text-green-600" />
+                  </Button>
+                  <Button
+                    onClick={cancelEditingTitle}
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Cancel editing"
+                  >
+                    <X size={16} className="text-red-600" />
+                  </Button>
+                </div>
+              ) : (
+                <h2 
+                  className={cn(
+                    "text-lg font-semibold truncate flex-1 min-w-0",
+                    currentChatId ? "cursor-pointer" : "cursor-default"
+                  )}
+                  onClick={currentChatId ? startEditingTitle : undefined}
+                  onMouseEnter={() => currentChatId && setIsTitleHovered(true)}
+                  onMouseLeave={() => setIsTitleHovered(false)}
+                >
+                  {(() => {
+                    if (currentChatId && chatList.length > 0) {
+                      const currentChat = chatList.find(chat => chat.chat_id === currentChatId);
+                      return currentChat?.title || 'New Chat';
+                    }
+                    return 'Assistant';
+                  })()}
+                </h2>
+              )}
+              {chatList.length > 1 && !isEditingTitle && (
+                <div className="relative" ref={dropdownRef}>
+                  <Button
+                    onClick={() => setShowChatDropdown(!showChatDropdown)}
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 px-2"
+                    aria-label="Select chat"
+                  >
+                    <ChevronDown size={14} />
+                  </Button>
+                  {showChatDropdown && (
+                    <div className="absolute top-8 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                      {isLoadingChats ? (
+                        <div className="p-2 text-sm text-gray-500">Loading chats...</div>
+                      ) : (
+                        chatList.map((chat) => (
+                          <div
+                            key={chat.chat_id}
+                            className={cn(
+                              "flex items-center justify-between p-2 text-sm hover:bg-gray-50 first:rounded-t-md last:rounded-b-md",
+                              chat.chat_id === currentChatId && "bg-blue-50 text-blue-700"
+                            )}
+                          >
+                            <button
+                              onClick={() => switchToChat(chat.chat_id)}
+                              className="flex-1 text-left"
+                            >
+                              <div className="font-medium truncate">{chat.title || 'New Chat'}</div>
+                              <div className="text-xs text-gray-500 truncate">
+                                {new Date(chat.updated_at).toLocaleDateString()}
+                              </div>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteChat(chat.chat_id);
+                              }}
+                              className="p-1 hover:bg-red-100 rounded text-red-500 hover:text-red-700"
+                              aria-label="Delete chat"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={clearChat} variant="ghost" size="icon" aria-label="Clear chat history">
-                <Trash2 size={20} />
-              </Button>
-              <Button onClick={handleToggle} variant="ghost" size="icon" aria-label="Close Assistant">
-                <X size={20} />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {!isEditingTitle && (
+                <Button onClick={clearChat} variant="ghost" size="sm" aria-label="Start new chat" className="gap-1">
+                  <Plus size={16} />
+                  New
+                </Button>
+              )}
+              <Button onClick={handleToggle} variant="ghost" size="icon" aria-label="Minimize Assistant">
+                <ChevronRight size={20} />
               </Button>
             </div>
           </div>
           
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto relative"
+            className="flex-1 overflow-y-auto relative pt-4"
           >
             {messages.map((message) => {
               let toolResult: ToolInvocation['result'] | undefined;
               let toolName: string | undefined;
 
-              if (message.role === 'assistant' && message.toolInvocations) {
-                const toolInvocation = (message.toolInvocations as ToolInvocation[]).find(
-                  (inv) => inv.toolName === 'filter_students' || inv.toolName === 'filter_grades'
+              if (message.role === 'assistant' && message.parts) {
+                // Look for tool parts in the message parts array
+                const toolParts = message.parts.filter((part) => 
+                  part.type === 'tool-filter_students' || 
+                  part.type === 'tool-filter_grades' ||
+                  (part.type === 'dynamic-tool' && 
+                   'toolName' in part &&
+                   (part.toolName === 'filter_students' || part.toolName === 'filter_grades'))
                 );
-                if (toolInvocation?.result?.url) {
-                  toolResult = toolInvocation.result;
-                  toolName = toolInvocation.toolName;
+                
+                const toolPart = toolParts.find((part) => {
+                  // Check if tool part has output with our expected structure
+                  return 'output' in part && 
+                         part.output && 
+                         typeof part.output === 'object' && 
+                         'url' in part.output;
+                });
+
+                if (toolPart && 'output' in toolPart && toolPart.output) {
+                  toolResult = toolPart.output as ToolInvocation['result'];
+                  toolName = toolPart.type === 'dynamic-tool' && 'toolName' in toolPart
+                    ? toolPart.toolName 
+                    : toolPart.type.replace('tool-', '');
                 }
               }
               return (
@@ -370,17 +1060,71 @@ export function ChatAssistant() {
                 )}
               >
                 <div className="prose prose-sm max-w-none prose-a:text-blue-600">
-                  <ReactMarkdown>{message.content || ''}</ReactMarkdown>
+                  <ReactMarkdown>
+                    {message.parts
+                      ?.filter((part) => part.type === 'text')
+                      ?.map((part) => part.text)
+                      ?.join('') || ''}
+                  </ReactMarkdown>
                 </div>
                 {toolResult?.url && (
                   <div className="mt-2">
-                    <Button asChild variant="action" size="sm" className="h-auto">
+                    <Button asChild variant="action" size="sm" className="h-auto whitespace-normal">
                       <Link href={toolResult.url}>
                         {toolName === 'filter_grades' 
                           ? generateGradesFilterDescription(toolResult.filtersApplied as GradesFiltersApplied)
                           : generateFilterDescription(toolResult.filtersApplied as FiltersApplied)
                         }
                       </Link>
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Feedback UI for assistant messages */}
+                {message.role === 'assistant' && (
+                  <div className="mt-2 flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                    <span className="text-xs text-gray-500 mr-2">Feedback:</span>
+                    <Button
+                      onClick={() => submitFeedback(message.id, 'positive')}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-6 w-6 p-0",
+                        messageFeedback[message.id] === 'positive' 
+                          ? "text-green-600 bg-green-50" 
+                          : "text-gray-400 hover:text-green-600"
+                      )}
+                      aria-label="Positive feedback"
+                    >
+                      <ThumbsUp size={12} />
+                    </Button>
+                    <Button
+                      onClick={() => submitFeedback(message.id, 'neutral')}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-6 w-6 p-0",
+                        messageFeedback[message.id] === 'neutral' 
+                          ? "text-yellow-600 bg-yellow-50" 
+                          : "text-gray-400 hover:text-yellow-600"
+                      )}
+                      aria-label="Neutral feedback"
+                    >
+                      <Minus size={12} />
+                    </Button>
+                    <Button
+                      onClick={() => submitFeedback(message.id, 'negative')}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-6 w-6 p-0",
+                        messageFeedback[message.id] === 'negative' 
+                          ? "text-red-600 bg-red-50" 
+                          : "text-gray-400 hover:text-red-600"
+                      )}
+                      aria-label="Negative feedback"
+                    >
+                      <ThumbsDown size={12} />
                     </Button>
                   </div>
                 )}
@@ -404,21 +1148,65 @@ export function ChatAssistant() {
 
           <div className="mt-auto p-2 border-t">
             <div className="flex gap-2">
-              <div className="w-[95%]">
+              <div className="flex-1">
                 <Input
                   autoFocus={isChatAssistantOpen}
-                  placeholder="Need help? Press enter to send"
+                  placeholder={status === 'streaming' || status === 'submitted' ? "Please wait..." : "Ask a question about your students..."}
                   value={input}
                   onChange={handleInputChange}
+                  disabled={status === 'streaming' || status === 'submitted'}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey && status !== 'streaming' && status !== 'submitted') {
                       e.preventDefault()
                       handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
                     }
                   }}
                 />
               </div>
-              <Button onClick={handleSubmit} className='mt-2' variant="primary" size="icon">
+              {isDevOptionsEnabled && (
+                <div className="relative" ref={devOptionsRef}>
+                  <Button
+                    onClick={() => setShowDevOptions(!showDevOptions)}
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Dev Options"
+                    className="mt-2"
+                  >
+                    <Settings size={16} />
+                  </Button>
+                  {showDevOptions && (
+                    <div className="absolute bottom-12 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[200px]">
+                      <div className="p-2">
+                        <div className="text-xs font-semibold text-gray-500 mb-2">Dev Options</div>
+                        <div className="mb-2">
+                          <label className="text-xs text-gray-600 mb-1 block">OpenAI Model:</label>
+                          <div className="space-y-1">
+                            {availableModels.map((model) => (
+                              <button
+                                key={model.value}
+                                onClick={() => handleModelChange(model.value)}
+                                className={cn(
+                                  "w-full text-left text-xs px-2 py-1 rounded hover:bg-gray-100",
+                                  selectedModel === model.value ? "bg-blue-100 text-blue-700" : "text-gray-700"
+                                )}
+                              >
+                                {model.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <Button 
+                onClick={handleSubmit} 
+                className='mt-2' 
+                variant="primary" 
+                size="icon"
+                disabled={status === 'streaming' || status === 'submitted'}
+              >
                 <Send size={40} />
               </Button>
             </div>

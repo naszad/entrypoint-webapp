@@ -53,6 +53,8 @@ export default function RootLayout({
                 SUPABASE_URL: "${process.env.SUPABASE_URL}",
                 SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY}",
                 APP_URL: "${process.env.APP_URL}",
+                CHAT_TIMEOUT_HOURS: "${process.env.CHAT_TIMEOUT_HOURS}",
+                ENABLE_DEV_OPTIONS: "${process.env.ENABLE_DEV_OPTIONS}",
               };
             `,
           }}

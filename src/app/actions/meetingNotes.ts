@@ -3,12 +3,12 @@
 import { experimental_transcribe as transcribe, streamText, generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createClient } from '@/utils/supabase/supabaseServer'
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { getAllTagsForCustomer, getStudentTags, getAllTagCategories } from '@/libs/tagsService';
 
 // Helper function to generate AI summary from notes
 async function generateSummaryFromNotes(notes: string): Promise<string> {
-    const result = await streamText({
+    const result = streamText({
         model: openai('gpt-4o'),
         system: 'You are a highly precise AI assistant for guidance counselors. Generate a concise, one-sentence summary from the provided meeting notes. Focus only on the key topics, decisions, and outcomes mentioned in the notes. Be factual and avoid inference.',
         messages: [
@@ -159,11 +159,11 @@ ${Array.from(studentTagValues).join(', ')}`;
                     role: 'user',
                     content: `Based on this meeting summary and notes, suggest relevant tags:
 
-SUMMARY: ${summary}
+    SUMMARY: ${summary}
 
-NOTES: ${notes}
+    NOTES: ${notes}
 
-Remember: Only suggest tags for KEY, IMPORTANT information. Skip minor or temporary details.`
+    Remember: Only suggest tags for KEY, IMPORTANT information. Skip minor or temporary details.`
                 }
             ],
             schema: suggestedTagSchema,
@@ -273,7 +273,7 @@ export async function generateMeetingNotesAction(audioBlob: Blob, userId: string
             audio: buffer,
         });
 
-        const result = await streamText({
+        const result = streamText({
             model: openai('gpt-4o'),
             //Modified system prompt to midigate hallucinations
             system: 'You are a highly precise AI assistant for guidance counselors. Your task is to process a meeting transcript and generate a concise, factual summary for case notes. **CRITICAL INSTRUCTIONS:** 1.  **Strictly Extractive:** Your summary MUST ONLY contain information explicitly stated in the provided transcript. 2.  **NO INFERENCE:** DO NOT infer any actions, emotions, or next steps. If the transcript doesnt say "we discussed the application process" you must not mention it. 3.  **NO FABRICATION:** DO NOT add any details, topics, or conclusions that are not directly present in the text. It is better to have a short, accurate summary than a longer, embellished one. 4.  **Quote, Dont Interpret:** Base every summary point on a specific statement from the transcript. Avoid interpreting intent or emotion (e.g., "Bob is excited"). 5.  **Focus on Facts:** Extract key names, topics, goals, and decisions only. Do not include any headings or titles in your response.',
@@ -281,7 +281,7 @@ export async function generateMeetingNotesAction(audioBlob: Blob, userId: string
                 {
                     role: 'user',
                     content: `Generate a one sentence summary and detailed meeting notes in bullet points from this transcript: ${transcript.text}
-                     First line should be the summary, and the rest should be the meeting notes in bullet points and in paragraphs format.`
+                         First line should be the summary, and the rest should be the meeting notes in bullet points and in paragraphs format.`
                 }
             ],
         });

@@ -9,10 +9,125 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_message_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          feedback_id: string
+          message_id: string | null
+          sentiment: string
+          tags: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          feedback_id?: string
+          message_id?: string | null
+          sentiment: string
+          tags?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          feedback_id?: string
+          message_id?: string | null
+          sentiment?: string
+          tags?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["message_id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          chat_id: string
+          created_at: string
+          message_id: string
+          metadata: Json | null
+          parts: Json
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          chat_id: string
+          created_at: string
+          message_id?: string
+          metadata?: Json | null
+          parts: Json
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          message_id?: string
+          metadata?: Json | null
+          parts?: Json
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_chat_id_chats_chat_id_fk"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["chat_id"]
+          },
+        ]
+      }
+      chats: {
+        Row: {
+          chat_id: string
+          created_at: string
+          deleted_at: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_id?: string
+          created_at: string
+          deleted_at?: string | null
+          title?: string | null
+          updated_at: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chats_user_id_users_user_id_fk"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           course_id: string
           created_at: string | null
+          credit_type: string | null
           customer_id: string | null
           external_id: string
           external_key: string
@@ -28,6 +143,7 @@ export type Database = {
         Insert: {
           course_id?: string
           created_at?: string | null
+          credit_type?: string | null
           customer_id?: string | null
           external_id: string
           external_key: string
@@ -43,6 +159,7 @@ export type Database = {
         Update: {
           course_id?: string
           created_at?: string | null
+          credit_type?: string | null
           customer_id?: string | null
           external_id?: string
           external_key?: string

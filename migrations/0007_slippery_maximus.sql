@@ -1,1 +1,0 @@
-ALTER TABLE "school_student_link" ADD CONSTRAINT "school_student_link_student_id_school_id_pk" PRIMARY KEY("student_id","school_id");

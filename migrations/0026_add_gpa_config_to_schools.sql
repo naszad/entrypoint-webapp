@@ -1,1 +1,0 @@
-ALTER TABLE schools ADD COLUMN gpa_config JSONB;
