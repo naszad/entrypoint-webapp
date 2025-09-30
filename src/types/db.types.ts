@@ -874,6 +874,14 @@ export type Database = {
       }
       students: {
         Row: {
+          address_mailing_city: string | null
+          address_mailing_postal_code: string | null
+          address_mailing_state: string | null
+          address_mailing_street: string | null
+          address_physical_city: string | null
+          address_physical_postal_code: string | null
+          address_physical_state: string | null
+          address_physical_street: string | null
           created_at: string
           customer_id: string | null
           date_of_birth: string | null
@@ -891,12 +899,26 @@ export type Database = {
           graduation_year: number | null
           homeroom_name: string | null
           last_name: string
+          locker_combination: string | null
+          locker_number: string | null
+          lunch_id: string | null
           middle_name: string | null
           phone: string | null
+          race: string | null
+          state_student_number: string | null
           student_id: string
+          student_number: string | null
           updated_at: string
         }
         Insert: {
+          address_mailing_city?: string | null
+          address_mailing_postal_code?: string | null
+          address_mailing_state?: string | null
+          address_mailing_street?: string | null
+          address_physical_city?: string | null
+          address_physical_postal_code?: string | null
+          address_physical_state?: string | null
+          address_physical_street?: string | null
           created_at?: string
           customer_id?: string | null
           date_of_birth?: string | null
@@ -914,12 +936,26 @@ export type Database = {
           graduation_year?: number | null
           homeroom_name?: string | null
           last_name: string
+          locker_combination?: string | null
+          locker_number?: string | null
+          lunch_id?: string | null
           middle_name?: string | null
           phone?: string | null
+          race?: string | null
+          state_student_number?: string | null
           student_id?: string
+          student_number?: string | null
           updated_at?: string
         }
         Update: {
+          address_mailing_city?: string | null
+          address_mailing_postal_code?: string | null
+          address_mailing_state?: string | null
+          address_mailing_street?: string | null
+          address_physical_city?: string | null
+          address_physical_postal_code?: string | null
+          address_physical_state?: string | null
+          address_physical_street?: string | null
           created_at?: string
           customer_id?: string | null
           date_of_birth?: string | null
@@ -937,9 +973,15 @@ export type Database = {
           graduation_year?: number | null
           homeroom_name?: string | null
           last_name?: string
+          locker_combination?: string | null
+          locker_number?: string | null
+          lunch_id?: string | null
           middle_name?: string | null
           phone?: string | null
+          race?: string | null
+          state_student_number?: string | null
           student_id?: string
+          student_number?: string | null
           updated_at?: string
         }
         Relationships: [

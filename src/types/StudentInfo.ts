@@ -23,4 +23,16 @@ export type StudentInfo = {
   enrollmentStatus: string;
   homeroomName: string;
   customerId: string;
+  lunchId?: string;
+  stateStudentNumber?: string;
+  race?: string;
+  addressPhysicalStreet?: string;
+  addressPhysicalCity?: string;
+  addressPhysicalState?: string;
+  addressPhysicalPostalCode?: string;
+  addressMailingStreet?: string;
+  addressMailingCity?: string;
+  addressMailingState?: string;
+  addressMailingPostalCode?: string;
+  studentNumber?: string;
 };
