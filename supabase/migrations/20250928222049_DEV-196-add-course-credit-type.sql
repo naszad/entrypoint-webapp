@@ -1,3 +1,3 @@
-alter table "public"."courses" add column "credit_type" text;
+alter table "public"."courses" add column if not exists "credit_type" text;
 
 
