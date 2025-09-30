@@ -370,7 +370,7 @@ export type Database = {
           principal_email: string | null
           principal_name: string | null
           school_id: string
-          school_number: number | null
+          school_number: string | null
           state: string | null
           updated_at: string | null
         }
@@ -393,7 +393,7 @@ export type Database = {
           principal_email?: string | null
           principal_name?: string | null
           school_id?: string
-          school_number?: number | null
+          school_number?: string | null
           state?: string | null
           updated_at?: string | null
         }
@@ -416,7 +416,7 @@ export type Database = {
           principal_email?: string | null
           principal_name?: string | null
           school_id?: string
-          school_number?: number | null
+          school_number?: string | null
           state?: string | null
           updated_at?: string | null
         }
@@ -533,7 +533,8 @@ export type Database = {
           grade_level: string
           no_of_students: number
           section_id: string
-          section_number: number
+          section_number: string | null
+          teacher_name: string | null
           transaction_date: string | null
           updated_at: string | null
         }
@@ -550,7 +551,8 @@ export type Database = {
           grade_level: string
           no_of_students: number
           section_id?: string
-          section_number: number
+          section_number: string | null
+          teacher_name: string | null
           transaction_date?: string | null
           updated_at?: string | null
         }
@@ -567,7 +569,8 @@ export type Database = {
           grade_level?: string
           no_of_students?: number
           section_id?: string
-          section_number?: number
+          section_number?: string | null
+          teacher_name: string | null
           transaction_date?: string | null
           updated_at?: string | null
         }
