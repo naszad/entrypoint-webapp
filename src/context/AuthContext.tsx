@@ -13,7 +13,7 @@ import { UserInfo } from '@/types/UserInfo';
 import { createClient } from '@/utils/supabase/supabaseClient';
 import { loginWithCredentials, logout } from '@/libs/authService';
 import { identifyUser, refreshSuperProperties, resetMixpanel } from '@/libs/mixpanelClient';
-import { saveSelectedSchool } from '@/utils/selectedSchoolStorage';
+import { saveSelectedSchool, loadSelectedSchool } from '@/utils/selectedSchoolStorage';
 
 interface AuthContextType {
   user: UserInfo | null
@@ -75,7 +75,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           if (user.isMultiSchoolUser) {
             setCookie('isMultiSchoolUser', user.isMultiSchoolUser.toString())
-            saveSelectedSchool(null);
+
+            const existingSchool = loadSelectedSchool();
+            if (!existingSchool) {
+              saveSelectedSchool(null);
+            }
             // Don't redirect here - let middleware handle it
           } else {
             const primarySchool = user.schools?.[0] || null;

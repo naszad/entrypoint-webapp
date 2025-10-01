@@ -49,7 +49,7 @@ export function TableHeader<TData>({
     : column.id;
 
   const renderSortIcon = () => {
-    if (!meta?.enableSorting) return null;
+    if (meta?.disableSorting) return null;
     
     if (currentSortDirection === 'asc') {
       return <ArrowUp className="h-3 w-3 ml-1 text-gray-600" />;

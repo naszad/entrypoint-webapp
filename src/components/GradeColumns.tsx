@@ -122,7 +122,6 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     enableHiding: true,
     meta: {
       enableFiltering: true,
-      enableSorting: true,
       filterType: "date",
     },
     cell: ({ row }) => (

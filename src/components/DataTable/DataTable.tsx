@@ -24,7 +24,8 @@ import Pagination from "./Pagination";
 
 export type ColumnMeta = {
   enableFiltering?: boolean;
-  enableSorting?: boolean;
+  disableSorting?: boolean;
+  sortingOptions?: { id: string; displayValue: string }[];
   filterType?: 'text' | 'number' | 'date' | 'dropdown' | 'multi-select';
   filterOptions?: string[];
   header?: string;

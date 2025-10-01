@@ -49,11 +49,11 @@ export function FilterDropdown({
       case 'text':
         return '(A to Z)';
       case 'date':
-        return '(New to Old)';
+        return '(Old to New)';
       case 'number':
-        return '(High to Low)';
+        return '(Low to High)';
       default:
-        return '';
+        return '(A to Z)';
     }
   };
 
@@ -64,11 +64,11 @@ export function FilterDropdown({
       case 'text':
         return '(Z to A)';
       case 'date':
-        return '(Old to New)';
+        return '(New to Old)';
       case 'number':
-        return '(Low to High)';
+        return '(High to Low)';
       default:
-        return '';
+        return '(Z to A)';
     }
   };
 
@@ -86,7 +86,7 @@ export function FilterDropdown({
       isLastColumn ? "right-0" : "left-0"
     )}>
       <div className="space-y-2">
-        {meta.enableSorting && (
+        {!meta.disableSorting && (
           <div className="space-y-1 border-b pb-2">
             <button
               onClick={() => onSort(columnId, 'asc')}

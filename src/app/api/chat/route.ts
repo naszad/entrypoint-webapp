@@ -301,21 +301,26 @@ Key Guidelines:
 
     tools: {
       filter_students: tool({
-        description: `Applies filters to the student data table and navigates the user to the filtered view.
+        description: `Applies filters and sorting to the student data table and navigates the user to the filtered view.
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103"
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending"
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
 
 **Date Filter Instructions:**
 - When user asks for students "updated/modified/changed in the last X days", use updatedAtRecentOnly with the number of days
 - When user asks for students "created/added/registered in the last X days", use createdAtRecentOnly with the number of days
-- Examples: "last 30 days" = 30, "last week" = 7, "last month" = 30, "yesterday" = 1, "last 2 weeks" = 14`,
+- Examples: "last 30 days" = 30, "last week" = 7, "last month" = 30, "yesterday" = 1, "last 2 weeks" = 14
+
+**Sorting Instructions:**
+- When user asks to sort by a field, use sortBy and sortDirection parameters
+- Sortable fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName
+- Direction: "asc" for ascending (A-Z, low to high), "desc" for descending (Z-A, high to low)`,
         inputSchema: z.object({
           gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12)'),
           fullName: z.string().optional().describe('Name or part of name to search for'),
-          enrollmentStatus: z.enum(['active', 'inactive']).optional().describe('Student enrollment status'),
+          enrollmentStatus: z.enum(['Active', 'Inactive']).optional().describe('Student enrollment status'),
           gender: z.enum(['male', 'female']).optional().describe('Student gender'),
           homeroomName: z.string().optional().describe('Homeroom name or teacher'),
           graduationYear: z.number().optional().describe('Expected graduation year'),
@@ -337,14 +342,17 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           emailEmpty: z.boolean().optional().describe('Filter for students with empty/null email addresses'),
           emailNotEmpty: z.boolean().optional().describe('Filter for students with non-empty email addresses'),
           fullNameEmpty: z.boolean().optional().describe('Filter for students with empty/null full names'),
-          fullNameNotEmpty: z.boolean().optional().describe('Filter for students with non-empty full names')
+          fullNameNotEmpty: z.boolean().optional().describe('Filter for students with non-empty full names'),
+          // Sorting parameters
+          sortBy: z.enum(['fullName', 'email', 'gradeLevel', 'gender', 'enrollmentStatus']).optional().describe('Field to sort by'),
+          sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
         }),
         execute: async (parsedFilters) => {
           const filters: string[] = [];
           const baseUrl = '/students';
     
           for (const [key, value] of Object.entries(parsedFilters)) {
-            if (!value || key === 'ageFilter' || key === 'gpaFilter') continue;
+            if (!value || key === 'ageFilter' || key === 'gpaFilter' || key === 'sortBy' || key === 'sortDirection') continue;
             
             switch (key) {
               case 'gradeLevel':
@@ -424,9 +432,20 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 
           // Construct the URL
           let url = baseUrl;
+          const queryParams: string[] = [];
+          
           if (filters.length > 0) {
             const filterString = filters.join(',');
-            url += `?filters=${encodeURIComponent(filterString)}`;
+            queryParams.push(`filters=${encodeURIComponent(filterString)}`);
+          }
+          
+          // Add sorting to URL if specified
+          if (parsedFilters.sortBy && parsedFilters.sortDirection) {
+            queryParams.push(`sort=${parsedFilters.sortBy}:${parsedFilters.sortDirection}`);
+          }
+          
+          if (queryParams.length > 0) {
+            url += `?${queryParams.join('&')}`;
           }
     
           // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.

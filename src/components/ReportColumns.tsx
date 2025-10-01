@@ -46,6 +46,7 @@ export const createColumns = ({ onReportClick, onRowAction }: ReportColumnsProps
     accessorKey: "description",
     header: "Description",
     meta: {
+      disableSorting: true,
       enableFiltering: true,
       filterType: "text",
     },
@@ -56,7 +57,6 @@ export const createColumns = ({ onReportClick, onRowAction }: ReportColumnsProps
     enableHiding: false,
     meta: {
       enableFiltering: true,
-      enableSorting: true,
       filterType: "date",
     },
     cell: ({ row }) => {
