@@ -22,3 +22,33 @@ select config.set_customer_config_values(
 )
 from inserted;
 commit;
+
+
+
+INSERT INTO schools
+  (name, external_source, external_key, external_id, external_key_hash, school_number, customer_id)
+  values
+  (
+    'District Office',
+    'PowerSchool',
+    'ps:caa3a8a2-d571-4809-8eb3-c716146c6645:0',
+    '0',
+    'c9dd4c93ed3eb558b6f8f9f1d638776f40739d0d34d60bb9e309a6542a8042db66b64de83b620cbb4cd9a2371c81befac5aebc06f067d194a9a21c5bcec85a56',
+    '0',
+    'caa3a8a2-d571-4809-8eb3-c716146c6645'::uuid
+    
+  );
+
+INSERT INTO schools
+  (name, external_source, external_key, external_id, external_key_hash, school_number, customer_id)
+  values
+  (
+    'Graduated',
+    'PowerSchool',
+    'ps:caa3a8a2-d571-4809-8eb3-c716146c6645:999999',
+    '999999',
+    'efa4287004987790b19459ee019f2fa8263500bc99828ce0ed2e342917e48d951ffab403b9d38f04c1f7bb3f0fcb47b271cc6a8f979287a72e4016a30c24fc0d',
+    '999999',
+    'caa3a8a2-d571-4809-8eb3-c716146c6645'::uuid
+  );
+
