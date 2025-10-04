@@ -421,6 +421,18 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       };
     }).filter((student): student is StudentInfo => student !== null);
 
+    // Apply GPA sorting if requested (must be done in-memory since GPA is calculated)
+    if (sort) {
+      const [sortField, sortDirection] = sort.split(':');
+      if (sortField === 'gpa') {
+        students.sort((a, b) => {
+          const gpaA = a.gpa ?? 0;
+          const gpaB = b.gpa ?? 0;
+          return sortDirection === 'asc' ? gpaA - gpaB : gpaB - gpaA;
+        });
+      }
+    }
+
     // Apply GPA filter if present
     if (gpaFilter) {
       const gpaValue = parseFloat(gpaFilter.value);
