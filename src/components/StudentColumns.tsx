@@ -11,9 +11,10 @@ export const defaultVisibility: VisibilityState = {
   gradeLevel: true,
   gpa: true,
   gender: false,
-  enrollmentStatus: false,
+  enrollmentStatus: true,
   homeroomName: false,
-  updatedAt: true,
+  studentNumber: true,
+  updatedAt: false,
 };
 
 const getUserInitials = (user: StudentInfo | null): string => {
@@ -109,6 +110,14 @@ export const columns: ColumnDef<StudentInfo>[] = [
   {
     accessorKey: "homeroomName",
     header: "Homeroom",
+    meta: {
+      enableFiltering: true,
+      filterType: "text",
+    },
+  },
+  {
+    accessorKey: "studentNumber",
+    header: "Student Number",
     meta: {
       enableFiltering: true,
       filterType: "text",

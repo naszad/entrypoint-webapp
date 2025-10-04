@@ -155,7 +155,7 @@ The development process is as follows. The below shell commands should be run fr
    # generate migration sql file in supabase/migrations
    npm run supabase:genmigration -- NAME_OF_MIGRATION
    ```
-   where name `NAME_OF_MIGRATION` includes your ticket name(s) or branch name. If you want to do a "dry run" and see the diff without generating the migration file, run `supabase db diff`.
+   where name `NAME_OF_MIGRATION` includes your ticket name(s) or branch name. If you want to do a "dry run" and see the diff without generating the migration file, run `supabase db diff --debug`.
 1. Commit and push your changes. For database related changes you should keep your eye on updates to:
    * `src/types/db.types.ts`
    * `src/types/Models.ts`
