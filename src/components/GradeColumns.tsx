@@ -2,30 +2,28 @@
 
 import { StudentGradeInfo } from "@/types/StudentGradeInfo";
 import { ColumnDef, VisibilityState } from "@tanstack/react-table";
-import Image from "next/image";
 import { stringToColor } from "@/utils/utils";
-import { StudentInfo } from "@/types/StudentInfo";
 
 export const defaultVisibility: VisibilityState = {
-  fullName: true,
-  localCourseCode: true,
-  courseName: true,
-  gradeLetter: true,
-  gradePercentage: true,
-  gradeCode: true,
-  updatedAt: true,
+  full_name: true,
+  local_course_code: true,
+  course_name: true,
+  grade_letter: true,
+  grade_percent: true,
+  grade_code: true,
+  updated_at: true,
 };
 
-const getUserInitials = (student: StudentInfo | null): string => {
-  if (!student) return '';
-  const firstInitial = student.firstName?.[0] || '';
-  const lastInitial = student.lastName?.[0] || '';
+const getUserInitials = (fullName: string): string => {
+  if (!fullName) return '';
+  const firstInitial = fullName.split(' ')[0]?.[0] || '';
+  const lastInitial = fullName.split(' ')[1]?.[0] || '';
   return `${firstInitial}${lastInitial}`.toUpperCase();
 };
 
 export const columns: ColumnDef<StudentGradeInfo>[] = [
   {
-    accessorKey: "fullName",
+    accessorKey: "full_name",
     header: "Student",
     enableHiding: false,
     meta: {
@@ -34,30 +32,22 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     },
     cell: ({ row }) => (
       <div className="py-1 flex items-center gap-3">
-        {row.original.student?.photoUrl ? (
-          <Image
-            src={row.original.student?.photoUrl}
-            alt={row.original.student?.fullName}
-            width={40}
-            height={40}
-            className="rounded-full object-cover w-10 h-10"
-          />
-        ) : (
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-base ${stringToColor(row.original.student?.fullName)}`}>
-            {getUserInitials(row.original.student)}
+        {
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-base ${stringToColor(row.original.full_name)}`}>
+            {getUserInitials(row.original.full_name)}
           </div>
-        )}
+        }
         <div>
           <div className="font-medium">
-            {row.original.student?.fullName}
+            {row.original.full_name}
           </div>
-          <div className="text-xs text-gray-500">Class of  {row.original.student?.graduationYear}</div>
+          <div className="text-xs text-gray-500">Class of  {row.original.graduation_year}</div>
         </div>
       </div>
     ),
   },
-  {
-    accessorKey: "course.local_course_code",
+  { 
+    accessorKey: "local_course_code",
     header: "Course Number",
     enableHiding: false,
     meta: {
@@ -66,7 +56,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     },
   },
   {
-    accessorKey: "course.name",
+    accessorKey: "course_name",
     header: "Course Name",
     enableHiding: false,
     meta: {
@@ -75,7 +65,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     },
   },
   {
-    accessorKey: "gradeLetter",
+    accessorKey: "grade_letter",
     header: "Grade",
     enableHiding: true,
     meta: {
@@ -89,7 +79,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     ),
   },
   {
-    accessorKey: "gradePercentage",
+    accessorKey: "grade_percent",
     header: "Grade %",
     enableHiding: true,
     meta: {
@@ -103,7 +93,7 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     ),
   },
   {
-    accessorKey: "gradeCode",
+    accessorKey: "grade_code",
     header: "Code",
     enableHiding: true,
     meta: {

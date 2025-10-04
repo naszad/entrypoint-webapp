@@ -110,62 +110,55 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
     }
 
     const columnName = getColumnName(baseColumnKey);
-    const filterOnStudentTable = ![
-      'created_at',
-      'summary',
-    ].includes(columnName);
-    
-    const targetColumn = filterOnStudentTable ? `students.${columnName}` : columnName;
 
     switch (filter.condition) {
       case 'contains':
-        q = q.ilike(targetColumn, `%${filter.value}%`);
+        q = q.ilike(columnName, `%${filter.value}%`);
         break;
       case 'starts':
-        q = q.ilike(targetColumn, `${filter.value}%`);
+        q = q.ilike(columnName, `${filter.value}%`);
         break;
       case 'ends':
-        q = q.ilike(targetColumn, `%${filter.value}`);
+        q = q.ilike(columnName, `%${filter.value}`);
         break;
       case 'not':
-        q = q.neq(targetColumn, filter.value);
+        q = q.neq(columnName, filter.value);
         break;
       case 'not_contains':
-        q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+        q = q.not(columnName, 'ilike', `%${filter.value}%`);
         break;
       case 'is_empty': {
-        const expr = `${columnName}.is.null,${columnName}.eq.`;
-        q = filterOnStudentTable ? q.or(expr, { foreignTable: 'students' }) : q.or(expr);
+        q = q.or(`${columnName}.is.null,${columnName}.eq.`);
         break;
       }
       case 'is_not_empty': {
-        q = q.not(targetColumn, 'is', null);
-        q = q.neq(targetColumn, '');
+        q = q.not(columnName, 'is', null);
+        q = q.neq(columnName, '');
         break;
       }
       case 'gt':
-        q = q.gt(targetColumn, filter.value);
+        q = q.gt(columnName, filter.value);
         break;
       case 'lt':
-        q = q.lt(targetColumn, filter.value);
+        q = q.lt(columnName, filter.value);
         break;
       case 'gte':
-        q = q.gte(targetColumn, filter.value);
+        q = q.gte(columnName, filter.value);
         break;
       case 'lte':
-        q = q.lte(targetColumn, filter.value);
+        q = q.lte(columnName, filter.value);
         break;
       case 'in':
         // Handle multi-select values (pipe-separated) or single values
         if (filter.value.includes('|')) {
           const values = filter.value.split('|').filter(v => v.trim() !== '');
-          q = q.in(targetColumn, values);
+          q = q.in(columnName, values);
         } else {
-          q = q.eq(targetColumn, filter.value);
+          q = q.eq(columnName, filter.value);
         }
         break;
       default:
-        q = q.eq(targetColumn, filter.value);
+        q = q.eq(columnName, filter.value);
     }
   });
   return q;
@@ -354,37 +347,29 @@ export async function fetchMeetingNotesByFilterCriteria(request: MeetingNotesReq
         count: 0
       };
     }
-    
-    const hasStudentFilters = filters.some(f => {
-      const columnName = getColumnName(f.key);
-      return columnName === 'full_name';
-    });
 
-    // Single query using join to get meeting notes for students in the selected school
+
     let query = supabase
-    .from('meeting_notes')
-    .select(`meeting_note_id, user_id, summary, notes, private, transcript, created_at, updated_at,
-      student:students!inner(full_name, student_id, school_link:school_student_link!inner(school_id))`)
+    .from('meeting_notes_students_school_student_link_view')
+    .select(`*`)
     .eq('user_id', userId)
-    .eq('student.school_link.school_id', selectedSchoolId)
-    .order('updated_at', { ascending: false });
+    .eq('school_id', selectedSchoolId);
     
 
     // Apply filters to main query
     query = applyFilters(query, filters);
 
+    let sortColumn = 'created_at';
+    let sortDirection = 'desc';
+
     // Apply sorting
     if (sort) {
-      const [sortField, sortDirection] = sort.split(':');
-      const sortColumn = getColumnName(sortField);
-      const onStudentTable = !['created_at', 'summary', 'notes', 'private', 'transcript'].includes(sortColumn);
-
-      if (onStudentTable) {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc', foreignTable: 'students' });
-      } else {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
-      }
+      const [sortField, sortDirectionValue] = sort.split(':');
+      sortColumn = getColumnName(sortField);
+      sortDirection = sortDirectionValue;
     }
+
+    query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
 
     // Apply pagination
     if (pagingInfo) {
@@ -407,7 +392,7 @@ export async function fetchMeetingNotesByFilterCriteria(request: MeetingNotesReq
       };
     }
 
-    const meetingNoteData = meetingNotes as unknown as MeetingNoteData[];
+    const meetingNoteData = meetingNotes as unknown as {meeting_note_id: string, user_id: string, summary: string, notes: string, transcript: string, private: boolean, created_at: string, updated_at: string, full_name: string, student_id: string}[];
 
     const meetingNoteInfos: MeetingNoteInfo[] = meetingNoteData.map((meetingNote): MeetingNoteInfo | null => {
 
@@ -420,18 +405,18 @@ export async function fetchMeetingNotesByFilterCriteria(request: MeetingNotesReq
         private: meetingNote.private,
         createdAt: meetingNote.created_at,
         updatedAt: meetingNote.updated_at,
-        studentName: meetingNote.student.full_name,
-        studentId: meetingNote.student.student_id
+        studentName: meetingNote.full_name,
+        studentId: meetingNote.student_id
       };
     }).filter((meetingNote): meetingNote is MeetingNoteInfo => meetingNote !== null);
 
     let countResult: number | undefined = undefined;
     if (fetchWithCount) {
       let countQuery = supabase
-        .from('meeting_notes')
-        .select(hasStudentFilters ? '*,students!inner(student_id,full_name,school_student_link!inner(school_id))' : '*,students!inner(school_student_link!inner(school_id))', { count: 'exact', head: true })
+        .from('meeting_notes_students_school_student_link_view')
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .eq('students.school_student_link.school_id', selectedSchoolId);
+        .eq('school_id', selectedSchoolId);
       
       // Apply the same filters to count query
       countQuery = applyFilters(countQuery, filters);

@@ -8,9 +8,7 @@ export interface StudentTardyInfo {
   yearName: string;
   courseName: string;
   courseNumber: string;
-  teacherName?: string;
   termName: string;
-  externalSource: string;
   createdAt: string;
   updatedAt: string;
 }

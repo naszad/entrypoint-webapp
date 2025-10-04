@@ -31,7 +31,7 @@ export const columns: ColumnDef<StudentTardyInfo>[] = [
     header: "Term",
     enableHiding: true,
     meta: {
-      enableFiltering: false,
+      enableFiltering: true,
       filterType: "text",
     },
   },
@@ -40,7 +40,7 @@ export const columns: ColumnDef<StudentTardyInfo>[] = [
     header: "School Year",
     enableHiding: true,
     meta: {
-      enableFiltering: false,
+      enableFiltering: true,
       filterType: "text",
     },
   },
@@ -49,7 +49,7 @@ export const columns: ColumnDef<StudentTardyInfo>[] = [
     header: "Tardies",
     enableHiding: false,
     meta: {
-      enableFiltering: false,
+      enableFiltering: true,
       filterType: "number",
     },
     cell: ({ row }) => (

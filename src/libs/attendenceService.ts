@@ -75,7 +75,7 @@ const getAbsenceColumnName = (key: string) => {
     case 'absenceDateRecentOnly':
       return 'absence_date';
     case 'yearName':
-      return 'name'; // This will be handled with foreign table
+      return 'year_name'; // This will be handled with foreign table
     case 'sisCode':
       return 'sis_code';
     case 'normalizedAbsenceCode':
@@ -106,14 +106,6 @@ const applyAbsenceFilters = (q: any, filters: FilterValue[]) => {
 
     const columnName = getAbsenceColumnName(baseColumnKey);
 
-    const filterOnYears = ['name'].includes(columnName);
-    
-    let targetColumn = columnName;
-    // Handle foreign table columns
-    if (filterOnYears) {
-      targetColumn = `years.${columnName}`;
-    }
-
     if (filter.key.endsWith('RecentOnly')) {
       const today = new Date();
       today.setHours(23, 59, 59, 999);
@@ -124,64 +116,63 @@ const applyAbsenceFilters = (q: any, filters: FilterValue[]) => {
       const daysAgoStr = daysAgo.toISOString().split('T')[0];
       
       // Apply date range filter
-      q = q.gte(targetColumn, daysAgoStr);
-      q = q.lte(targetColumn, todayStr);
+      q = q.gte(columnName, daysAgoStr);
+      q = q.lte(columnName, todayStr);
       return;
     }
 
     try {
       switch (filter.condition) {
         case 'contains':
-          q = q.ilike(targetColumn, `%${filter.value}%`);
+          q = q.ilike(columnName, `%${filter.value}%`);
           break;
         case 'starts':
-          q = q.ilike(targetColumn, `${filter.value}%`);
+          q = q.ilike(columnName, `${filter.value}%`);
           break;
         case 'ends':
-          q = q.ilike(targetColumn, `%${filter.value}`);
+          q = q.ilike(columnName, `%${filter.value}`);
           break;
         case 'not':
-          q = q.neq(targetColumn, filter.value);
+          q = q.neq(columnName, filter.value);
           break;
         case 'not_contains':
-          q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+          q = q.not(columnName, 'ilike', `%${filter.value}%`);
           break;
           case 'is_empty': {
-            const expr = `${columnName}.is.null,${columnName}.eq.`;
-            q = filterOnYears ? q.or(expr, { referencedTable: 'years' }) : q.or(expr);
+            q = q.or(`${columnName}.is.null,${columnName}.eq.`);
             break;
           }
         case 'is_not_empty': {
-          q = q.not(targetColumn, 'is', null);
-          q = q.neq(targetColumn, '');
+          q = q.not(columnName, 'is', null);
+          q = q.neq(columnName, '');
           break;
         }
         case 'gt':
-          q = q.gt(targetColumn, filter.value);
+          q = q.gt(columnName, filter.value);
           break;
         case 'lt':
-          q = q.lt(targetColumn, filter.value);
+          q = q.lt(columnName, filter.value);
           break;
         case 'gte':
-          q = q.gte(targetColumn, filter.value);
+          q = q.gte(columnName, filter.value);
           break;
         case 'lte':
-          q = q.lte(targetColumn, filter.value);
+          q = q.lte(columnName, filter.value);
           break;
         case 'in':
           // Handle multi-select values (pipe-separated) or single values
           if (filter.value.includes('|')) {
             const values = filter.value.split('|').filter(v => v.trim() !== '');
-            q = q.in(targetColumn, values);
+            q = q.in(columnName, values);
           } else {
-            q = q.eq(targetColumn, filter.value);
+            q = q.eq(columnName, filter.value);
           }
           break;
         default:
-          q = q.eq(targetColumn, filter.value);
+          q = q.eq(columnName, filter.value);
       }
     } catch (error) {
-      console.error(`Error applying filter for column ${targetColumn}:`, error);
+      console.error(`Error applying filter for column ${columnName}:`, error);
       // Continue with other filters instead of failing entirely
     }
   });
@@ -199,23 +190,8 @@ export async function fetchAbsencesByFilterCriteria(request: AttendanceFilterReq
 
     // Build the query
     let query = supabase
-      .from('student_daily_absences')
-      .select(`
-        student_daily_absence_id,
-        student_id,
-        absence_date,
-        year_id,
-        sis_code,
-        normalized_absence_code,
-        external_source,
-        external_name,
-        created_at,
-        updated_at,
-        years!inner(
-          year_id,
-          name
-        )
-      `)
+      .from('student_daily_absences_years_view')
+      .select(`*`)
       .eq('student_id', studentId);
 
     // Apply filters
@@ -225,18 +201,7 @@ export async function fetchAbsencesByFilterCriteria(request: AttendanceFilterReq
     if (sort) {
       const [sortField, sortDirection] = sort.split(':');
       const sortColumn = getAbsenceColumnName(sortField);
-      
-      // Determine which table the column belongs to for sorting
-      let foreignTable = null;
-      if (['name'].includes(sortColumn)) {
-        foreignTable = 'years';
-      }
-
-      if (foreignTable) {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc', foreignTable });
-      } else {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
-      }
+      query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
     }
 
     // Apply pagination
@@ -257,8 +222,8 @@ export async function fetchAbsencesByFilterCriteria(request: AttendanceFilterReq
     let totalCount: number | undefined;
     if (fetchWithCount) {
       let countQuery = supabase
-        .from('student_daily_absences')
-        .select('*, years!inner(*)', { count: 'exact', head: true })
+        .from('student_daily_absences_years_view')
+        .select('*', { count: 'exact', head: true })
         .eq('student_id', studentId);
       
       // Apply the same filters to count query
@@ -278,7 +243,7 @@ export async function fetchAbsencesByFilterCriteria(request: AttendanceFilterReq
       studentId: absence.student_id as string,
       absenceDate: absence.absence_date as string,
       yearId: absence.year_id as string,
-      yearName: (absence.years as { name?: string })?.name || '',
+      yearName: absence.year_name || '',
       sisCode: absence.sis_code as string | undefined,
       normalizedAbsenceCode: absence.normalized_absence_code as string | undefined,
       externalSource: absence.external_source as string,
@@ -301,11 +266,11 @@ export async function fetchAbsencesByFilterCriteria(request: AttendanceFilterReq
 const getTardyColumnName = (key: string) => {
   switch (key) {
     case 'courseName':
-      return 'name'; // This will be handled with foreign table courses
+      return 'course_name'; // This will be handled with foreign table courses
     case 'termName':
       return 'abbreviation'; // This will be handled with foreign table terms
     case 'yearName':
-      return 'name'; // This will be handled with foreign table years (through terms)
+      return 'year_name'; // This will be handled with foreign table years (through terms)
     case 'tardies':
       return 'tardies';
     default:
@@ -324,67 +289,58 @@ const applyTardyFilters = (q: any, filters: FilterValue[]) => {
 
     const columnName = getTardyColumnName(filter.key);
 
-    const foreignTable = ['name', 'local_course_code'].includes(columnName) ? 'sections.courses' : ['abbreviation'].includes(columnName) ? 'terms' : columnName === 'name' && filter.key === 'yearName' ? 'terms.years' : null;
-    
-    let targetColumn = columnName;
-    // Handle foreign table columns
-    if (foreignTable) {
-      targetColumn = `${foreignTable}.${columnName}`;
-    }
-
     try {
       switch (filter.condition) {
         case 'contains':
-          q = q.ilike(targetColumn, `%${filter.value}%`);
+          q = q.ilike(columnName, `%${filter.value}%`);
           break;
         case 'starts':
-          q = q.ilike(targetColumn, `${filter.value}%`);
+          q = q.ilike(columnName, `${filter.value}%`);
           break;
         case 'ends':
-          q = q.ilike(targetColumn, `%${filter.value}`);
+          q = q.ilike(columnName, `%${filter.value}`);
           break;
         case 'not':
-          q = q.neq(targetColumn, filter.value);
+          q = q.neq(columnName, filter.value);
           break;
         case 'not_contains':
-          q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+          q = q.not(columnName, 'ilike', `%${filter.value}%`);
           break;
         case 'is_empty': {
-          const expr = `${columnName}.is.null,${columnName}.eq.`;
-          q = foreignTable ? q.or(expr, { referencedTable: foreignTable }) : q.or(expr);
+          q = q.or(`${columnName}.is.null,${columnName}.eq.`);
           break;
         }
         case 'is_not_empty': {
-          q = q.not(targetColumn, 'is', null);
-          q = q.neq(targetColumn, '');
+          q = q.not(columnName, 'is', null);
+          q = q.neq(columnName, '');
           break;
         }
         case 'gt':
-          q = q.gt(targetColumn, filter.value);
+          q = q.gt(columnName, filter.value);
           break;
         case 'lt':
-          q = q.lt(targetColumn, filter.value);
+          q = q.lt(columnName, filter.value);
           break;
         case 'gte':
-          q = q.gte(targetColumn, filter.value);
+          q = q.gte(columnName, filter.value);
           break;
         case 'lte':
-          q = q.lte(targetColumn, filter.value);
+          q = q.lte(columnName, filter.value);
           break;
         case 'in':
           // Handle multi-select values (pipe-separated) or single values
           if (filter.value.includes('|')) {
             const values = filter.value.split('|').filter(v => v.trim() !== '');
-            q = q.in(targetColumn, values);
+            q = q.in(columnName, values);
           } else {
-            q = q.eq(targetColumn, filter.value);
+            q = q.eq(columnName, filter.value);
           }
           break;
         default:
-          q = q.eq(targetColumn, filter.value);
+          q = q.eq(columnName, filter.value);
       }
     } catch (error) {
-      console.error(`Error applying filter for column ${targetColumn}:`, error);
+      console.error(`Error applying filter for column ${columnName}:`, error);
       // Continue with other filters instead of failing entirely
     }
   });
@@ -402,35 +358,9 @@ export async function fetchPeriodTardiesByFilterCriteria(request: AttendanceFilt
 
     // Build the query
     let query = supabase
-      .from('section_enrollments')
-      .select(`
-        section_enrollment_id,
-        student_id,
-        section_id,
-        term_id,
-        tardies,
-        external_source,
-        created_at,
-        updated_at,
-        terms!inner(
-          term_id,
-          abbreviation,
-          years!inner(
-            year_id,
-            name
-          )
-        ),
-        sections!inner(
-          section_id,
-          courses!inner(
-            course_id,
-            name,
-            local_course_code
-          )
-        )
-      `)
-      .eq('student_id', studentId)
-      .gt('tardies', 0);
+      .from('section_enrollments_terms_years_sections_courses_view')
+      .select(`*`)
+      .eq('student_id', studentId);
 
     // Apply filters
     query = applyTardyFilters(query, filters);
@@ -439,20 +369,7 @@ export async function fetchPeriodTardiesByFilterCriteria(request: AttendanceFilt
     if (sort) {
       const [sortField, sortDirection] = sort.split(':');
       const sortColumn = getTardyColumnName(sortField);
-      
-      // Determine which table the column belongs to for sorting
-      let foreignTable = null;
-      if (['name'].includes(sortColumn) && sortField === 'courseName') {
-        foreignTable = 'sections.courses';
-      }  else if (sortColumn === 'name' && sortField === 'yearName') {
-        foreignTable = 'terms.years';
-      }
-
-      if (foreignTable) {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc', foreignTable });
-      } else {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
-      }
+      query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
     }
 
     // Apply pagination
@@ -473,17 +390,9 @@ export async function fetchPeriodTardiesByFilterCriteria(request: AttendanceFilt
     let totalCount: number | undefined;
     if (fetchWithCount) {
       let countQuery = supabase
-        .from('section_enrollments')
-        .select(`
-          *,
-          terms!inner(*),
-          sections!inner(
-            *,
-            courses!inner(*)
-          )
-        `, { count: 'exact', head: true })
-        .eq('student_id', studentId)
-        .gt('tardies', 0);
+        .from('section_enrollments_terms_years_sections_courses_view')
+        .select(`*`, { count: 'exact', head: true })
+        .eq('student_id', studentId);
       
       // Apply the same filters to count query
       countQuery = applyTardyFilters(countQuery, filters);
@@ -498,9 +407,6 @@ export async function fetchPeriodTardiesByFilterCriteria(request: AttendanceFilt
 
     // Transform the data
     const tardies = data?.map((tardy) => {
-      const terms = tardy.terms as { years?: { year_id?: string; name?: string }; abbreviation?: string };
-      const sections = tardy.sections as { courses?: { name?: string; local_course_code?: string; teachers?: Array<{ first_name?: string; last_name?: string }> }};
-      const teacher = sections?.courses?.teachers?.[0];
       
       return {
         sectionEnrollmentId: tardy.section_enrollment_id as string,
@@ -508,15 +414,11 @@ export async function fetchPeriodTardiesByFilterCriteria(request: AttendanceFilt
         sectionId: tardy.section_id as string,
         termId: tardy.term_id as string,
         tardies: tardy.tardies as number,
-        yearId: terms?.years?.year_id || '',
-        yearName: terms?.years?.name || '',
-        courseName: sections?.courses?.name || '',
-        courseNumber: sections?.courses?.local_course_code || '',
-        teacherName: teacher 
-          ? `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim()
-          : undefined,
-        termName: terms?.abbreviation || '',
-        externalSource: tardy.external_source as string,
+        yearId: tardy.year_id || '',
+        yearName: tardy.year_name || '',
+        courseName: tardy.course_name || '',  
+        courseNumber: tardy.local_course_code || '',
+        termName: tardy.abbreviation || '',
         createdAt: tardy.created_at as string,
         updatedAt: tardy.updated_at as string,
       };

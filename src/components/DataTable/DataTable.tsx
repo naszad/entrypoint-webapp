@@ -5,7 +5,6 @@ import {
   getCoreRowModel,
   useReactTable,
   VisibilityState,
-  getSortedRowModel,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -111,7 +110,6 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onSortingChange: setSorting,
     state: {
