@@ -224,7 +224,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
             fullName={student.fullName}
             gradeLevel={student.gradeLevel ?? ''}
             graduationYear={student.graduationYear ?? ''}
-            studentId={student.externalId?.toString() ?? ''}
+            studentId={student.studentNumber?.toString() ?? ''}
             enrollmentStatus={student.enrollmentStatus ?? ''}
             email={student.email ?? ''}
             tags={studentTags?.categories}

@@ -54,6 +54,7 @@ type StudentSchoolLink = {
     graduation_year: number;
     enrollment_status: string;
     homeroom_name: string;
+    student_number: string;
     customer_id: string;
   }
 };
@@ -64,6 +65,8 @@ const getColumnName = (key: string) => {
       return 'full_name';
     case 'homeroomName':
       return 'homeroom_name';
+    case 'studentNumber':
+      return 'student_number';
     case 'enrollmentStatus':
       return 'enrollment_status';
     case 'gradeLevel':
@@ -365,6 +368,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
           graduation_year,
           enrollment_status,
           homeroom_name,
+          student_number,
           customer_id
         )
       `)
@@ -472,6 +476,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         graduationYear: studentSchoolLink.students.graduation_year,
         enrollmentStatus: studentSchoolLink.students.enrollment_status,
         homeroomName: studentSchoolLink.students.homeroom_name,
+        studentNumber: studentSchoolLink.students.student_number,
         customerId: studentSchoolLink.students.customer_id
       };
     }).filter((student): student is StudentInfo => student !== null);
@@ -598,6 +603,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       graduation_year,
       enrollment_status,
       homeroom_name,
+      student_number,
       customer_id
     `)
     .eq('student_id', studentId)
@@ -631,6 +637,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       graduationYear: student.graduation_year,
       enrollmentStatus: student.enrollment_status,
       homeroomName: student.homeroom_name,
+      studentNumber: student.student_number,
       customerId: student.customer_id,
     }
 
@@ -1090,6 +1097,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
           graduationYear: gradeRecord.student.graduation_year,
           enrollmentStatus: gradeRecord.student.enrollment_status,
           homeroomName: gradeRecord.student.homeroom_name,
+          studentNumber: gradeRecord.student.student_number,
           customerId: gradeRecord.student.customer_id
         }
       }));

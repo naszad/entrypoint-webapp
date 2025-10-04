@@ -315,6 +315,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         inputSchema: z.object({
           gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12)'),
           fullName: z.string().optional().describe('Name or part of name to search for'),
+          studentNumber: z.string().optional().describe('Student number or part of student number to search for'),
           enrollmentStatus: z.enum(['active', 'inactive']).optional().describe('Student enrollment status'),
           gender: z.enum(['male', 'female']).optional().describe('Student gender'),
           homeroomName: z.string().optional().describe('Homeroom name or teacher'),
@@ -351,6 +352,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
               case 'enrollmentStatus':
               case 'gender':
               case 'graduationYear':
+              case 'studentNumber':
                 filters.push(`${key}:eq:${value}`);
                 break;
               case 'fullName':
