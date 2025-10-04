@@ -31,32 +31,30 @@ type StudentGradesResponse = {
   count?: number;
 };
 
-type StudentSchoolLink = {
+type StudentSchoolLinkStudentsView = {
   student_id: string;
   school_id: string;
-  students: {
-    first_name: string;
-    middle_name: string;
-    last_name: string;
-    full_name: string;
-    email: string;
-    phone: string;
-    grade_level: number;
-    gender: string;
-    date_of_birth: Date;
-    created_at: Date;
-    updated_at: Date;
-    external_source: string;
-    external_key: string;
-    external_id: string;
-    external_key_hash: string;
-    external_name: string;
-    graduation_year: number;
-    enrollment_status: string;
-    homeroom_name: string;
-    student_number: string;
-    customer_id: string;
-  }
+  created_at: Date;
+  updated_at: Date;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  grade_level: number;
+  gender: string;
+  date_of_birth: Date;
+  external_source: string;
+  external_key: string;
+  external_id: string;
+  external_key_hash: string;
+  external_name: string;
+  graduation_year: number;
+  enrollment_status: string;
+  homeroom_name: string;
+  student_number: string;
+  customer_id: string;
 };
 
 const getColumnName = (key: string) => {
@@ -65,10 +63,10 @@ const getColumnName = (key: string) => {
       return 'full_name';
     case 'homeroomName':
       return 'homeroom_name';
-    case 'studentNumber':
-      return 'student_number';
     case 'enrollmentStatus':
       return 'enrollment_status';
+    case 'studentNumber':
+      return 'student_number';
     case 'gradeLevel':
       return 'grade_level';
     case 'dateOfBirth':
@@ -98,14 +96,22 @@ const getColumnName = (key: string) => {
   }
 }
 
+// Helper function to determine if a column is an integer type
+const isIntegerColumn = (columnName: string): boolean => {
+  const integerColumns = [
+    'grade_level'
+  ];
+  return integerColumns.includes(columnName);
+}
+
 const getGradeColumnName = (key: string) => {
   switch (key) {
     case 'fullName':
       return 'full_name';
-    case 'course_local_course_code':
+    case 'local_course_code':
       return 'local_course_code';
     case 'course_name':
-      return 'name';
+      return 'course_name';
     case 'gradeLetter':
       return 'grade_letter';
     case 'gradePercentage':
@@ -123,21 +129,6 @@ const getGradeColumnName = (key: string) => {
   }
 }
 
-const studentsFilterApplied = (filters: FilterValue[]) => {
-  return filters.some(f => {
-    const columnName = getColumnName(f.key);
-    // GPA is a special filter that doesn't map to a column
-    return !['student_id', 'school_id', 'gpa'].includes(columnName);
-  });
-};
-
-const gradesFilterApplied = (filters: FilterValue[]) => {
-  return filters.some(f => {
-    const columnName = getGradeColumnName(f.key);
-    return !['student_id', 'school_id', 'grade_id', 'course_id', 'term_id'].includes(columnName);
-  });
-};
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const applyFilters = (q: any, filters: FilterValue[]) => {
 
@@ -153,12 +144,6 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
     }
 
     const columnName = getColumnName(baseColumnKey);
-    const filterOnStudentTable = ![
-      'student_id',
-      'school_id',
-    ].includes(columnName);
-    
-    const targetColumn = filterOnStudentTable ? `students.${columnName}` : columnName;
 
     if (filter.key.endsWith('RecentOnly')) {
       const today = new Date();
@@ -170,60 +155,63 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
       const daysAgoStr = daysAgo.toISOString().split('T')[0];
       
       // Apply date range filter
-      q = q.gte(targetColumn, daysAgoStr);
-      q = q.lte(targetColumn, todayStr);
+      q = q.gte(columnName, daysAgoStr);
+      q = q.lte(columnName, todayStr);
       return;
     }
 
     switch (filter.condition) {
       case 'contains':
-        q = q.ilike(targetColumn, `%${filter.value}%`);
+        q = q.ilike(columnName, `%${filter.value}%`);
         break;
       case 'starts':
-        q = q.ilike(targetColumn, `${filter.value}%`);
+        q = q.ilike(columnName, `${filter.value}%`);
         break;
       case 'ends':
-        q = q.ilike(targetColumn, `%${filter.value}`);
+        q = q.ilike(columnName, `%${filter.value}`);
         break;
       case 'not':
-        q = q.neq(targetColumn, filter.value);
+        q = q.neq(columnName, filter.value);
         break;
       case 'not_contains':
-        q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+        q = q.not(columnName, 'ilike', `%${filter.value}%`);
         break;
       case 'is_empty': {
-        const expr = `${columnName}.is.null,${columnName}.eq.`;
-        q = filterOnStudentTable ? q.or(expr, { foreignTable: 'students' }) : q.or(expr);
+        q = q.or(`${columnName}.is.null,${columnName}.eq.`);
         break;
       }
       case 'is_not_empty': {
-        q = q.not(targetColumn, 'is', null);
-        q = q.neq(targetColumn, '');
+        q = q.not(columnName, 'is', null);
+        q = q.neq(columnName, '');
         break;
       }
       case 'gt':
-        q = q.gt(targetColumn, filter.value);
+        q = q.gt(columnName, filter.value);
         break;
       case 'lt':
-        q = q.lt(targetColumn, filter.value);
+        q = q.lt(columnName, filter.value);
         break;
       case 'gte':
-        q = q.gte(targetColumn, filter.value);
+        q = q.gte(columnName, filter.value);
         break;
       case 'lte':
-        q = q.lte(targetColumn, filter.value);
+        q = q.lte(columnName, filter.value);
         break;
       case 'in':
         // Handle multi-select values (pipe-separated) or single values
         if (filter.value.includes('|')) {
           const values = filter.value.split('|').filter(v => v.trim() !== '');
-          q = q.in(targetColumn, values);
+          q = q.in(columnName, values);
         } else {
-          q = q.eq(targetColumn, filter.value);
+          q = q.eq(columnName, filter.value);
         }
         break;
       default:
-        q = q.eq(targetColumn, filter.value);
+        if (isIntegerColumn(columnName)) {
+          q = q.eq(columnName, filter.value);
+        } else {
+          q = q.ilike(columnName, filter.value);
+        }
     }
   });
   return q;
@@ -247,16 +235,6 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
     }
 
     const columnName = getGradeColumnName(baseColumnKey);
-    
-    let targetColumn = columnName;
-    // Handle different table columns
-    if (['full_name'].includes(columnName)) {
-      // Student table columns
-      targetColumn = `student.${columnName}`;
-    } else if (['local_course_code', 'name'].includes(columnName)) {
-      targetColumn = `course.${columnName}`;
-    } 
-    const foreignTableForLogic = targetColumn.startsWith('student.') ? 'student' : (targetColumn.startsWith('course.') ? 'course' : null);
 
     if (filter.key.endsWith('RecentOnly')) {
       const today = new Date();
@@ -266,65 +244,63 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
       
       const todayStr = today.toISOString().split('T')[0];
       const daysAgoStr = daysAgo.toISOString().split('T')[0];
-      q = q.gte(targetColumn, daysAgoStr);
-      q = q.lte(targetColumn, todayStr);
+      q = q.gte(columnName, daysAgoStr);
+      q = q.lte(columnName, todayStr);
       return;
     }
 
     try {
       switch (filter.condition) {
         case 'contains':
-          q = q.ilike(targetColumn, `%${filter.value}%`);
+          q = q.ilike(columnName, `%${filter.value}%`);
           break;
         case 'starts':
-          q = q.ilike(targetColumn, `${filter.value}%`);
+          q = q.ilike(columnName, `${filter.value}%`);
           break;
         case 'ends':
-          q = q.ilike(targetColumn, `%${filter.value}`);
+          q = q.ilike(columnName, `%${filter.value}`);
           break;
         case 'not':
-          q = q.neq(targetColumn, filter.value);
+          q = q.neq(columnName, filter.value);
           break;
         case 'not_contains':
-          q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+          q = q.not(columnName, 'ilike', `%${filter.value}%`);
           break;
         case 'is_empty': {
-          const expr = `${columnName}.is.null,${columnName}.eq.`;
-          q = foreignTableForLogic ? q.or(expr, { referencedTable: foreignTableForLogic }) : q.or(expr);
+          q = q.or(`${columnName}.is.null,${columnName}.eq.`);
           break;
         }
         case 'is_not_empty': {
-          // Use dotted targetColumn path so PostgREST targets the related table
-          q = q.not(targetColumn, 'is', null);
-          q = q.neq(targetColumn, '');
+          q = q.not(columnName, 'is', null);
+          q = q.neq(columnName, '');
           break;
         }
         case 'gt':
-          q = q.gt(targetColumn, filter.value);
+          q = q.gt(columnName, filter.value);
           break;
         case 'lt':
-          q = q.lt(targetColumn, filter.value);
+          q = q.lt(columnName, filter.value);
           break;
         case 'gte':
-          q = q.gte(targetColumn, filter.value);
+          q = q.gte(columnName, filter.value);
           break;
         case 'lte':
-          q = q.lte(targetColumn, filter.value);
+          q = q.lte(columnName, filter.value);
           break;
         case 'in':
           // Handle multi-select values (pipe-separated) or single values
           if (filter.value.includes('|')) {
             const values = filter.value.split('|').filter(v => v.trim() !== '');
-            q = q.in(targetColumn, values);
+            q = q.in(columnName, values);
           } else {
-            q = q.eq(targetColumn, filter.value);
+            q = q.eq(columnName, filter.value);
           }
           break;
         default:
-          q = q.eq(targetColumn, filter.value);
+          q = q.eq(columnName, filter.value);
       }
     } catch (error) {
-      console.error(`Error applying filter for column ${targetColumn}:`, error);
+      console.error(`Error applying filter for column ${columnName}:`, error);
       // Continue with other filters instead of failing entirely
     }
   });
@@ -340,56 +316,20 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     
     // Extract GPA filter if present
     const gpaFilter = filters.find(f => f.key === 'gpa');
-    const hasStudentFilters = studentsFilterApplied(filters);
 
     let query = supabase
-      .from('school_student_link')
-      .select(`
-        student_id,
-        school_id,
-        students(
-          student_id,
-          first_name,
-          middle_name,
-          last_name,
-          full_name,
-          email,
-          phone,
-          grade_level,
-          gender,
-          date_of_birth,
-          created_at,
-          updated_at,
-          external_source,
-          external_key,
-          external_id,
-          external_key_hash,
-          external_name,
-          graduation_year,
-          enrollment_status,
-          homeroom_name,
-          student_number,
-          customer_id
-        )
-      `)
+      .from('school_student_link_students_view')
+      .select(`*`)
       .eq('school_id', selectedSchoolId);
     
-
     // Apply filters to main query
     query = applyFilters(query, filters);
-    if (hasStudentFilters) {
-      query = query.not('students', 'is', 'null');
-    }
 
     // Apply sorting
     if (sort) {
       const [sortField, sortDirection] = sort.split(':');
-      const sortColumn = getColumnName(sortField);
-      const onStudentTable = !['student_id', 'school_id'].includes(sortColumn);
-
-      if (onStudentTable) {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc', foreignTable: 'students' });
-      } else {
+      if (sortField !== 'gpa') {
+        const sortColumn = getColumnName(sortField);
         query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
       }
     }
@@ -419,7 +359,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       };
     }
 
-    const studentSchoolLinks: StudentSchoolLink[] = data as unknown as StudentSchoolLink[];
+    const studentSchoolLinks: StudentSchoolLinkStudentsView[] = data as unknown as StudentSchoolLinkStudentsView[];
     const studentIds = studentSchoolLinks.map(link => link.student_id);
 
     let gpaMap: Record<string, number> = {};
@@ -449,7 +389,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
 
     let students: StudentInfo[] = studentSchoolLinks.map((studentSchoolLink): StudentInfo | null => {
       // It's possible for students to be null if the filter returns a link but no matching student
-      if (!studentSchoolLink.students) {
+      if (!studentSchoolLink) {
         return null;
       }
 
@@ -457,29 +397,41 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         studentId: studentSchoolLink.student_id,  
         schoolId: studentSchoolLink.school_id,
         gpa: gpaMap[studentSchoolLink.student_id] ?? null,
-        firstName: studentSchoolLink.students.first_name,
-        middleName: studentSchoolLink.students.middle_name,
-        lastName: studentSchoolLink.students.last_name,
-        fullName: studentSchoolLink.students.full_name,
-        email: studentSchoolLink.students.email,
-        phone: studentSchoolLink.students.phone,
-        gradeLevel: studentSchoolLink.students.grade_level,
-        gender: studentSchoolLink.students.gender,
-        dateOfBirth: studentSchoolLink.students.date_of_birth ? new Date(studentSchoolLink.students.date_of_birth) : null,
-        createdAt: new Date(studentSchoolLink.students.created_at),
-        updatedAt: new Date(studentSchoolLink.students.updated_at),
-        externalSource: studentSchoolLink.students.external_source,
-        externalKey: studentSchoolLink.students.external_key,
-        externalId: studentSchoolLink.students.external_id,
-        externalKeyHash: studentSchoolLink.students.external_key_hash,
-        externalName: studentSchoolLink.students.external_name,
-        graduationYear: studentSchoolLink.students.graduation_year,
-        enrollmentStatus: studentSchoolLink.students.enrollment_status,
-        homeroomName: studentSchoolLink.students.homeroom_name,
-        studentNumber: studentSchoolLink.students.student_number,
-        customerId: studentSchoolLink.students.customer_id
+        firstName: studentSchoolLink.first_name,
+        middleName: studentSchoolLink.middle_name,
+        lastName: studentSchoolLink.last_name,
+        fullName: studentSchoolLink.full_name,
+        email: studentSchoolLink.email,
+        phone: studentSchoolLink.phone,
+        gradeLevel: studentSchoolLink.grade_level,
+        gender: studentSchoolLink.gender,
+        dateOfBirth: studentSchoolLink.date_of_birth ? new Date(studentSchoolLink.date_of_birth) : null,
+        createdAt: new Date(studentSchoolLink.created_at),
+        updatedAt: new Date(studentSchoolLink.updated_at),
+        externalSource: studentSchoolLink.external_source,
+        externalKey: studentSchoolLink.external_key,
+        externalId: studentSchoolLink.external_id,
+        externalKeyHash: studentSchoolLink.external_key_hash,
+        externalName: studentSchoolLink.external_name,
+        graduationYear: studentSchoolLink.graduation_year,
+        enrollmentStatus: studentSchoolLink.enrollment_status,
+        studentNumber: studentSchoolLink.student_number,
+        homeroomName: studentSchoolLink.homeroom_name,
+        customerId: studentSchoolLink.customer_id
       };
     }).filter((student): student is StudentInfo => student !== null);
+
+    // Apply GPA sorting if requested (must be done in-memory since GPA is calculated)
+    if (sort) {
+      const [sortField, sortDirection] = sort.split(':');
+      if (sortField === 'gpa') {
+        students.sort((a, b) => {
+          const gpaA = a.gpa ?? 0;
+          const gpaB = b.gpa ?? 0;
+          return sortDirection === 'asc' ? gpaA - gpaB : gpaB - gpaA;
+        });
+      }
+    }
 
     // Apply GPA filter if present
     if (gpaFilter) {
@@ -522,8 +474,8 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         countResult = totalBeforePagination;
       } else {
         let countQuery = supabase
-          .from('school_student_link')
-          .select(hasStudentFilters ? '*,students!inner(*)' : '*', { count: 'exact', head: true })
+          .from('school_student_link_students_view')
+          .select('*', { count: 'exact', head: true })
           .eq('school_id', selectedSchoolId);
         
         // Apply the same filters to count query
@@ -554,11 +506,10 @@ export async function countStudentsByFilterCriteria(request: StudentsRequest): P
     const { filters } = request;
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
-    const hasStudentFilters = studentsFilterApplied(filters);
 
     let countQuery = supabase
-        .from('school_student_link')
-        .select(hasStudentFilters ? '*,students!inner(*)' : '*', { count: 'exact', head: true })
+        .from('school_student_link_students_view')
+        .select('*', { count: 'exact', head: true })
         .eq('school_id', selectedSchoolId);
       
       // Apply the same filters to count query
@@ -603,7 +554,6 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       graduation_year,
       enrollment_status,
       homeroom_name,
-      student_number,
       customer_id
     `)
     .eq('student_id', studentId)
@@ -637,7 +587,6 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       graduationYear: student.graduation_year,
       enrollmentStatus: student.enrollment_status,
       homeroomName: student.homeroom_name,
-      studentNumber: student.student_number,
       customerId: student.customer_id,
     }
 
@@ -869,8 +818,6 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
 
-    const hasGradeFilters = gradesFilterApplied(filters);
-
     // First, get the student IDs for the selected school
     const { data: schoolStudentLinks, error: schoolError } = await supabase
       .from('school_student_link')
@@ -906,102 +853,18 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     const studentIds = schoolStudentLinks.map(link => link.student_id);
 
     let query = supabase
-      .from(mostRecentOnly ? 'latest_student_grades' : 'student_grades')
-      .select(`
-        grade_id,
-        student_id,
-        section_id,
-        term_id,
-        course_id,
-        grade_letter,
-        grade_code,
-        grade_percent,
-        gpa_points,
-        credit_hours_earned,
-        potential_credit_hours,
-        gpa_added_value,
-        exclude_from_gpa,
-        credit_type,
-        grade_status,
-        comment,
-        grade_level,
-        source_api,
-        source_updated_date,
-        external_source,
-        external_name,
-        external_id,
-        external_key,
-        external_key_hash,
-        created_at,
-        updated_at,
-        customer_id,
-        course:courses (
-          course_id,
-          name,
-          credit_type,
-          local_course_code,
-          state_course_code,
-          external_source,
-          external_name,
-          external_id,
-          external_key,
-          external_key_hash,
-          school_id,
-          created_at,
-          updated_at,
-          customer_id
-        ),
-        student:students (
-          student_id,
-          first_name,
-          middle_name,
-          last_name,
-          full_name,
-          email,
-          phone,
-          grade_level,
-          gender,
-          date_of_birth,
-          created_at,
-          updated_at,
-          external_source,
-          external_key,
-          external_id,
-          external_key_hash,
-          external_name,
-          graduation_year,
-          enrollment_status,
-          homeroom_name,
-          customer_id
-        )
-      `)
+      .from(mostRecentOnly ? 'latest_student_grades_courses_students_view' : 'student_grades_courses_students_view')
+      .select(`*`)
       .in('student_id', studentIds);
 
       // Apply filters to main query
       query = applyGradeFilters(query, filters);
 
-    if (hasGradeFilters) {
-      query = query.not('student', 'is', 'null').not('course', 'is', 'null');
-    }
-
     // Apply sorting
     if (sort) {
       const [sortField, sortDirection] = sort.split(':');
       const sortColumn = getGradeColumnName(sortField);
-      
-      // Determine which table the column belongs to for sorting
-      let foreignTable = null;
-      if (['full_name'].includes(sortColumn)) {
-        foreignTable = 'student';
-      } else if (['local_course_code', 'name'].includes(sortColumn)) {
-        foreignTable = 'course';
-      }
-
-      if (foreignTable) {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc', foreignTable });
-      } else {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
-      }
+      query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
     }
 
     // Apply pagination
@@ -1030,7 +893,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     // Transform data to StudentGradeInfo format
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const studentGrades: StudentGradeInfo[] = (data as any[])
-      .filter((gradeRecord) => gradeRecord.student && gradeRecord.course)
+      .filter((gradeRecord) => gradeRecord.student_id && gradeRecord.course_id)
       .map((gradeRecord): StudentGradeInfo => ({
         grade_id: gradeRecord.grade_id,
         student_id: gradeRecord.student_id,
@@ -1044,89 +907,29 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
         credit_hours_earned: gradeRecord.credit_hours_earned,
         potential_credit_hours: gradeRecord.potential_credit_hours,
         gpa_added_value: gradeRecord.gpa_added_value,
-        exclude_from_gpa: gradeRecord.exclude_from_gpa,
         credit_type: gradeRecord.credit_type,
         grade_status: gradeRecord.grade_status,
         comment: gradeRecord.comment,
         grade_level: gradeRecord.grade_level,
-        source_api: gradeRecord.source_api,
-        source_updated_date: new Date(gradeRecord.source_updated_date),
-        external_source: gradeRecord.external_source,
-        external_name: gradeRecord.external_name,
-        external_id: gradeRecord.external_id,
-        external_key: gradeRecord.external_key,
-        external_key_hash: gradeRecord.external_key_hash,
         created_at: new Date(gradeRecord.created_at),
         updated_at: new Date(gradeRecord.updated_at),
         customer_id: gradeRecord.customer_id,
-        course: {
-          course_id: gradeRecord.course.course_id,
-          name: gradeRecord.course.name,
-          credit_type: gradeRecord.course.credit_type,
-          local_course_code: gradeRecord.course.local_course_code,
-          state_course_code: gradeRecord.course.state_course_code,
-          external_source: gradeRecord.course.external_source,
-          external_name: gradeRecord.course.external_name,
-          external_id: gradeRecord.course.external_id,
-          external_key: gradeRecord.course.external_key,
-          external_key_hash: gradeRecord.course.external_key_hash,
-          school_id: gradeRecord.course.school_id,
-          created_at: new Date(gradeRecord.course.created_at),
-          updated_at: new Date(gradeRecord.course.updated_at),
-          customer_id: gradeRecord.course.customer_id
-        },
-        student: {
-          studentId: gradeRecord.student.student_id,
-          schoolId: selectedSchoolId || '', // Add schoolId from the selected school
-          firstName: gradeRecord.student.first_name,
-          middleName: gradeRecord.student.middle_name,
-          lastName: gradeRecord.student.last_name,
-          fullName: gradeRecord.student.full_name,
-          email: gradeRecord.student.email,
-          phone: gradeRecord.student.phone,
-          gradeLevel: gradeRecord.student.grade_level,
-          gender: gradeRecord.student.gender,
-          dateOfBirth: gradeRecord.student.date_of_birth ? new Date(gradeRecord.student.date_of_birth) : null,
-          createdAt: new Date(gradeRecord.student.created_at),
-          updatedAt: new Date(gradeRecord.student.updated_at),
-          externalSource: gradeRecord.student.external_source,
-          externalKey: gradeRecord.student.external_key,
-          externalId: gradeRecord.student.external_id,
-          externalKeyHash: gradeRecord.student.external_key_hash,
-          externalName: gradeRecord.student.external_name,
-          graduationYear: gradeRecord.student.graduation_year,
-          enrollmentStatus: gradeRecord.student.enrollment_status,
-          homeroomName: gradeRecord.student.homeroom_name,
-          studentNumber: gradeRecord.student.student_number,
-          customerId: gradeRecord.student.customer_id
-        }
+        local_course_code: gradeRecord.local_course_code,
+        course_name: gradeRecord.course_name,
+        first_name: gradeRecord.first_name,
+        middle_name: gradeRecord.middle_name,
+        last_name: gradeRecord.last_name,
+        full_name: gradeRecord.full_name,
+        email: gradeRecord.email,
+        graduation_year: gradeRecord.graduation_year
       }));
 
     // Execute count query if needed
     let totalCount: number | undefined;
     if (fetchWithCount) {
       let countQuery = supabase
-        .from(mostRecentOnly ? 'latest_student_grades' : 'student_grades')
-        .select(hasGradeFilters ? `
-          *,
-          student:students!inner(
-            student_id,
-            full_name,
-            grade_level,
-            homeroom_name,
-            enrollment_status,
-            date_of_birth,
-            created_at,
-            updated_at
-          ),
-          course:courses!inner(
-            course_id,
-            name,
-            local_course_code,
-            created_at,
-            updated_at
-          )
-        ` : '*', { count: 'exact', head: true })
+        .from(mostRecentOnly ? 'latest_student_grades_courses_students_view' : 'student_grades_courses_students_view')
+        .select('*', { count: 'exact', head: true })
         .in('student_id', studentIds);
       
       // Apply the same filters to count query

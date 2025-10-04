@@ -26,7 +26,7 @@ type UserColumnsProps = {
 
 export const createColumns = ({ onRowAction }: UserColumnsProps): ColumnDef<UserInfo>[] => [
   {
-    accessorKey: "fullName",
+    accessorKey: "full_name",
     header: "User",
     enableHiding: false,
     meta: {
@@ -71,7 +71,6 @@ export const createColumns = ({ onRowAction }: UserColumnsProps): ColumnDef<User
     header: "Last Updated",
     meta: {
       enableFiltering: true,
-      enableSorting: true,
       filterType: "date",
     },
     cell: ({ row }) => {

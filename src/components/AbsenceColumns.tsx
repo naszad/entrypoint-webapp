@@ -19,7 +19,6 @@ export const columns: ColumnDef<StudentAbsenceInfo>[] = [
     enableHiding: false,
     meta: {
       enableFiltering: true,
-      enableSorting: true,
       filterType: "date",
     },
     cell: ({ row }) => {
@@ -70,7 +69,6 @@ export const columns: ColumnDef<StudentAbsenceInfo>[] = [
     enableHiding: true,
     meta: {
       enableFiltering: true,
-      enableSorting: true,
       filterType: "date",
     },
     cell: ({ row }) => {

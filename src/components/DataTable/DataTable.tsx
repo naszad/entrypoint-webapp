@@ -5,7 +5,6 @@ import {
   getCoreRowModel,
   useReactTable,
   VisibilityState,
-  getSortedRowModel,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -24,7 +23,8 @@ import Pagination from "./Pagination";
 
 export type ColumnMeta = {
   enableFiltering?: boolean;
-  enableSorting?: boolean;
+  disableSorting?: boolean;
+  sortingOptions?: { id: string; displayValue: string }[];
   filterType?: 'text' | 'number' | 'date' | 'dropdown' | 'multi-select';
   filterOptions?: string[];
   header?: string;
@@ -110,7 +110,6 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onSortingChange: setSorting,
     state: {

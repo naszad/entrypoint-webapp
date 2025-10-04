@@ -301,25 +301,30 @@ Key Guidelines:
 
     tools: {
       filter_students: tool({
-        description: `Applies filters to the student data table and navigates the user to the filtered view.
+        description: `Applies filters and sorting to the student data table and navigates the user to the filtered view.
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103"
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending"
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
 
 **Date Filter Instructions:**
 - When user asks for students "updated/modified/changed in the last X days", use updatedAtRecentOnly with the number of days
 - When user asks for students "created/added/registered in the last X days", use createdAtRecentOnly with the number of days
-- Examples: "last 30 days" = 30, "last week" = 7, "last month" = 30, "yesterday" = 1, "last 2 weeks" = 14`,
+- Examples: "last 30 days" = 30, "last week" = 7, "last month" = 30, "yesterday" = 1, "last 2 weeks" = 14
+
+**Sorting Instructions:**
+- When user asks to sort by a field, use sortBy and sortDirection parameters
+- Sortable fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa
+- Direction: "asc" for ascending (A-Z, low to high), "desc" for descending (Z-A, high to low)`,
         inputSchema: z.object({
           gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12)'),
           fullName: z.string().optional().describe('Name or part of name to search for'),
-          studentNumber: z.string().optional().describe('Student number or part of student number to search for'),
-          enrollmentStatus: z.enum(['active', 'inactive']).optional().describe('Student enrollment status'),
+          enrollmentStatus: z.enum(['Active', 'Inactive']).optional().describe('Student enrollment status'),
           gender: z.enum(['male', 'female']).optional().describe('Student gender'),
           homeroomName: z.string().optional().describe('Homeroom name or teacher'),
           graduationYear: z.number().optional().describe('Expected graduation year'),
+          studentNumber: z.string().optional().describe('Student number or part of student number to search for'),
           email: z.string().optional().describe('Email domain or part of email to search for'),
           gpaFilter: z.object({
             value: z.number().describe('The GPA value to filter by'),
@@ -338,14 +343,17 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           emailEmpty: z.boolean().optional().describe('Filter for students with empty/null email addresses'),
           emailNotEmpty: z.boolean().optional().describe('Filter for students with non-empty email addresses'),
           fullNameEmpty: z.boolean().optional().describe('Filter for students with empty/null full names'),
-          fullNameNotEmpty: z.boolean().optional().describe('Filter for students with non-empty full names')
+          fullNameNotEmpty: z.boolean().optional().describe('Filter for students with non-empty full names'),
+          // Sorting parameters
+          sortBy: z.enum(['fullName', 'email', 'gradeLevel', 'gender', 'enrollmentStatus', 'homeroomName', 'gpa']).optional().describe('Field to sort by'),
+          sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
         }),
         execute: async (parsedFilters) => {
           const filters: string[] = [];
           const baseUrl = '/students';
     
           for (const [key, value] of Object.entries(parsedFilters)) {
-            if (!value || key === 'ageFilter' || key === 'gpaFilter') continue;
+            if (!value || key === 'ageFilter' || key === 'gpaFilter' || key === 'sortBy' || key === 'sortDirection') continue;
             
             switch (key) {
               case 'gradeLevel':
@@ -411,24 +419,35 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
             switch (operator) {
               case 'eq':
                 // Assumes backend can handle year part for date contains
-                filters.push(`dateOfBirth:contains:${birthYear}`);
+                filters.push(`date_of_birth:contains:${birthYear}`);
                 break;
               case 'gte': 
                 // age >= X  means birth year <= Y
-                filters.push(`dateOfBirth:lte:${birthYear}-12-31`);
+                filters.push(`date_of_birth:lte:${birthYear}-12-31`);
                 break;
               case 'lte':
                 // age <= X means birth year >= Y
-                filters.push(`dateOfBirth:gte:${birthYear}-01-01`);
+                filters.push(`date_of_birth:gte:${birthYear}-01-01`);
                 break;
             }
           }
 
           // Construct the URL
           let url = baseUrl;
+          const queryParams: string[] = [];
+          
           if (filters.length > 0) {
             const filterString = filters.join(',');
-            url += `?filters=${encodeURIComponent(filterString)}`;
+            queryParams.push(`filters=${encodeURIComponent(filterString)}`);
+          }
+          
+          // Add sorting to URL if specified
+          if (parsedFilters.sortBy && parsedFilters.sortDirection) {
+            queryParams.push(`sort=${parsedFilters.sortBy}:${parsedFilters.sortDirection}`);
+          }
+          
+          if (queryParams.length > 0) {
+            url += `?${queryParams.join('&')}`;
           }
     
           // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.
@@ -440,25 +459,33 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         }
       }),
       filter_grades: tool({
-        description: `Applies filters to the grades data table and navigates the user to the filtered view.
+        description: `Applies filters and sorting to the grades data table and navigates the user to the filtered view.
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of grades**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me grades below 90%", "Show me all A grades", "Find grades for Math courses", "Display grades for John Smith"
-- **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade did Jane Doe get in Math?" or "How many students got A's?". For those, you must query the database directly.`,
+- **Correct Usage Examples**: "Show me grades below 90%", "Show me all A grades", "Find grades for Math courses", "Display grades for John Smith", "Show me Algebra grades sorted by percentage descending", "Find Math grades and sort by student name ascending"
+- **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade did Jane Doe get in Math?" or "How many students got A's?". For those, you must query the database directly.
+- When cource or subject name is mentioned, use course_name for example show me grades in englishg or show me grades in math courses
+
+**Sorting Instructions:**
+- When user asks to sort by a field, use sortBy and sortDirection parameters
+- Sortable fields: full_name, course_name, grade_letter, grade_percentage, grade_code, updated_at, local_course_code (course number, course code)
+- Direction: "asc" for ascending (A-Z, low to high), "desc" for descending (Z-A, high to low)`,
         inputSchema: z.object({
-          fullName: z.string().optional().describe('Student name or part of name to search for'),
-          course_localCourseCode: z.string().optional().describe('Course code or part of course code to search for'),
+          full_name: z.string().optional().describe('Student name or part of name to search for'),
+          local_course_code: z.string().optional().describe('Course code or part of course code to search for'),
           credit_type: z.string().optional().describe('Credit type (e.g., Math, Science, English, History, Arts, etc.)'),
           course_name: z.string().optional().describe('Course name or part of course name to search for'),
-          gradeLetter: z.string().optional().describe('Grade letter (e.g., A, B, C, D, F)'),
-          gradePercentage: z.object({
+          grade_letter: z.string().optional().describe('Grade letter (e.g., A, B, C, D, F)'),
+          grade_percent: z.object({
             percentage: z.number().describe('The grade percentage to filter by'),
             operator: z.enum(['eq', 'gte', 'lte']).default('eq').describe('The comparison operator for the grade percentage filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to)')
           }).optional().describe('Filter grades by percentage. For example, "grades above 85%" or "90% grades".'),
-          gradeCode: z.string().optional().describe('Grade code (e.g., A, B, C, D, F, P, I)'),
+          grade_code: z.string().optional().describe('Grade code (e.g., A, B, C, D, F, P, I)'),
           updatedAfter: z.string().optional().describe('Show grades updated after this date (YYYY-MM-DD format)'),
           updatedBefore: z.string().optional().describe('Show grades updated before this date (YYYY-MM-DD format)'),
+          sortBy: z.enum(['full_name', 'course_name', 'grade_letter', 'grade_percent', 'grade_code', 'updatedAt', 'local_course_code']).optional().describe('Field to sort by'),
+          sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
         }),
         execute: async (parsedFilters) => {
           const filters: string[] = [];
@@ -466,18 +493,18 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
     
           // Consolidate filter parameters to start supporting generic filter logic
           const filterConfig: Record<string, { operator: string; field?: string }> = {
-            fullName: { operator: 'contains' },
-            course_localCourseCode: { operator: 'contains' },
+            full_name: { operator: 'contains' },
+            local_course_code: { operator: 'contains' },
             course_name: { operator: 'contains' },
-            gradeLetter: { operator: 'contains' },
-            gradeCode: { operator: 'eq' },
+            grade_letter: { operator: 'contains' },
+            grade_code: { operator: 'eq' },
             credit_type: { operator: 'contains' },
             updatedAfter: { operator: 'gte', field: 'updatedAt' },
             updatedBefore: { operator: 'lte', field: 'updatedAt' }
           };
 
           for (const [key, value] of Object.entries(parsedFilters)) {
-            if (!Object.keys(filterConfig).includes(key)) continue;
+            if (!Object.keys(filterConfig).includes(key) || key === 'sortBy' || key === 'sortDirection') continue;
             const config = filterConfig[key];
             const fieldName = config.field || key;
             const filterValue = config.operator === 'contains' || config.operator === 'eq' 
@@ -487,27 +514,38 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           }
 
           // TODO: This kind of numeric filter (gte, lte, eq) will be added to the generic filter soon TM
-          if (parsedFilters.gradePercentage) {
-            const { percentage, operator } = parsedFilters.gradePercentage;
+          if (parsedFilters.grade_percent) {
+            const { percentage, operator } = parsedFilters.grade_percent;
             
             switch (operator) {
               case 'eq':
-                filters.push(`gradePercentage:eq:${percentage}`);
+                filters.push(`grade_percent:eq:${percentage}`);
                 break;
               case 'gte':
-                filters.push(`gradePercentage:gte:${percentage}`);
+                filters.push(`grade_percent:gte:${percentage}`);
                 break;
               case 'lte':
-                filters.push(`gradePercentage:lte:${percentage}`);
+                filters.push(`grade_percent:lte:${percentage}`);
                 break;
             }
           }
-    
+
           // Construct the URL
           let url = baseUrl;
+          const queryParams: string[] = [];
+          
           if (filters.length > 0) {
             const filterString = filters.join(',');
-            url += `?filters=${encodeURIComponent(filterString)}`;
+            queryParams.push(`filters=${encodeURIComponent(filterString)}`);
+          }
+          
+          // Add sorting to URL if specified
+          if (parsedFilters.sortBy && parsedFilters.sortDirection) {
+            queryParams.push(`sort=${parsedFilters.sortBy}:${parsedFilters.sortDirection}`);
+          }
+          
+          if (queryParams.length > 0) {
+            url += `?${queryParams.join('&')}`;
           }
     
           // The LLM will use the `url` and `filtersApplied` to generate a friendly response for the user.

@@ -187,7 +187,7 @@ const GradesPage = () => {
   };
 
   const multiSelectRemoteSource = async (columnId: string) => {
-    if (columnId === 'gradeCode') {
+    if (columnId === 'grade_code') {
       const sortedGradeCodes = gradeCodeSort;
       return sortedGradeCodes.map(code => ({ value: code, label: code }));
     }

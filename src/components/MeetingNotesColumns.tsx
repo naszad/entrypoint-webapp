@@ -27,7 +27,6 @@ export const columns: ColumnDef<MeetingNoteInfo>[] = [
     enableHiding: false,
     meta: {
       enableFiltering: true,
-      enableSorting: true,
       filterType: "date",
     },
     cell: ({ row }) => {
@@ -41,6 +40,7 @@ export const columns: ColumnDef<MeetingNoteInfo>[] = [
     enableHiding: false,
     meta: {
       enableFiltering: false,
+      disableSorting: true,
       filterType: "text",
     },
   },

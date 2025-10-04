@@ -1,7 +1,29 @@
-import { StudentInfo } from "./StudentInfo";
-import { Course, StudentGrade } from "@/types/Models";
-
-export interface StudentGradeInfo extends StudentGrade {
-  student: StudentInfo;
-  course: Course;
+export interface StudentGradeInfo {
+  grade_id: string,
+  student_id: string,
+  section_id: string,
+  term_id: string,
+  course_id: string,
+  grade_letter: string,
+  grade_code: string,
+  grade_percent: number,
+  gpa_points: number,
+  credit_hours_earned: number,
+  potential_credit_hours: number,
+  gpa_added_value: number,
+  credit_type: string,
+  grade_status: string,
+  comment: string,
+  grade_level: string,
+  created_at: Date,
+  updated_at: Date,
+  customer_id: string,
+  local_course_code: string,
+  course_name: string,
+  first_name: string,
+  middle_name: string,
+  last_name: string,
+  full_name: string,
+  email: string,
+  graduation_year: number
 }

@@ -79,12 +79,6 @@ const getUserColumnName = (key: string) => {
   }
 };
 
-const usersFilterApplied = (filters: FilterValue[]) => {
-  return filters.some(f => {
-    const columnName = getUserColumnName(f.key);
-    return !['user_id', 'school_id', 'role', 'created_at', 'updated_at'].includes(columnName);
-  });
-};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const applyUserFilters = (q: any, filters: FilterValue[]) => {
@@ -95,15 +89,6 @@ const applyUserFilters = (q: any, filters: FilterValue[]) => {
     }
 
     const columnName = getUserColumnName(baseColumnKey);
-    const filterOnUserTable = ![
-      'user_id',
-      'school_id',
-      'role',
-      'created_at',
-      'updated_at',
-    ].includes(columnName);
-    
-    const targetColumn = filterOnUserTable ? `users.${columnName}` : columnName;
 
     if (filter.key.endsWith('RecentOnly')) {
 
@@ -116,60 +101,59 @@ const applyUserFilters = (q: any, filters: FilterValue[]) => {
       const daysAgoStr = daysAgo.toISOString().split('T')[0];
 
       // Apply date range filter
-      q = q.gte(targetColumn, daysAgoStr);
-      q = q.lte(targetColumn, todayStr);
+      q = q.gte(columnName, daysAgoStr);
+      q = q.lte(columnName, todayStr);
       return;
     }
 
     switch (filter.condition) {
       case 'contains':
-        q = q.ilike(targetColumn, `%${filter.value}%`);
+        q = q.ilike(columnName, `%${filter.value}%`);
         break;
       case 'starts':
-        q = q.ilike(targetColumn, `${filter.value}%`);
+        q = q.ilike(columnName, `${filter.value}%`);
         break;
       case 'ends':
-        q = q.ilike(targetColumn, `%${filter.value}`);
+        q = q.ilike(columnName, `%${filter.value}`);
         break;
       case 'not':
-        q = q.neq(targetColumn, filter.value);
+        q = q.neq(columnName, filter.value);
         break;
       case 'not_contains':
-        q = q.not(targetColumn, 'ilike', `%${filter.value}%`);
+        q = q.not(columnName, 'ilike', `%${filter.value}%`);
         break;
       case 'is_empty': {
-        const expr = `${columnName}.is.null,${columnName}.eq.`;
-        q = filterOnUserTable ? q.or(expr, { foreignTable: 'users' }) : q.or(expr);
+        q = q.or(`${columnName}.is.null,${columnName}.eq.`);
         break;
       }
       case 'is_not_empty': {
-        q = q.not(targetColumn, 'is', null);
-        q = q.neq(targetColumn, '');
+        q = q.not(columnName, 'is', null);
+        q = q.neq(columnName, '');
         break;
       }
       case 'gt':
-        q = q.gt(targetColumn, filter.value);
+        q = q.gt(columnName, filter.value);
         break;
       case 'lt':
-        q = q.lt(targetColumn, filter.value);
+        q = q.lt(columnName, filter.value);
         break;
       case 'gte':
-        q = q.gte(targetColumn, filter.value);
+        q = q.gte(columnName, filter.value);
         break;
       case 'lte':
-        q = q.lte(targetColumn, filter.value);
+        q = q.lte(columnName, filter.value);
         break;
       case 'in':
         // Handle multi-select values (pipe-separated) or single values
         if (filter.value.includes('|')) {
           const values = filter.value.split('|').filter(v => v.trim() !== '');
-          q = q.in(targetColumn, values);
+          q = q.in(columnName, values);
         } else {
-          q = q.eq(targetColumn, filter.value);
+          q = q.eq(columnName, filter.value);
         }
         break;
       default:
-        q = q.eq(targetColumn, filter.value);
+        q = q.eq(columnName, filter.value);
     }
   });
   return q;
@@ -253,51 +237,21 @@ export async function fetchUsersByFilterCriteria(request: UsersRequest): Promise
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
     const { filters, sort, pagingInfo } = request;
-    const hasUserFilters = usersFilterApplied(filters);
 
     let query = supabase
-      .from('user_school_memberships')
-      .select(`
-        user_id,
-        role,
-        school_id,
-        created_at,
-        updated_at,
-        users!inner(
-          user_id,
-          first_name,
-          middle_name,
-          last_name,
-          full_name,
-          email,
-          image_url,
-          eula_agree_timestamp
-        ),
-        schools(
-          school_id,
-          name
-        )
-      `)
+      .from('user_school_memberships_users_schools_view')
+      .select(`*`)
       .eq('school_id', selectedSchoolId)
       .neq("user_id", currentUser.user_id); 
 
     // Apply filters to main query
     query = applyUserFilters(query, filters);
-    if (hasUserFilters) {
-      query = query.not('users', 'is', 'null');
-    }
 
     // Apply sorting
     if (sort) {
       const [sortField, sortDirection] = sort.split(':');
       const sortColumn = getUserColumnName(sortField);
-      const onUserTable = !['user_id', 'school_id', 'role', 'created_at', 'updated_at'].includes(sortColumn);
-
-      if (onUserTable) {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc', foreignTable: 'users' });
-      } else {
-        query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
-      }
+      query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
     }
 
     // Apply pagination
@@ -315,7 +269,7 @@ export async function fetchUsersByFilterCriteria(request: UsersRequest): Promise
     }
 
     const users = data.map((membership) => {
-      const user = membership.users as unknown as User;
+      const user = membership as unknown as User;
       
       return {
         user_id: user.user_id,

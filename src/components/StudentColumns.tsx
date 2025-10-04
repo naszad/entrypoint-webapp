@@ -104,7 +104,7 @@ export const columns: ColumnDef<StudentInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "dropdown",
-      filterOptions: [{id: 'active', displayValue: 'Active'}, {id: 'inactive', displayValue: 'Inactive'}],
+      filterOptions: [{id: 'Active', displayValue: 'Active'}, {id: 'Inactive', displayValue: 'Inactive'}],
     },
   },
   {
@@ -128,7 +128,6 @@ export const columns: ColumnDef<StudentInfo>[] = [
     header: "Last Updated",
     meta: {
       enableFiltering: true,
-      enableSorting: true,
       filterType: "date",
     },
     cell: ({ row }) => {
