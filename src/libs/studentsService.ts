@@ -54,6 +54,9 @@ type StudentSchoolLinkStudentsView = {
   enrollment_status: string;
   homeroom_name: string;
   student_number: string;
+  lunch_id: string;
+  state_student_number: string;
+  race: string;
   customer_id: string;
 };
 
@@ -67,6 +70,12 @@ const getColumnName = (key: string) => {
       return 'enrollment_status';
     case 'studentNumber':
       return 'student_number';
+    case 'lunchId':
+      return 'lunch_id';
+    case 'stateStudentNumber':
+      return 'state_student_number';
+    case 'race':
+      return 'race';
     case 'gradeLevel':
       return 'grade_level';
     case 'dateOfBirth':
@@ -416,6 +425,9 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         graduationYear: studentSchoolLink.graduation_year,
         enrollmentStatus: studentSchoolLink.enrollment_status,
         studentNumber: studentSchoolLink.student_number,
+        lunchId: studentSchoolLink.lunch_id,
+        stateStudentNumber: studentSchoolLink.state_student_number,
+        race: studentSchoolLink.race,
         homeroomName: studentSchoolLink.homeroom_name,
         customerId: studentSchoolLink.customer_id
       };
