@@ -830,15 +830,6 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
 
-    // First, get the student IDs for the selected school
-    const { data: schoolStudentLinks, error: schoolError } = await supabase
-      .from('school_student_link')
-      .select('student_id')
-      .eq('school_id', selectedSchoolId);
-
-    if (schoolError) {
-      throw new Error(schoolError.message);
-    }
 
     const { data: gradeCodeRows } = await supabase
       .from('student_grades')
@@ -854,20 +845,10 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       )
     );
 
-    if (!schoolStudentLinks || schoolStudentLinks.length === 0) {
-      return {
-        gradeCodes,
-        data: [],
-        count: 0
-      };
-    }
-
-    const studentIds = schoolStudentLinks.map(link => link.student_id);
-
     let query = supabase
       .from(mostRecentOnly ? 'latest_student_grades_courses_students_view' : 'student_grades_courses_students_view')
       .select(`*`)
-      .in('student_id', studentIds);
+      .eq('school_id', selectedSchoolId);
 
       // Apply filters to main query
       query = applyGradeFilters(query, filters);
@@ -942,7 +923,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       let countQuery = supabase
         .from(mostRecentOnly ? 'latest_student_grades_courses_students_view' : 'student_grades_courses_students_view')
         .select('*', { count: 'exact', head: true })
-        .in('student_id', studentIds);
+        .eq('school_id', selectedSchoolId);
       
       // Apply the same filters to count query
       countQuery = applyGradeFilters(countQuery, filters);
