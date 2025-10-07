@@ -305,7 +305,7 @@ Key Guidelines:
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending"
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending", "Show students with lunch ID starting with 123", "Find students by state student number", "Show me students filtered by race"
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
 
 **Date Filter Instructions:**
@@ -315,7 +315,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 
 **Sorting Instructions:**
 - When user asks to sort by a field, use sortBy and sortDirection parameters
-- Sortable fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa
+- Sortable fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa, studentNumber, lunchId, stateStudentNumber, race
 - Direction: "asc" for ascending (A-Z, low to high), "desc" for descending (Z-A, high to low)`,
         inputSchema: z.object({
           gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12)'),
@@ -325,6 +325,9 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           homeroomName: z.string().optional().describe('Homeroom name or teacher'),
           graduationYear: z.number().optional().describe('Expected graduation year'),
           studentNumber: z.string().optional().describe('Student number or part of student number to search for'),
+          lunchId: z.string().optional().describe('Lunch ID or part of lunch ID to search for'),
+          stateStudentNumber: z.string().optional().describe('State student number or part of state student number to search for'),
+          race: z.string().optional().describe('Student race or ethnicity to search for'),
           email: z.string().optional().describe('Email domain or part of email to search for'),
           gpaFilter: z.object({
             value: z.number().describe('The GPA value to filter by'),
@@ -336,7 +339,6 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           }).optional().describe('Filter students by age. For example, "students older than 15" or "10-year-old students".'),
           createdAtRecentOnly: z.number().positive().optional().describe('Filter students created in the last N days. Use when user asks for students "created", "added", or "registered" in recent time period.'),
           updatedAtRecentOnly: z.number().positive().optional().describe('Filter students updated in the last N days. Use when user asks for students "updated", "modified", or "changed" in recent time period.'),
-          // New negative and empty value filters
           fullNameNot: z.string().optional().describe('Name that should NOT be in the student name (for "not equal" or "does not contain" queries)'),
           emailNot: z.string().optional().describe('Email that should NOT be in the student email (for "not equal" or "does not contain" queries)'),
           homeroomNameNot: z.string().optional().describe('Homeroom name that should NOT be in the student homeroom (for "not equal" or "does not contain" queries)'),
@@ -344,8 +346,17 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           emailNotEmpty: z.boolean().optional().describe('Filter for students with non-empty email addresses'),
           fullNameEmpty: z.boolean().optional().describe('Filter for students with empty/null full names'),
           fullNameNotEmpty: z.boolean().optional().describe('Filter for students with non-empty full names'),
+          lunchIdNot: z.string().optional().describe('Lunch ID that should NOT be present in the value'),
+          stateStudentNumberNot: z.string().optional().describe('State student number that should NOT be present in the value'),
+          raceNot: z.string().optional().describe('Race that should NOT be present in the value'),
+          lunchIdEmpty: z.boolean().optional().describe('Filter for students with empty/null lunch IDs'),
+          lunchIdNotEmpty: z.boolean().optional().describe('Filter for students with non-empty lunch IDs'),
+          stateStudentNumberEmpty: z.boolean().optional().describe('Filter for students with empty/null state student numbers'),
+          stateStudentNumberNotEmpty: z.boolean().optional().describe('Filter for students with non-empty state student numbers'),
+          raceEmpty: z.boolean().optional().describe('Filter for students with empty/null race'),
+          raceNotEmpty: z.boolean().optional().describe('Filter for students with non-empty race'),
           // Sorting parameters
-          sortBy: z.enum(['fullName', 'email', 'gradeLevel', 'gender', 'enrollmentStatus', 'homeroomName', 'gpa']).optional().describe('Field to sort by'),
+          sortBy: z.enum(['fullName', 'email', 'gradeLevel', 'gender', 'enrollmentStatus', 'homeroomName', 'gpa', 'studentNumber', 'lunchId', 'stateStudentNumber', 'race']).optional().describe('Field to sort by'),
           sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
         }),
         execute: async (parsedFilters) => {
@@ -366,6 +377,9 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
               case 'fullName':
               case 'homeroomName':
               case 'email':
+              case 'lunchId':
+              case 'stateStudentNumber':
+              case 'race':
                 filters.push(`${key}:contains:${encodeURIComponent(value as string)}`);
                 break;
               case 'fullNameNot':
@@ -376,6 +390,15 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
                 break;
               case 'homeroomNameNot':
                 filters.push(`homeroomName:not_contains:${encodeURIComponent(value as string)}`);
+                break;
+              case 'lunchIdNot':
+                filters.push(`lunchId:not_contains:${encodeURIComponent(value as string)}`);
+                break;
+              case 'stateStudentNumberNot':
+                filters.push(`stateStudentNumber:not_contains:${encodeURIComponent(value as string)}`);
+                break;
+              case 'raceNot':
+                filters.push(`race:not_contains:${encodeURIComponent(value as string)}`);
                 break;
               case 'emailEmpty':
                 if (value === true) {
@@ -395,6 +418,36 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
               case 'fullNameNotEmpty':
                 if (value === true) {
                   filters.push(`fullName:is_not_empty:true`);
+                }
+                break;
+              case 'lunchIdEmpty':
+                if (value === true) {
+                  filters.push(`lunchId:is_empty:true`);
+                }
+                break;
+              case 'lunchIdNotEmpty':
+                if (value === true) {
+                  filters.push(`lunchId:is_not_empty:true`);
+                }
+                break;
+              case 'stateStudentNumberEmpty':
+                if (value === true) {
+                  filters.push(`stateStudentNumber:is_empty:true`);
+                }
+                break;
+              case 'stateStudentNumberNotEmpty':
+                if (value === true) {
+                  filters.push(`stateStudentNumber:is_not_empty:true`);
+                }
+                break;
+              case 'raceEmpty':
+                if (value === true) {
+                  filters.push(`race:is_empty:true`);
+                }
+                break;
+              case 'raceNotEmpty':
+                if (value === true) {
+                  filters.push(`race:is_not_empty:true`);
                 }
                 break;
               case 'createdAtRecentOnly':

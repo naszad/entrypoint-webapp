@@ -54,6 +54,9 @@ type StudentSchoolLinkStudentsView = {
   enrollment_status: string;
   homeroom_name: string;
   student_number: string;
+  lunch_id: string;
+  state_student_number: string;
+  race: string;
   customer_id: string;
 };
 
@@ -67,6 +70,12 @@ const getColumnName = (key: string) => {
       return 'enrollment_status';
     case 'studentNumber':
       return 'student_number';
+    case 'lunchId':
+      return 'lunch_id';
+    case 'stateStudentNumber':
+      return 'state_student_number';
+    case 'race':
+      return 'race';
     case 'gradeLevel':
       return 'grade_level';
     case 'dateOfBirth':
@@ -416,6 +425,9 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
         graduationYear: studentSchoolLink.graduation_year,
         enrollmentStatus: studentSchoolLink.enrollment_status,
         studentNumber: studentSchoolLink.student_number,
+        lunchId: studentSchoolLink.lunch_id,
+        stateStudentNumber: studentSchoolLink.state_student_number,
+        race: studentSchoolLink.race,
         homeroomName: studentSchoolLink.homeroom_name,
         customerId: studentSchoolLink.customer_id
       };
@@ -818,15 +830,6 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
 
-    // First, get the student IDs for the selected school
-    const { data: schoolStudentLinks, error: schoolError } = await supabase
-      .from('school_student_link')
-      .select('student_id')
-      .eq('school_id', selectedSchoolId);
-
-    if (schoolError) {
-      throw new Error(schoolError.message);
-    }
 
     const { data: gradeCodeRows } = await supabase
       .from('student_grades')
@@ -842,20 +845,10 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       )
     );
 
-    if (!schoolStudentLinks || schoolStudentLinks.length === 0) {
-      return {
-        gradeCodes,
-        data: [],
-        count: 0
-      };
-    }
-
-    const studentIds = schoolStudentLinks.map(link => link.student_id);
-
     let query = supabase
       .from(mostRecentOnly ? 'latest_student_grades_courses_students_view' : 'student_grades_courses_students_view')
       .select(`*`)
-      .in('student_id', studentIds);
+      .eq('school_id', selectedSchoolId);
 
       // Apply filters to main query
       query = applyGradeFilters(query, filters);
@@ -930,7 +923,7 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
       let countQuery = supabase
         .from(mostRecentOnly ? 'latest_student_grades_courses_students_view' : 'student_grades_courses_students_view')
         .select('*', { count: 'exact', head: true })
-        .in('student_id', studentIds);
+        .eq('school_id', selectedSchoolId);
       
       // Apply the same filters to count query
       countQuery = applyGradeFilters(countQuery, filters);

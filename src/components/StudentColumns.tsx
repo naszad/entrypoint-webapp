@@ -14,6 +14,9 @@ export const defaultVisibility: VisibilityState = {
   enrollmentStatus: true,
   homeroomName: false,
   studentNumber: true,
+  lunchId: false,
+  stateStudentNumber: false,
+  race: true,
   updatedAt: false,
 };
 
@@ -118,6 +121,30 @@ export const columns: ColumnDef<StudentInfo>[] = [
   {
     accessorKey: "studentNumber",
     header: "Student Number",
+    meta: {
+      enableFiltering: true,
+      filterType: "text",
+    },
+  },
+  {
+    accessorKey: "lunchId",
+    header: "Lunch ID",
+    meta: {
+      enableFiltering: true,
+      filterType: "text",
+    },
+  },
+  {
+    accessorKey: "stateStudentNumber",
+    header: "State Student Number",
+    meta: {
+      enableFiltering: true,
+      filterType: "text",
+    },
+  },
+  {
+    accessorKey: "race",
+    header: "Race",
     meta: {
       enableFiltering: true,
       filterType: "text",
