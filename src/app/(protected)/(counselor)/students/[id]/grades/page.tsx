@@ -178,15 +178,18 @@ const StudentGradesPage = () => {
     }
 
     const savedYears = localStorage.getItem(getSelectedYearsStorageKey(user?.user_id));
+    const defaultYears = getDefaultYears(studentTermGradeInfo, studentEnrollmentStatus);
     if (savedYears && selectedYears.length === 0) {
       try {
         const parsed = JSON.parse(savedYears);
         if (Array.isArray(parsed)) {
           setSelectedYears(parsed);
         }
-      } catch {}
+      } catch {
+        console.error('Failed to parse selected years:', savedYears);
+        setSelectedYears(defaultYears);
+      }
     } else if (selectedYears.length === 0) {
-      const defaultYears = getDefaultYears(studentTermGradeInfo, studentEnrollmentStatus);
       localStorage.setItem(getSelectedYearsStorageKey(user?.user_id), JSON.stringify(defaultYears));
       setSelectedYears(defaultYears);
     }
