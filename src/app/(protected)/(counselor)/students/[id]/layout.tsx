@@ -7,6 +7,7 @@ import { StudentTagInfo } from '@/types/StudentTagInfo';
 import { Alert } from '@/components/ui/alert';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { StudentContext } from '@/contexts/StudentContext';
 
 export default function StudentProfileLayout({ children }: { children: React.ReactNode }) {
     const params = useParams();
@@ -262,7 +263,9 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
           </div>
         </div>
         <div className="flex flex-col w-full h-[95%] mt-8">
-            {children}
+            <StudentContext.Provider value={{ student, isLoading }}>
+              {children}
+            </StudentContext.Provider>
         </div>
     </div>
   );

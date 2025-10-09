@@ -566,7 +566,8 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       graduation_year,
       enrollment_status,
       homeroom_name,
-      customer_id
+      customer_id,
+      student_number
     `)
     .eq('student_id', studentId)
     .single();
@@ -600,6 +601,7 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       enrollmentStatus: student.enrollment_status,
       homeroomName: student.homeroom_name,
       customerId: student.customer_id,
+      studentNumber: student.student_number,
     }
 
     return parsedStudent;
@@ -695,7 +697,8 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
             year_id,
             name,
             start_year,
-            end_year
+            end_year,
+            is_current
           )
         )
       `)
@@ -724,23 +727,18 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
     const uniqueSchoolYears = allSchoolYears.filter((schoolYear, index, self) => 
       index === self.findIndex(y => y.year_id === schoolYear.year_id)
     );
-    const currentSchoolYear = uniqueSchoolYears.reduce((latest, current) => 
-      current.start_year > latest.start_year ? current : latest
-    );
 
     const yearMap = new Map<string, YearGradeInfo>();
     const finalGradeCodesByYear = new Map<string, Set<string>>();
 
     validGrades.forEach((grade) => {
       const schoolYearId = grade.term.year.year_id;
-      const schoolYearName = grade.term.year.name;
-      const isCurrentYear = schoolYearId === currentSchoolYear.year_id;
       
       if (!yearMap.has(schoolYearId)) {
         yearMap.set(schoolYearId, {
           yearId: schoolYearId,
-          label: schoolYearName,
-          isCurrent: isCurrentYear,
+          label: grade.term.year.name,
+          isCurrent: grade.term.year.is_current,
           gradeCodes: [],
           creditTypes: []
         });
@@ -758,7 +756,7 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
         yearData.gradeCodes.push(gradeCode);
       }
 
-      if (!isCurrentYear && grade.grade_status === 'Final') {
+      if (!grade.term.year.is_current && grade.grade_status === 'Final') {
         finalGradeCodesByYear.get(schoolYearId)!.add(gradeCode);
       }
 
