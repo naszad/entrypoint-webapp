@@ -286,7 +286,7 @@ export const StudentProfileHeader: React.FC<StudentProfileHeaderProps> = ({
             <div className="text-gray-600 font-medium">
               Grade {gradeLevel} • Class of {graduationYear}
               {studentId ? ` • ID: ${studentId}` : ''}
-              {enrollmentStatus !== 'active' ? ` • Status: ${enrollmentStatus}` : ''}
+              {enrollmentStatus?.toLowerCase() !== 'active' ? ` • Status: ${enrollmentStatus}` : ''}
             </div>
           </div>
         </div>

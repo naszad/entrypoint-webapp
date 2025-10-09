@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import GradeLetter from '@/components/GradeLetter';
 import GradeCodeSelector from '@/components/GradeCodeSelector';
+import YearSelector from '@/components/YearSelector';
 import { CourseGradeInfo, CreditType, YearGradeInfo } from '@/types/YearGradeInfo';
 import { useParams } from 'next/navigation';
 import { Alert } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useConfig } from '@/hooks/useConfig';
+import { useStudent } from '@/contexts/StudentContext';
 import React from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 // Types for the new bulk GPA API response
 interface BulkGpaResponse {
@@ -18,12 +21,18 @@ interface BulkGpaResponse {
   byCreditType: Record<string, number>;
 }
 
-const getGradeCodesStorageKey = (studentId: string) => {
-  return `currentYearGradeCodes-${studentId}`;
+const getGradeCodesStorageKey = (userId = ''): string => {
+  return `currentYearGradeCodes-${userId}`;
+}
+
+const getSelectedYearsStorageKey = (userId = ''): string => {
+  return `selectedYears-${userId}`;
 }
 
 const StudentGradesPage = () => {
   const params = useParams();
+  const { student } = useStudent();
+  const { user } = useAuth();
   const configKeys = useMemo(() => ['grade_code_sort', 'final_grade_codes'], []);
   const { gradeCodeSort, currentYearGradeCodes, finalGradeCodes } = useConfig(configKeys);
   const [studentTermGradeInfo, setStudentTermGradeInfo] = useState<YearGradeInfo[]>([]);
@@ -33,11 +42,47 @@ const StudentGradesPage = () => {
   const [allCodes, setAllCodes] = useState<string[]>([]);
   const [gpaData, setGpaData] = useState<BulkGpaResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+
+  const studentEnrollmentStatus = useMemo(() => {
+    return student?.enrollmentStatus?.toLowerCase() || 'active';
+  }, [student?.enrollmentStatus]);
 
   const handleCurrentCodesChange = useCallback((codes: string[]) => {
-    localStorage.setItem(getGradeCodesStorageKey(params.id as string), JSON.stringify(codes));
+    localStorage.setItem(getGradeCodesStorageKey(user?.user_id), JSON.stringify(codes));
     setCurrentCodes(codes);
-  }, [params.id]);
+  }, [user?.user_id]);
+
+  const handleSelectedYearsChange = useCallback((years: string[]) => {
+    localStorage.setItem(getSelectedYearsStorageKey(user?.user_id), JSON.stringify(years));
+    setSelectedYears(years);
+  }, [user?.user_id]);
+
+  const getDefaultYears = useCallback((years: YearGradeInfo[], status: string): string[] => {
+    if (years.length === 0) return [];
+    
+    if (status.toLowerCase() === 'active') {
+      const currentYear = years.find(y => y.isCurrent);
+      const sortedYears = [...years].sort((a, b) => {
+        return b.label.localeCompare(a.label);
+      });
+      
+      if (currentYear) {
+        const currentIndex = sortedYears.findIndex(y => y.yearId === currentYear.yearId);
+        const selectedYears = [currentYear.label];
+        if (currentIndex + 1 < sortedYears.length) {
+          selectedYears.push(sortedYears[currentIndex + 1].label);
+        }
+        return selectedYears;
+      }
+      return sortedYears.slice(0, 2).map(y => y.label);
+    } else {
+      const sortedYears = [...years].sort((a, b) => {
+        return b.label.localeCompare(a.label);
+      });
+      return sortedYears.slice(0, 2).map(y => y.label);
+    }
+  }, []);
 
   const fetchStudentCurrentGrades = useCallback(async () => {
     setLoading(true);
@@ -108,7 +153,6 @@ const StudentGradesPage = () => {
     }
   }, [params.id, gradeCodeSort]);
 
-  // Load student grades and GPA data on mount
   useEffect(() => {
     fetchStudentCurrentGrades();
   }, [fetchStudentCurrentGrades]);
@@ -118,7 +162,7 @@ const StudentGradesPage = () => {
     if (studentTermGradeInfo.length === 0) return;
     
     // Load saved grade codes
-    const savedCodes = localStorage.getItem(getGradeCodesStorageKey(params.id as string));
+    const savedCodes = localStorage.getItem(getGradeCodesStorageKey(user?.user_id));
     if (savedCodes && currentCodes.length === 0) {
       try {
         const parsed = JSON.parse(savedCodes);
@@ -129,12 +173,25 @@ const StudentGradesPage = () => {
     } else if (currentCodes.length === 0) {
       // Default to current year grade codes
       const defaultCodes = currentYearGradeCodes;
-      localStorage.setItem(getGradeCodesStorageKey(params.id as string), JSON.stringify(defaultCodes));
+      localStorage.setItem(getGradeCodesStorageKey(user?.user_id), JSON.stringify(defaultCodes));
       setCurrentCodes(defaultCodes);
     }
-  }, [studentTermGradeInfo, currentCodes.length, params.id, currentYearGradeCodes]);
 
-  // Fetch GPA data when data is loaded
+    const savedYears = localStorage.getItem(getSelectedYearsStorageKey(user?.user_id));
+    if (savedYears && selectedYears.length === 0) {
+      try {
+        const parsed = JSON.parse(savedYears);
+        if (Array.isArray(parsed)) {
+          setSelectedYears(parsed);
+        }
+      } catch {}
+    } else if (selectedYears.length === 0) {
+      const defaultYears = getDefaultYears(studentTermGradeInfo, studentEnrollmentStatus);
+      localStorage.setItem(getSelectedYearsStorageKey(user?.user_id), JSON.stringify(defaultYears));
+      setSelectedYears(defaultYears);
+    }
+  }, [studentTermGradeInfo, currentCodes.length, selectedYears.length, currentYearGradeCodes, getDefaultYears, studentEnrollmentStatus, user?.user_id]);
+
   useEffect(() => {
     if (studentTermGradeInfo.length > 0 && allCreditTypes.length > 0) {
       fetchBulkGpaData();
@@ -142,7 +199,6 @@ const StudentGradesPage = () => {
     }
   }, [fetchBulkGpaData, fetchAllGradeCodes, studentTermGradeInfo.length, allCreditTypes.length]);
 
-  // Helper to get courses for a credit type in a year
   const getCourses = (year: YearGradeInfo, creditType: string): CourseGradeInfo[] => {
     const ct = year.creditTypes.find((c) => c.creditType === creditType);
     return ct ? ct.courses : [];
@@ -167,17 +223,24 @@ const StudentGradesPage = () => {
   };
 
   const sortGradeCodes = (codes: string[]): string[] => {
-    // Sort codes according to the order in allCodes
     return [...codes].sort((a, b) => {
       const indexA = allCodes.indexOf(a);
       const indexB = allCodes.indexOf(b);
-      // If not found, put at the end
       if (indexA === -1 && indexB === -1) return 0;
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;
       return indexA - indexB;
     });
   };
+
+  const displayedYears = useMemo(() => {
+    if (selectedYears.length === 0) return studentTermGradeInfo;
+    return studentTermGradeInfo.filter(year => selectedYears.includes(year.label));
+  }, [studentTermGradeInfo, selectedYears]);
+
+  const allYearLabels = useMemo(() => {
+    return studentTermGradeInfo.map(year => year.label).sort((a, b) => b.localeCompare(a));
+  }, [studentTermGradeInfo]);
 
   if (loading) {
     return (
@@ -283,26 +346,33 @@ const StudentGradesPage = () => {
       
       {studentTermGradeInfo.length > 0 ? (
         <>
-          <h2 className="text-lg font-semibold mb-4">
-            {gpaData?.cumulative && gpaData.cumulative.gpa !== null 
-              ? `${gpaData.cumulative.gpa.toFixed(2)} Cumulative GPA`
-              : '— Cumulative GPA'
-            }
-          </h2>
+          <div className="mb-4 flex flex-col items-center gap-3">
+            <h2 className="text-lg font-semibold">
+              {gpaData?.cumulative && gpaData.cumulative.gpa !== null 
+                ? `${gpaData.cumulative.gpa.toFixed(2)} Cumulative GPA`
+                : '— Cumulative GPA'
+              }
+            </h2>
+            <YearSelector
+              allYears={allYearLabels}
+              selectedYears={selectedYears}
+              onChange={handleSelectedYearsChange}
+            />
+          </div>
           
           {/* Scrollable table container */}
           <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <table 
               className="table-auto border-collapse text-sm mx-auto" 
               style={{ 
-                minWidth: `${Math.max(800, (studentTermGradeInfo.length * 200) + 200)}px` 
+                minWidth: `${Math.max(800, (displayedYears.length * 200) + 200)}px` 
               }}
             >
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap">Category</th>
                 <th className="text-center px-3 py-2 text-xs font-semibold text-gray-600 uppercase w-14 min-w-[3.5rem] max-w-[3.5rem]">GPA</th>
-                {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
+                {displayedYears.filter(year => !year.isCurrent).map(year => (
                   <React.Fragment key={year.label}>
                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap border-l border-gray-200">{year.label}</th>
                     {finalGradeCodes.map(code => (
@@ -311,7 +381,7 @@ const StudentGradesPage = () => {
                   </React.Fragment>
                 ))}
                 {(() => {
-                  const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                  const currentYear = displayedYears.find(year => year.isCurrent);
                   return currentYear ? (
                     <React.Fragment key={currentYear.label}>
                       <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 uppercase whitespace-nowrap border-l border-gray-200">
@@ -334,7 +404,7 @@ const StudentGradesPage = () => {
             </thead>
             <tbody>
               {allCreditTypes.map((ct) => {
-                const maxRows = Math.max(...studentTermGradeInfo.map((year) => getCourses(year, ct.creditType).length));
+                const maxRows = Math.max(...displayedYears.map((year) => getCourses(year, ct.creditType).length));
                 const rows = Array.from({ length: Math.max(1, maxRows) });
 
                 if (maxRows === 0) {
@@ -346,7 +416,7 @@ const StudentGradesPage = () => {
                       <td className="px-3 py-2 text-center text-gray-600 bg-gray-50 w-14 min-w-[3.5rem] max-w-[3.5rem]">
                         {getCreditTypeGpa(ct.creditType)}
                       </td>
-                      {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
+                      {displayedYears.filter(year => !year.isCurrent).map(year => (
                         <React.Fragment key={year.label}>
                           <td className="border-l border-gray-200"></td>
                           {finalGradeCodes.map(code => (
@@ -355,7 +425,7 @@ const StudentGradesPage = () => {
                         </React.Fragment>
                       ))}
                       {(() => {
-                        const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                        const currentYear = displayedYears.find(year => year.isCurrent);
                         return currentYear ? (
                           <React.Fragment>
                             <td className="border-l border-gray-200"></td>
@@ -391,7 +461,7 @@ const StudentGradesPage = () => {
                       </>
                     )}
 
-                    {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => {
+                    {displayedYears.filter(year => !year.isCurrent).map(year => {
                       const courses = getCourses(year, ct.creditType);
                       const course = courses[rowIndex];
                       return (
@@ -416,7 +486,7 @@ const StudentGradesPage = () => {
                     })}
 
                     {(() => {
-                      const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                      const currentYear = displayedYears.find(year => year.isCurrent);
                       if (!currentYear) return null;
                       
                       const courses = getCourses(currentYear, ct.creditType);
@@ -451,7 +521,7 @@ const StudentGradesPage = () => {
                 <td className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]">
                   {getCurrentYearGpa()}
                 </td>
-                {studentTermGradeInfo.filter(year => !year.isCurrent).map(year => (
+                {displayedYears.filter(year => !year.isCurrent).map(year => (
                   <React.Fragment key={`${year.label}-gpa`}>
                     <td className="px-3 py-2 text-gray-700 whitespace-nowrap border-l border-gray-200"></td>
                     {finalGradeCodes.map(code => (
@@ -465,7 +535,7 @@ const StudentGradesPage = () => {
                   </React.Fragment>
                 ))}
                 {(() => {
-                  const currentYear = studentTermGradeInfo.find(year => year.isCurrent);
+                  const currentYear = displayedYears.find(year => year.isCurrent);
                   return currentYear ? (
                     <React.Fragment>
                       <td className="px-3 py-2 border-l border-gray-200"></td>
