@@ -255,13 +255,6 @@ export type Database = {
             foreignKeyName: "meeting_notes_student_id_students_student_id_fk"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "meeting_notes_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["student_id"]
           },
@@ -347,13 +340,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_student_link_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "school_student_link_student_id_students_student_id_fk"
@@ -521,13 +507,6 @@ export type Database = {
             foreignKeyName: "section_enrollments_student_id_students_student_id_fk"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "section_enrollments_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["student_id"]
           },
@@ -554,7 +533,7 @@ export type Database = {
           grade_level: string
           no_of_students: number
           section_id: string
-          section_number: string
+          section_number: string | null
           teacher_name: string | null
           transaction_date: string | null
           updated_at: string | null
@@ -572,8 +551,8 @@ export type Database = {
           grade_level: string
           no_of_students: number
           section_id?: string
-          section_number: string
-          teacher_name?: string | null
+          section_number: string | null
+          teacher_name: string | null
           transaction_date?: string | null
           updated_at?: string | null
         }
@@ -590,8 +569,8 @@ export type Database = {
           grade_level?: string
           no_of_students?: number
           section_id?: string
-          section_number?: string
-          teacher_name?: string | null
+          section_number?: string | null
+          teacher_name: string | null
           transaction_date?: string | null
           updated_at?: string | null
         }
@@ -601,13 +580,6 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "sections_course_id_courses_course_id_fk"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
             referencedColumns: ["course_id"]
           },
           {
@@ -624,7 +596,7 @@ export type Database = {
           absence_date: string
           created_at: string | null
           customer_id: string
-          external_id: string | null
+          external_id: string
           external_key: string
           external_key_hash: string
           external_name: string | null
@@ -641,7 +613,7 @@ export type Database = {
           absence_date: string
           created_at?: string | null
           customer_id: string
-          external_id?: string | null
+          external_id: string
           external_key: string
           external_key_hash: string
           external_name?: string | null
@@ -658,7 +630,7 @@ export type Database = {
           absence_date?: string
           created_at?: string | null
           customer_id?: string
-          external_id?: string | null
+          external_id?: string
           external_key?: string
           external_key_hash?: string
           external_name?: string | null
@@ -690,22 +662,8 @@ export type Database = {
             foreignKeyName: "student_daily_absences_student_id_students_student_id_fk"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_daily_absences_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_daily_absences_year_id_years_year_id_fk"
-            columns: ["year_id"]
-            isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
-            referencedColumns: ["year_id"]
           },
           {
             foreignKeyName: "student_daily_absences_year_id_years_year_id_fk"
@@ -813,13 +771,6 @@ export type Database = {
             referencedColumns: ["course_id"]
           },
           {
-            foreignKeyName: "student_grades_course_id_courses_course_id_fk"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
-            referencedColumns: ["course_id"]
-          },
-          {
             foreignKeyName: "student_grades_customer_id_customers_customer_id_fk"
             columns: ["customer_id"]
             isOneToOne: false
@@ -832,13 +783,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sections"
             referencedColumns: ["section_id"]
-          },
-          {
-            foreignKeyName: "student_grades_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "student_grades_student_id_students_student_id_fk"
@@ -907,13 +851,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "student_tags_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "student_tags_student_id_students_student_id_fk"
@@ -1263,13 +1200,6 @@ export type Database = {
             foreignKeyName: "terms_year_id_years_year_id_fk"
             columns: ["year_id"]
             isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
-            referencedColumns: ["year_id"]
-          },
-          {
-            foreignKeyName: "terms_year_id_years_year_id_fk"
-            columns: ["year_id"]
-            isOneToOne: false
             referencedRelation: "years"
             referencedColumns: ["year_id"]
           },
@@ -1430,13 +1360,6 @@ export type Database = {
             referencedColumns: ["course_id"]
           },
           {
-            foreignKeyName: "student_grades_course_id_courses_course_id_fk"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
-            referencedColumns: ["course_id"]
-          },
-          {
             foreignKeyName: "student_grades_customer_id_customers_customer_id_fk"
             columns: ["customer_id"]
             isOneToOne: false
@@ -1454,13 +1377,6 @@ export type Database = {
             foreignKeyName: "student_grades_student_id_students_student_id_fk"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_grades_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["student_id"]
           },
@@ -1470,141 +1386,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "terms"
             referencedColumns: ["term_id"]
-          },
-        ]
-      }
-      latest_student_grades_courses_students_view: {
-        Row: {
-          comment: string | null
-          course_id: string | null
-          course_name: string | null
-          created_at: string | null
-          credit_hours_earned: number | null
-          credit_type: string | null
-          customer_id: string | null
-          date_of_birth: string | null
-          email: string | null
-          enrollment_status: string | null
-          exclude_from_gpa: boolean | null
-          external_id: string | null
-          external_key: string | null
-          external_key_hash: string | null
-          external_name: string | null
-          external_source: string | null
-          first_name: string | null
-          full_name: string | null
-          gender: string | null
-          gpa_added_value: number | null
-          gpa_points: number | null
-          grade_code: string | null
-          grade_id: string | null
-          grade_letter: string | null
-          grade_level: string | null
-          grade_percent: number | null
-          grade_status: string | null
-          graduation_year: number | null
-          homeroom_name: string | null
-          last_name: string | null
-          local_course_code: string | null
-          middle_name: string | null
-          phone: string | null
-          potential_credit_hours: number | null
-          school_id: string | null
-          section_id: string | null
-          source_api: string | null
-          source_updated_date: string | null
-          state_course_code: string | null
-          student_id: string | null
-          term_id: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "courses_school_id_schools_school_id_fk"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "student_grades_course_id_courses_course_id_fk"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "student_grades_course_id_courses_course_id_fk"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "student_grades_customer_id_customers_customer_id_fk"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["customer_id"]
-          },
-          {
-            foreignKeyName: "student_grades_section_id_sections_section_id_fk"
-            columns: ["section_id"]
-            isOneToOne: false
-            referencedRelation: "sections"
-            referencedColumns: ["section_id"]
-          },
-          {
-            foreignKeyName: "student_grades_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_grades_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_grades_term_id_terms_term_id_fk"
-            columns: ["term_id"]
-            isOneToOne: false
-            referencedRelation: "terms"
-            referencedColumns: ["term_id"]
-          },
-        ]
-      }
-      meeting_notes_students_school_student_link_view: {
-        Row: {
-          created_at: string | null
-          full_name: string | null
-          meeting_note_id: string | null
-          notes: string | null
-          private: boolean | null
-          school_id: string | null
-          student_id: string | null
-          summary: string | null
-          transcript: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_notes_user_id_users_user_id_fk"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "school_student_link_school_id_schools_school_id_fk"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["school_id"]
           },
         ]
       }
@@ -1663,306 +1444,8 @@ export type Database = {
           },
         ]
       }
-      school_student_link_students_view: {
-        Row: {
-          created_at: string | null
-          customer_id: string | null
-          date_of_birth: string | null
-          email: string | null
-          enrollment_status: string | null
-          external_id: string | null
-          external_key: string | null
-          external_key_hash: string | null
-          external_name: string | null
-          external_source: string | null
-          first_name: string | null
-          full_name: string | null
-          gender: string | null
-          grade_level: number | null
-          graduation_year: number | null
-          homeroom_name: string | null
-          last_name: string | null
-          lunch_id: string | null
-          middle_name: string | null
-          phone: string | null
-          race: string | null
-          school_id: string | null
-          state_student_number: string | null
-          student_id: string | null
-          student_number: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "school_student_link_school_id_schools_school_id_fk"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_student_link_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "school_student_link_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "students_customer_id_customers_customer_id_fk"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["customer_id"]
-          },
-        ]
-      }
-      section_enrollments_terms_years_sections_courses_view: {
-        Row: {
-          abbreviation: string | null
-          course_id: string | null
-          course_name: string | null
-          created_at: string | null
-          external_source: string | null
-          local_course_code: string | null
-          section_enrollment_id: string | null
-          section_id: string | null
-          student_id: string | null
-          tardies: number | null
-          term_id: string | null
-          updated_at: string | null
-          year_id: string | null
-          year_name: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "section_enrollments_section_id_sections_section_id_fk"
-            columns: ["section_id"]
-            isOneToOne: false
-            referencedRelation: "sections"
-            referencedColumns: ["section_id"]
-          },
-          {
-            foreignKeyName: "section_enrollments_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "section_enrollments_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "section_enrollments_term_id_terms_term_id_fk"
-            columns: ["term_id"]
-            isOneToOne: false
-            referencedRelation: "terms"
-            referencedColumns: ["term_id"]
-          },
-        ]
-      }
-      student_daily_absences_years_view: {
-        Row: {
-          absence_date: string | null
-          created_at: string | null
-          external_name: string | null
-          external_source: string | null
-          normalized_absence_code: string | null
-          sis_code: string | null
-          student_daily_absence_id: string | null
-          student_id: string | null
-          updated_at: string | null
-          year_id: string | null
-          year_name: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_daily_absences_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_daily_absences_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_daily_absences_year_id_years_year_id_fk"
-            columns: ["year_id"]
-            isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
-            referencedColumns: ["year_id"]
-          },
-          {
-            foreignKeyName: "student_daily_absences_year_id_years_year_id_fk"
-            columns: ["year_id"]
-            isOneToOne: false
-            referencedRelation: "years"
-            referencedColumns: ["year_id"]
-          },
-        ]
-      }
-      student_grades_courses_students_view: {
-        Row: {
-          comment: string | null
-          course_id: string | null
-          course_name: string | null
-          created_at: string | null
-          credit_hours_earned: number | null
-          credit_type: string | null
-          customer_id: string | null
-          date_of_birth: string | null
-          email: string | null
-          enrollment_status: string | null
-          exclude_from_gpa: boolean | null
-          external_id: string | null
-          external_key: string | null
-          external_key_hash: string | null
-          external_name: string | null
-          external_source: string | null
-          first_name: string | null
-          full_name: string | null
-          gender: string | null
-          gpa_added_value: number | null
-          gpa_points: number | null
-          grade_code: string | null
-          grade_id: string | null
-          grade_letter: string | null
-          grade_level: string | null
-          grade_percent: number | null
-          grade_status: string | null
-          graduation_year: number | null
-          homeroom_name: string | null
-          last_name: string | null
-          local_course_code: string | null
-          middle_name: string | null
-          phone: string | null
-          potential_credit_hours: number | null
-          school_id: string | null
-          section_id: string | null
-          source_api: string | null
-          source_updated_date: string | null
-          state_course_code: string | null
-          student_id: string | null
-          term_id: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "courses_school_id_schools_school_id_fk"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "student_grades_course_id_courses_course_id_fk"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "student_grades_course_id_courses_course_id_fk"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "section_enrollments_terms_years_sections_courses_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "student_grades_customer_id_customers_customer_id_fk"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["customer_id"]
-          },
-          {
-            foreignKeyName: "student_grades_section_id_sections_section_id_fk"
-            columns: ["section_id"]
-            isOneToOne: false
-            referencedRelation: "sections"
-            referencedColumns: ["section_id"]
-          },
-          {
-            foreignKeyName: "student_grades_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_grades_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "student_grades_term_id_terms_term_id_fk"
-            columns: ["term_id"]
-            isOneToOne: false
-            referencedRelation: "terms"
-            referencedColumns: ["term_id"]
-          },
-        ]
-      }
-      user_school_memberships_users_schools_view: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          eula_agree_timestamp: string | null
-          first_name: string | null
-          full_name: string | null
-          image_url: string | null
-          last_name: string | null
-          middle_name: string | null
-          role: string | null
-          school_id: string | null
-          school_name: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_school_memberships_school_id_schools_school_id_fk"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "user_school_memberships_user_id_users_user_id_fk"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
     }
     Functions: {
-      associate_user_with_customer_schools: {
-        Args: {
-          p_customer_id: string
-          p_membership_role?: string
-          p_user_id: string
-        }
-        Returns: undefined
-      }
       calculate_added_value_gpa: {
         Args: {
           p_credit_types?: string[]
@@ -2017,17 +1500,6 @@ export type Database = {
           p_year_labels?: string[]
         }
         Returns: number
-      }
-      create_user_for_customer: {
-        Args: {
-          p_customer_id: string
-          p_email: string
-          p_encrypted_password: string
-          p_first_name: string
-          p_last_name: string
-          p_membership_role?: string
-        }
-        Returns: string
       }
       create_user_with_membership: {
         Args: {
@@ -2248,4 +1720,3 @@ export const Constants = {
     },
   },
 } as const
-
