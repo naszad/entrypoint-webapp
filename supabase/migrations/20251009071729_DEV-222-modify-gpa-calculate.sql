@@ -382,10 +382,6 @@ BEGIN
 END;
 $$;
 
-<<<<<<< HEAD
-CREATE INDEX idx_student_grades_student_final 
-=======
 CREATE INDEX IF NOT EXISTS idx_student_grades_student_final 
->>>>>>> bfdaae9e35994f7daef348f9130fecb3cad83014
 ON student_grades (student_id, grade_status) 
 WHERE grade_status = 'Final';
