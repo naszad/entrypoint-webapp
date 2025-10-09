@@ -1,73 +1,74 @@
-drop policy "Allow Access to Own Notes" on "public"."meeting_notes";
+drop policy if exists "Allow Access to Own Notes" on "public"."meeting_notes";
 
-drop policy "Allow Reading of Students" on "public"."students";
+drop policy if exists "Allow Reading of Students" on "public"."students";
 
-drop policy "Users can create feedback for their own chat messages" on "public"."chat_message_feedback";
+drop policy if exists "Users can create feedback for their own chat messages" on "public"."chat_message_feedback";
 
-drop policy "Users can delete their own feedback" on "public"."chat_message_feedback";
+drop policy if exists "Users can delete their own feedback" on "public"."chat_message_feedback";
 
-drop policy "Users can update their own feedback" on "public"."chat_message_feedback";
+drop policy if exists "Users can update their own feedback" on "public"."chat_message_feedback";
 
-drop policy "Users can view their own feedback" on "public"."chat_message_feedback";
+drop policy if exists "Users can view their own feedback" on "public"."chat_message_feedback";
 
-drop policy "Users can delete messages from their own chats" on "public"."chat_messages";
+drop policy if exists "Users can delete messages from their own chats" on "public"."chat_messages";
 
-drop policy "Users can insert messages into their own chats" on "public"."chat_messages";
+drop policy if exists "Users can insert messages into their own chats" on "public"."chat_messages";
 
-drop policy "Users can only read messages from their own chats" on "public"."chat_messages";
+drop policy if exists "Users can only read messages from their own chats" on "public"."chat_messages";
 
-drop policy "Users can update messages in their own chats" on "public"."chat_messages";
+drop policy if exists "Users can update messages in their own chats" on "public"."chat_messages";
 
-drop policy "Users can delete their own chats" on "public"."chats";
+drop policy if exists "Users can delete their own chats" on "public"."chats";
 
-drop policy "Users can insert their own chats" on "public"."chats";
+drop policy if exists "Users can insert their own chats" on "public"."chats";
 
-drop policy "Users can only read their own chats" on "public"."chats";
+drop policy if exists "Users can only read their own chats" on "public"."chats";
 
-drop policy "Users can update their own chats" on "public"."chats";
+drop policy if exists "Users can update their own chats" on "public"."chats";
 
-drop policy "Allow Reading of Courses" on "public"."courses";
+drop policy if exists "Allow Reading of Courses" on "public"."courses";
 
-drop policy "Allow Access to Non-Private Notes for Students in User Schools" on "public"."meeting_notes";
+drop policy if exists "Allow Access to Non-Private Notes for Students in User Schools" on "public"."meeting_notes";
 
-drop policy "Allow Delete Own Notes" on "public"."meeting_notes";
+drop policy if exists "Allow Delete Own Notes" on "public"."meeting_notes";
 
-drop policy "Allow Insert Own Notes" on "public"."meeting_notes";
+drop policy if exists "Allow Insert Own Notes" on "public"."meeting_notes";
 
-drop policy "Allow Update Own Notes" on "public"."meeting_notes";
+drop policy if exists "Allow Update Own Notes" on "public"."meeting_notes";
 
-drop policy "Allow Reading of Student School Links" on "public"."school_student_link";
+drop policy if exists "Allow Reading of Student School Links" on "public"."school_student_link";
 
-drop policy "Allow Reading of Schools" on "public"."schools";
+drop policy if exists "Allow Reading of Schools" on "public"."schools";
 
-drop policy "Allow Reading of Section Enrollments" on "public"."section_enrollments";
+drop policy if exists "Allow Reading of Section Enrollments" on "public"."section_enrollments";
 
-drop policy "Allow Reading of Sections" on "public"."sections";
+drop policy if exists "Allow Reading of Sections" on "public"."sections";
 
-drop policy "Allow Reading of Student Daily Absences" on "public"."student_daily_absences";
+drop policy if exists "Allow Reading of Student Daily Absences" on "public"."student_daily_absences";
 
-drop policy "Allow Reading of Student Grades" on "public"."student_grades";
+drop policy if exists "Allow Reading of Student Grades" on "public"."student_grades";
 
-drop policy "Allow Deleting Student Tags" on "public"."student_tags";
+drop policy if exists "Allow Deleting Student Tags" on "public"."student_tags";
 
-drop policy "Allow Inserting Student Tags" on "public"."student_tags";
+drop policy if exists "Allow Inserting Student Tags" on "public"."student_tags";
 
-drop policy "Allow Reading of Student Tags" on "public"."student_tags";
+drop policy if exists "Allow Reading of Student Tags" on "public"."student_tags";
 
-drop policy "Allow Updating Student Tags" on "public"."student_tags";
+drop policy if exists "Allow Updating Student Tags" on "public"."student_tags";
 
-drop policy "Allow Reading of Tag Canonical Values" on "public"."tag_canonical_values";
+drop policy if exists "Allow Reading of Tag Canonical Values" on "public"."tag_canonical_values";
 
-drop policy "Allow Reading of Tag Categories" on "public"."tag_categories";
+drop policy if exists "Allow Reading of Tag Categories" on "public"."tag_categories";
 
-drop policy "Allow Inserting Tags" on "public"."tags";
+drop policy if exists "Allow Inserting Tags" on "public"."tags";
 
-drop policy "Allow Reading of Tags" on "public"."tags";
+drop policy if exists "Allow Reading of Tags" on "public"."tags";
 
-drop policy "Allow Reading of Terms" on "public"."terms";
+drop policy if exists "Allow Reading of Terms" on "public"."terms";
 
 drop index if exists "public"."student_daily_absences_external_key_hash_idx";
 
+drop policy if exists "Allow Access to Students in User Schools" on "public"."students";
 create policy "Allow Access to Students in User Schools"
 on "public"."students"
 as permissive
