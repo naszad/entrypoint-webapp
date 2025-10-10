@@ -499,7 +499,7 @@ const StudentGradesPage = () => {
                           <td className="px-3 py-2 text-left align-top font-medium text-gray-800 whitespace-nowrap border-l border-gray-200">
                             {course ? course.courseName : <span className="text-gray-300">—</span>}
                           </td>
-                          {currentCodes.map(code => (
+                          {sortGradeCodes(currentCodes).map(code => (
                             <td
                               key={code}
                               className="px-3 py-2 text-center align-top w-14 min-w-[3.5rem] max-w-[3.5rem]"
@@ -542,7 +542,7 @@ const StudentGradesPage = () => {
                   return currentYear ? (
                     <React.Fragment>
                       <td className="px-3 py-2 border-l border-gray-200"></td>
-                      {currentCodes.map(code => (
+                      {sortGradeCodes(currentCodes).map(code => (
                         <td
                           key={`${currentYear.label}-${code}-gpa`}
                           className="px-3 py-2 text-center text-gray-700 w-14 min-w-[3.5rem] max-w-[3.5rem]"
