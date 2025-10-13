@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import ReactMarkdown from "react-markdown";
-import { MessagesSquare, Send, ChevronRight, MoveDown, Plus, ChevronDown, Trash2, Edit3, X, Check, Sparkles, Settings, ThumbsUp, ThumbsDown, Minus } from 'lucide-react'
+import { MessagesSquare, Send, ChevronRight, MoveDown, Plus, ChevronDown, Trash2, Edit3, X, Check, Sparkles, Settings, ThumbsUp, ThumbsDown, Minus, MessageCircle, CheckCircle, XCircle } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
 import { Button } from './ui/button'
@@ -213,6 +213,10 @@ export function ChatAssistant() {
 
   // Track chat switching to prevent navigation - using ref for immediate access
   const isSwitchingChatsRef = useRef(false);
+  
+  // Track ID syncing to prevent duplicate syncs
+  const isSyncingIdsRef = useRef(false);
+  const syncedMessageIdsRef = useRef<Set<string>>(new Set());
 
   // Chat list state
   const [chatList, setChatList] = useState<ChatInfo[]>([]);
@@ -248,6 +252,18 @@ export function ChatAssistant() {
   
   // Track which messages have had their feedback loaded
   const [loadedFeedbackMessages, setLoadedFeedbackMessages] = useState<Set<string>>(new Set());
+  
+  // Enhanced feedback state for comments and tags
+  const [feedbackComments, setFeedbackComments] = useState<Record<string, string>>({});
+  const [feedbackTags, setFeedbackTags] = useState<Record<string, string[]>>({});
+  const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<string, boolean>>({});
+  const [feedbackStatus, setFeedbackStatus] = useState<Record<string, 'idle' | 'submitting' | 'success' | 'error'>>({});
+  
+  // Available feedback tags
+  const availableFeedbackTags = ['helpful', 'accurate', 'incomplete', 'misleading', 'too_verbose', 'unclear', 'not_relevant'];
+  
+  // Map AI SDK message IDs to database message IDs
+  const [messageIdMapping, setMessageIdMapping] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -323,22 +339,90 @@ export function ChatAssistant() {
     id: 'chat-assistant'
   });
 
-  // Load feedback for assistant messages when messages change
-  useEffect(() => {
-    if (messages.length > 0 && currentChatId) {
-      messages
-        .filter(message => message.role === 'assistant')
-        .forEach(message => {
-          // Only load if we haven't already loaded feedback for this message
-          if (!loadedFeedbackMessages.has(message.id)) {
-            loadMessageFeedback(message.id);
-            // Mark this message as having its feedback loaded
-            setLoadedFeedbackMessages(prev => new Set(prev).add(message.id));
+  // Function to sync message IDs with database
+  const syncMessageIds = async () => {
+    if (!currentChatId || messages.length === 0) return;
+    
+    // Prevent duplicate syncing
+    if (isSyncingIdsRef.current) {
+      console.log('Sync already in progress, skipping...');
+      return;
+    }
+    
+    try {
+      isSyncingIdsRef.current = true;
+      
+      // Fetch the latest messages from the database to get their real IDs
+      const response = await fetch(`/api/chat/${currentChatId}`);
+      if (response.ok) {
+        const { messages: dbMessages } = await response.json();
+        
+        // Create mapping based on message position and content
+        const newMapping: Record<string, string> = {};
+        
+        messages.forEach((aiMessage, index) => {
+          // Skip if already synced
+          if (syncedMessageIdsRef.current.has(aiMessage.id)) {
+            return;
+          }
+          
+          // Find corresponding database message by position and role
+          const dbMessage = dbMessages[index];
+          if (dbMessage && dbMessage.role === aiMessage.role) {
+            // Map AI SDK ID to database message ID
+            if (aiMessage.id !== dbMessage.message_id) {
+              newMapping[aiMessage.id] = dbMessage.message_id;
+              syncedMessageIdsRef.current.add(aiMessage.id);
+            }
           }
         });
+        
+        if (Object.keys(newMapping).length > 0) {
+          console.log('Synced message IDs:', newMapping);
+          setMessageIdMapping(prev => ({ ...prev, ...newMapping }));
+        } else {
+          console.log('No new message IDs to sync');
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing message IDs:', error);
+    } finally {
+      isSyncingIdsRef.current = false;
     }
+  };
+
+  // Load feedback for assistant messages when messages change
+  useEffect(() => {
+    if (!currentChatId || messages.length === 0) return;
+    
+    // Process assistant messages
+    const assistantMessages = messages.filter(m => m.role === 'assistant');
+    
+    // Find messages that need feedback loading
+    const messagesToLoad = assistantMessages.filter(message => {
+      // Skip if already loaded
+      if (loadedFeedbackMessages.has(message.id)) {
+        return false;
+      }
+      
+      // Check if this is a temporary ID that needs syncing
+      const isTempId = !message.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+      
+      // If it's a temp ID and we don't have a mapping yet, we need to sync first
+      if (isTempId && !messageIdMapping[message.id]) {
+        return false; // Will be handled by the sync effect
+      }
+      
+      return true;
+    });
+    
+    // Load feedback for messages that are ready
+    messagesToLoad.forEach(message => {
+      loadMessageFeedback(message.id);
+      setLoadedFeedbackMessages(prev => new Set(prev).add(message.id));
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, currentChatId]);
+  }, [messages.length, currentChatId, messageIdMapping]);
 
   // Function to create a new empty chat
   const createNewChat = async () => {
@@ -395,13 +479,18 @@ export function ChatAssistant() {
       if (response.ok) {
         const { chat, messages: chatMessages } = await response.json();
         
-        // Convert database messages to AI SDK format
-        const convertedMessages = chatMessages.map((msg:ChatMessage) => ({
-          id: msg.message_id,
-          role: msg.role,
-          parts: Array.isArray(msg.parts) ? msg.parts : [{ type: 'text', text: msg.parts }]
-        }));
+        // Convert database messages to AI SDK format and track ID mapping
+        const convertedMessages = chatMessages.map((msg:ChatMessage) => {
+          // For loaded messages, the AI SDK ID is the same as the database ID
+          const messageId = msg.message_id;
+          return {
+            id: messageId,
+            role: msg.role,
+            parts: Array.isArray(msg.parts) ? msg.parts : [{ type: 'text', text: msg.parts }]
+          };
+        });
         
+        // No need to map IDs for loaded messages since they use database IDs directly
         setMessages(convertedMessages);
         setCurrentChatId(chatId);
         updateChatTimestamp(chatId);
@@ -420,8 +509,18 @@ export function ChatAssistant() {
   const loadMessageFeedback = async (messageId: string) => {
     if (!currentChatId) return;
     
+    // Skip if this is a temporary ID without a mapping
+    const isTempId = !messageId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    if (isTempId && !messageIdMapping[messageId]) {
+      console.log('Skipping feedback load for unmapped temporary ID:', messageId);
+      return;
+    }
+    
+    // Use the database message ID if we have a mapping, otherwise use the provided ID
+    const dbMessageId = messageIdMapping[messageId] || messageId;
+    
     try {
-      const response = await fetch(`/api/chat/${currentChatId}/messages/${messageId}/feedback`);
+      const response = await fetch(`/api/chat/${currentChatId}/messages/${dbMessageId}/feedback`);
       if (response.ok) {
         const { feedback } = await response.json();
         if (feedback) {
@@ -429,6 +528,18 @@ export function ChatAssistant() {
             ...prev,
             [messageId]: feedback.sentiment
           }));
+          if (feedback.comment) {
+            setFeedbackComments(prev => ({
+              ...prev,
+              [messageId]: feedback.comment
+            }));
+          }
+          if (feedback.tags && Array.isArray(feedback.tags)) {
+            setFeedbackTags(prev => ({
+              ...prev,
+              [messageId]: feedback.tags
+            }));
+          }
         }
       }
     } catch (error) {
@@ -454,6 +565,10 @@ export function ChatAssistant() {
       setLastNavigatedMessageId(null);
       // Clear loaded feedback tracking for the new chat
       setLoadedFeedbackMessages(new Set());
+      // Clear message ID mapping for the new chat
+      setMessageIdMapping({});
+      // Clear synced IDs tracking
+      syncedMessageIdsRef.current = new Set();
     }
     
     // Reset switching flag after a delay to ensure navigation effect doesn't trigger
@@ -598,15 +713,64 @@ export function ChatAssistant() {
     setShowDevOptions(false);
   };
 
+  // Toggle a feedback tag for a message
+  const toggleFeedbackTag = (messageId: string, tag: string) => {
+    const currentTags = feedbackTags[messageId] || [];
+    const newTags = currentTags.includes(tag)
+      ? currentTags.filter(t => t !== tag)
+      : [...currentTags, tag];
+    
+    setFeedbackTags(prev => ({
+      ...prev,
+      [messageId]: newTags
+    }));
+  };
+
   // Feedback functions
-  const submitFeedback = async (messageId: string, sentiment: 'positive' | 'neutral' | 'negative') => {
+  const submitFeedback = async (
+    messageId: string, 
+    sentiment: 'positive' | 'neutral' | 'negative',
+    includeDetails: boolean = false
+  ) => {
     if (!currentChatId) return;
     
+    // Set submitting status
+    setFeedbackStatus(prev => ({ ...prev, [messageId]: 'submitting' }));
+    
     try {
-      const response = await fetch(`/api/chat/${currentChatId}/messages/${messageId}/feedback`, {
+      interface FeedbackPayload {
+        sentiment: 'positive' | 'neutral' | 'negative';
+        comment?: string;
+        tags?: string[];
+      }
+      
+      const payload: FeedbackPayload = { sentiment };
+      
+      // Include comment and tags if details are being submitted
+      if (includeDetails) {
+        const comment = feedbackComments[messageId];
+        const tags = feedbackTags[messageId];
+        
+        if (comment && comment.trim()) {
+          payload.comment = comment.trim();
+        }
+        if (tags && tags.length > 0) {
+          payload.tags = tags;
+        }
+      }
+      
+      // Use the database message ID if we have a mapping
+      const dbMessageId = messageIdMapping[messageId] || messageId;
+      
+      // Log for debugging
+      if (messageId !== dbMessageId) {
+        console.log('Submitting feedback with mapped ID:', { original: messageId, mapped: dbMessageId });
+      }
+      
+      const response = await fetch(`/api/chat/${currentChatId}/messages/${dbMessageId}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentiment })
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -615,11 +779,45 @@ export function ChatAssistant() {
           ...prev,
           [messageId]: sentiment
         }));
+        
+        // Set success status
+        setFeedbackStatus(prev => ({ ...prev, [messageId]: 'success' }));
+        
+        // Clear success status after 2 seconds
+        setTimeout(() => {
+          setFeedbackStatus(prev => ({ ...prev, [messageId]: 'idle' }));
+        }, 2000);
       } else {
-        console.error('Failed to submit feedback');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to submit feedback:', errorData);
+        setFeedbackStatus(prev => ({ ...prev, [messageId]: 'error' }));
+        
+        // Show error message if available
+        if (errorData.error) {
+          console.error(`Feedback error: ${errorData.error}`);
+        }
+        
+        // Clear error status after 3 seconds
+        setTimeout(() => {
+          setFeedbackStatus(prev => ({ ...prev, [messageId]: 'idle' }));
+        }, 3000);
       }
     } catch (error) {
       console.error('Failed to submit feedback:', error);
+      setFeedbackStatus(prev => ({ ...prev, [messageId]: 'error' }));
+      
+      // Clear error status after 3 seconds
+      setTimeout(() => {
+        setFeedbackStatus(prev => ({ ...prev, [messageId]: 'idle' }));
+      }, 3000);
+    }
+  };
+  
+  // Submit detailed feedback with comment and tags
+  const submitDetailedFeedback = async (messageId: string) => {
+    const sentiment = messageFeedback[messageId];
+    if (sentiment) {
+      await submitFeedback(messageId, sentiment, true);
     }
   };
 
@@ -630,6 +828,12 @@ export function ChatAssistant() {
     setLastNavigatedMessageId(null);
     setMessageFeedback({}); // Clear feedback state
     setLoadedFeedbackMessages(new Set()); // Clear loaded feedback tracking
+    setFeedbackComments({}); // Clear feedback comments
+    setFeedbackTags({}); // Clear feedback tags
+    setShowFeedbackDetails({}); // Clear feedback details visibility
+    setFeedbackStatus({}); // Clear feedback status
+    setMessageIdMapping({}); // Clear message ID mapping
+    syncedMessageIdsRef.current = new Set(); // Clear synced IDs tracking
     
     // Reset initialization state to allow new chat creation
     initializationRef.current.hasInitialized = false;
@@ -834,6 +1038,30 @@ export function ChatAssistant() {
       scrollToBottom()
     }
   }, [messages])
+  
+  // Sync message IDs when streaming completes
+  useEffect(() => {
+    if (status === 'ready' && currentChatId && messages.length > 0) {
+      // Check if we have unmapped messages (AI SDK temporary IDs) that haven't been synced yet
+      const hasUnmappedMessages = messages.some(msg => {
+        const isTempId = !msg.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        const notMapped = !messageIdMapping[msg.id];
+        const notSynced = !syncedMessageIdsRef.current.has(msg.id);
+        return isTempId && notMapped && notSynced;
+      });
+      
+      if (hasUnmappedMessages && !isSyncingIdsRef.current) {
+        // Delay slightly to ensure database has been updated
+        const timeoutId = setTimeout(() => {
+          syncMessageIds();
+        }, 1000);
+        
+        // Cleanup timeout on unmount or dependency change
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, currentChatId, messages.length])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1082,50 +1310,156 @@ export function ChatAssistant() {
                 
                 {/* Feedback UI for assistant messages */}
                 {message.role === 'assistant' && (
-                  <div className="mt-2 flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
-                    <span className="text-xs text-gray-500 mr-2">Feedback:</span>
-                    <Button
-                      onClick={() => submitFeedback(message.id, 'positive')}
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-6 w-6 p-0",
-                        messageFeedback[message.id] === 'positive' 
-                          ? "text-green-600 bg-green-50" 
-                          : "text-gray-400 hover:text-green-600"
+                  <div className="mt-2 border-t pt-2">
+                    <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                      <span className="text-xs text-gray-500 mr-2">Feedback:</span>
+                      <Button
+                        onClick={() => submitFeedback(message.id, 'positive')}
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-6 w-6 p-0",
+                          messageFeedback[message.id] === 'positive' 
+                            ? "text-green-600 bg-green-50" 
+                            : "text-gray-400 hover:text-green-600"
+                        )}
+                        aria-label="Positive feedback"
+                        disabled={feedbackStatus[message.id] === 'submitting'}
+                      >
+                        <ThumbsUp size={12} />
+                      </Button>
+                      <Button
+                        onClick={() => submitFeedback(message.id, 'neutral')}
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-6 w-6 p-0",
+                          messageFeedback[message.id] === 'neutral' 
+                            ? "text-yellow-600 bg-yellow-50" 
+                            : "text-gray-400 hover:text-yellow-600"
+                        )}
+                        aria-label="Neutral feedback"
+                        disabled={feedbackStatus[message.id] === 'submitting'}
+                      >
+                        <Minus size={12} />
+                      </Button>
+                      <Button
+                        onClick={() => submitFeedback(message.id, 'negative')}
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-6 w-6 p-0",
+                          messageFeedback[message.id] === 'negative' 
+                            ? "text-red-600 bg-red-50" 
+                            : "text-gray-400 hover:text-red-600"
+                        )}
+                        aria-label="Negative feedback"
+                        disabled={feedbackStatus[message.id] === 'submitting'}
+                      >
+                        <ThumbsDown size={12} />
+                      </Button>
+                      
+                      {/* Expand button for details */}
+                      <Button
+                        onClick={() => setShowFeedbackDetails(prev => ({
+                          ...prev,
+                          [message.id]: !prev[message.id]
+                        }))}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-1 ml-2 text-gray-400 hover:text-blue-600"
+                        aria-label="Add details"
+                      >
+                        {showFeedbackDetails[message.id] ? (
+                          <X size={12} />
+                        ) : (
+                          <>
+                            <MessageCircle size={12} className="mr-1" />
+                            <span className="text-xs">Add details</span>
+                          </>
+                        )}
+                      </Button>
+                      
+                      {/* Status indicators */}
+                      {feedbackStatus[message.id] === 'submitting' && (
+                        <span className="text-xs text-gray-500 ml-2">Saving...</span>
                       )}
-                      aria-label="Positive feedback"
-                    >
-                      <ThumbsUp size={12} />
-                    </Button>
-                    <Button
-                      onClick={() => submitFeedback(message.id, 'neutral')}
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-6 w-6 p-0",
-                        messageFeedback[message.id] === 'neutral' 
-                          ? "text-yellow-600 bg-yellow-50" 
-                          : "text-gray-400 hover:text-yellow-600"
+                      {feedbackStatus[message.id] === 'success' && (
+                        <CheckCircle size={14} className="text-green-600 ml-2" />
                       )}
-                      aria-label="Neutral feedback"
-                    >
-                      <Minus size={12} />
-                    </Button>
-                    <Button
-                      onClick={() => submitFeedback(message.id, 'negative')}
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-6 w-6 p-0",
-                        messageFeedback[message.id] === 'negative' 
-                          ? "text-red-600 bg-red-50" 
-                          : "text-gray-400 hover:text-red-600"
+                      {feedbackStatus[message.id] === 'error' && (
+                        <XCircle size={14} className="text-red-600 ml-2" />
                       )}
-                      aria-label="Negative feedback"
-                    >
-                      <ThumbsDown size={12} />
-                    </Button>
+                    </div>
+                    
+                    {/* Expandable feedback details section */}
+                    {showFeedbackDetails[message.id] && (
+                      <div className="mt-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                        {/* Tags selection */}
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1">
+                            Tags (optional):
+                          </label>
+                          <div className="flex flex-wrap gap-1">
+                            {availableFeedbackTags.map(tag => (
+                              <button
+                                key={tag}
+                                onClick={() => toggleFeedbackTag(message.id, tag)}
+                                className={cn(
+                                  "text-xs px-2 py-1 rounded-full border transition-colors",
+                                  (feedbackTags[message.id] || []).includes(tag)
+                                    ? "bg-blue-100 text-blue-700 border-blue-300"
+                                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                                )}
+                              >
+                                {tag.replace('_', ' ')}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Comment textarea */}
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1">
+                            Comments (optional):
+                          </label>
+                          <textarea
+                            value={feedbackComments[message.id] || ''}
+                            onChange={(e) => setFeedbackComments(prev => ({
+                              ...prev,
+                              [message.id]: e.target.value
+                            }))}
+                            placeholder="Share additional thoughts or suggestions..."
+                            className="w-full text-xs p-2 border rounded-md resize-none h-16 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            maxLength={500}
+                          />
+                          <div className="text-xs text-gray-400 text-right mt-1">
+                            {(feedbackComments[message.id] || '').length}/500
+                          </div>
+                        </div>
+                        
+                        {/* Submit button for detailed feedback */}
+                        <Button
+                          onClick={() => submitDetailedFeedback(message.id)}
+                          variant="primary"
+                          size="sm"
+                          className="text-xs"
+                          disabled={
+                            !messageFeedback[message.id] || 
+                            feedbackStatus[message.id] === 'submitting'
+                          }
+                        >
+                          {feedbackStatus[message.id] === 'submitting' 
+                            ? 'Saving...' 
+                            : 'Save Feedback Details'}
+                        </Button>
+                        {!messageFeedback[message.id] && (
+                          <p className="text-xs text-amber-600">
+                            Please select a rating first (👍/➖/👎)
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
