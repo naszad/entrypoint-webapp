@@ -25,8 +25,15 @@ export const filterStudentsTool: ChatTool = {
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending", "Show students with lunch ID starting with 123", "Find students by state student number", "Show me students filtered by race"
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending", "Show students with lunch ID starting with 123", "Find students by state student number", "Show me students filtered by race", "Show me inactive students", "Show all students including inactive"
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
+
+**Active Only Toggle:**
+- By default, the students page shows only active students (activeOnly=true).
+- When user asks about "inactive students" or "all students" (including inactive), you MUST set activeOnly to false.
+- When user explicitly asks for "active students" or "only active students", you MUST set activeOnly to true.
+- Examples requiring activeOnly=false: "Show me inactive students", "Find all students including inactive ones", "Show inactive 11th graders"
+- Examples requiring activeOnly=true: "Show me only active students", "Show active students", "Find active 11th graders"
 
 **Date Filter Instructions:**
 - When user asks for students "updated/modified/changed in the last X days", use updatedAtRecentOnly with the number of days
@@ -76,6 +83,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       stateStudentNumberNotEmpty: z.boolean().optional().describe('Filter for students with non-empty state student numbers'),
       raceEmpty: z.boolean().optional().describe('Filter for students with empty/null race'),
       raceNotEmpty: z.boolean().optional().describe('Filter for students with non-empty race'),
+      activeOnly: z.boolean().optional().describe('Set to false to show inactive students or all students (including inactive). Set to true when user explicitly asks for "active students only". Leave undefined for default behavior. Use false when user asks about "inactive students" or "all students". Use true when user asks for "active students" or "only active students".'),
       // Sorting parameters
       sortBy: z.enum(['fullName', 'email', 'gradeLevel', 'gender', 'enrollmentStatus', 'homeroomName', 'gpa', 'studentNumber', 'lunchId', 'stateStudentNumber', 'race']).optional().describe('Field to sort by'),
       sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
@@ -85,7 +93,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       const baseUrl = '/students';
 
       for (const [key, value] of Object.entries(parsedFilters)) {
-        if (!value || key === 'ageFilter' || key === 'gpaFilter' || key === 'sortBy' || key === 'sortDirection') continue;
+        if (!value || key === 'ageFilter' || key === 'gpaFilter' || key === 'sortBy' || key === 'sortDirection' || key === 'activeOnly') continue;
         
         switch (key) {
           case 'gradeLevel':
@@ -218,6 +226,13 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       // Add sorting to URL if specified
       if (parsedFilters.sortBy && parsedFilters.sortDirection) {
         queryParams.push(`sort=${parsedFilters.sortBy}:${parsedFilters.sortDirection}`);
+      }
+
+      // Add activeOnly parameter if explicitly set
+      if (parsedFilters.activeOnly === false) {
+        queryParams.push(`activeOnly=false`);
+      } else if (parsedFilters.activeOnly === true) {
+        queryParams.push(`activeOnly=true`);
       }
       
       if (queryParams.length > 0) {

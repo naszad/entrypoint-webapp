@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const pageNumber = parseInt(url.searchParams.get('pageNumber') || '1', 10);
     const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
     const fetchWithCount = url.searchParams.get('fetchWithCount') === 'true';
+    const activeOnly = url.searchParams.get('activeOnly') !== 'false'; // Default to true
 
     let filters: FilterValue[] = [];
     if (filtersParam) {
@@ -17,6 +18,10 @@ export async function GET(req: Request) {
         const [key, condition, value] = filter.split(':');
         return { key, condition, value };
       });
+    }
+
+    if (activeOnly && !filters.some(f => f.key === 'enrollmentStatus')) {
+      filters.push({ key: 'enrollmentStatus', condition: 'eq', value: 'Active' });
     }
 
     const studentsResponse = await fetchStudentsByFilterCriteria({

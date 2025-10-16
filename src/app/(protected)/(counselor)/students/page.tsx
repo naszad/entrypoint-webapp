@@ -2,19 +2,20 @@
 import { columns, defaultVisibility as initialVisibility } from "@/components/StudentColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { ActionItem } from "@/components/DataTable/DataTableToolbar";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
 import { saveReport } from '@/libs/reportsService';
 import { Alert } from "@/components/ui/alert";
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
 import { cn } from "@/utils/utils"
 import { useStudentsAnalytics } from '@/hooks/useStudentsAnalytics';
 import { trackEvent } from '@/libs/mixpanelClient';
+import { Switch } from "@/components/ui/switch";
 
 const StudentsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,10 +24,76 @@ const StudentsPage = () => {
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'destructive', message: string } | null>(null);
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isChatAssistantOpen } = useChatAssistantOpen();
   const { trackExport, trackFiltersChanged } = useStudentsAnalytics();
   const lastFilterKeysRef = useRef<string>('');
+
+  const [activeOnly, setActiveOnly] = useState<boolean>(() => {
+    const urlParam = searchParams.get('activeOnly');
+    if (urlParam === 'false') {
+      return false;
+    }
+    if (urlParam === 'true') {
+      return true;
+    }
+    
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('students-activeOnly');
+      if (saved !== null) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return true;
+        }
+      }
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    const urlParam = searchParams.get('activeOnly');
+    const newActiveOnlyValue = urlParam === 'false' ? false : urlParam === 'true' ? true : null;
+    
+    if (newActiveOnlyValue !== null && newActiveOnlyValue !== activeOnly) {
+      setActiveOnly(newActiveOnlyValue);
+      
+      const filtersParam = searchParams.get('filters');
+      const filters: FilterValue[] = filtersParam
+        ? filtersParam.split(',').map(filter => {
+            const [key, condition, value] = filter.split(':');
+            return { key, condition, value };
+          })
+        : [];
+      
+      const sortParam = searchParams.get('sort');
+      const [sortField, sortDirection] = sortParam ? sortParam.split(':') : ['', 'asc'];
+      
+      const pageNumber = parseInt(searchParams.get('pageNumber') || '1', 10);
+      const pageSize = parseInt(searchParams.get('pageSize') || String(currentPageSize), 10);
+      
+      fetchStudents(filters, sortField, sortDirection as 'asc' | 'desc', pageNumber, pageSize, newActiveOnlyValue);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    sessionStorage.setItem('students-activeOnly', JSON.stringify(activeOnly));
+    
+    const currentActiveOnlyParam = searchParams.get('activeOnly');
+    
+    const expectedParamValue = activeOnly ? 'true' : 'false';
+    
+    if (currentActiveOnlyParam !== null && currentActiveOnlyParam !== expectedParamValue) {
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.set('activeOnly', expectedParamValue);
+      const newUrl = `${pathname}?${newSearchParams.toString()}`;
+      router.replace(newUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOnly, pathname]);
 
   const initialPageSize = (() => {
     const sizeParam = searchParams.get('pageSize');
@@ -50,7 +117,8 @@ const StudentsPage = () => {
     sortField: string, 
     sortDirection: 'asc' | 'desc',
     pageNumber: number = 1,
-    pageSize: number = 50
+    pageSize: number = 50,
+    activeOnlyOverride?: boolean
   ) => {
     try {      
       setIsLoading(true);
@@ -59,7 +127,8 @@ const StudentsPage = () => {
       if (sortField) {
         queryParams += `&sort=${encodeURIComponent(sortField)}:${encodeURIComponent(sortDirection)}`;
       }
-      const url = `/api/students${queryParams}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true`;
+      const activeOnlyValue = typeof activeOnlyOverride === 'boolean' ? activeOnlyOverride : activeOnly;
+      const url = `/api/students${queryParams}&pageNumber=${pageNumber}&pageSize=${pageSize}&fetchWithCount=true&activeOnly=${activeOnlyValue}`;
       const response = await fetch(url);
       const data = await response.json();
       
@@ -83,6 +152,8 @@ const StudentsPage = () => {
     }
   };
 
+  const [lastQuery, setLastQuery] = useState<{ filters: FilterValue[]; sortField: string; sortDirection: 'asc' | 'desc'; pageNumber: number; pageSize: number } | null>(null);
+
   // Unified handler for DataTable param changes
   const handleParamsChange = async (params: { filters: FilterValue[], sorting: { id: string; desc: boolean }[], pageNumber: number, pageSize: number }) => {
     const filters = params.filters || [];
@@ -90,6 +161,7 @@ const StudentsPage = () => {
     const sortId = sorting[0]?.id || '';
     const sortDirection = sorting[0]?.desc ? 'desc' : 'asc';
     setCurrentPageSize(params.pageSize);
+    setLastQuery({ filters, sortField: sortId, sortDirection, pageNumber: params.pageNumber, pageSize: params.pageSize });
     await fetchStudents(filters, sortId, sortDirection, params.pageNumber, params.pageSize);
 
     // Track filter applications (avoid duplicate firing if unchanged)
@@ -97,6 +169,24 @@ const StudentsPage = () => {
     if (keySignature !== lastFilterKeysRef.current) {
       trackFiltersChanged({ filterValues: filters });
       lastFilterKeysRef.current = keySignature;
+    }
+  };
+
+  const handleToggleActiveOnly = async (checked: boolean) => {
+    setActiveOnly(checked);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('students-activeOnly', JSON.stringify(checked));
+    }
+    
+    // Update URL parameter
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    newSearchParams.set('activeOnly', checked ? 'true' : 'false');
+    const newUrl = `${pathname}?${newSearchParams.toString()}`;
+    router.replace(newUrl);
+    
+    const q = lastQuery;
+    if (q) {
+      await fetchStudents(q.filters, q.sortField, q.sortDirection, q.pageNumber, q.pageSize, checked);
     }
   };
 
@@ -141,7 +231,7 @@ const StudentsPage = () => {
     const filters = searchParams.get('filters');
     const sort = searchParams.get('sort');
     const columns = searchParams.get('columns') || Object.keys(initialVisibility).filter(key => initialVisibility[key as keyof typeof initialVisibility] === true).join(',');
-    let url = `/api/students/download?columns=${columns}`;
+    let url = `/api/students/download?columns=${columns}&activeOnly=${activeOnly}`;
     if (filters) {
       url += `&filters=${filters}`;
     }
@@ -195,6 +285,14 @@ const StudentsPage = () => {
           </Button>
           <SaveViewDialog onSave={handleSaveView} />
         </div>
+      </div>
+      <div className="flex mb-4 gap-2 justify-end">
+        <Switch
+          className="cursor-pointer"
+          checked={activeOnly}
+          onCheckedChange={handleToggleActiveOnly}
+        />
+        <span className="text-base font-medium text-gray-700">Show active students only</span>
       </div>
       
       {alertMessage && (

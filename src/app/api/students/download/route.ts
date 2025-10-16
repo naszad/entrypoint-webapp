@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
     const filtersParam = searchParams.get('filters');
     const sort = searchParams.get('sort') || '';
     const columns = searchParams.get('columns') || '';
+    const activeOnly = searchParams.get('activeOnly') !== 'false'; // Default to true
 
     let filters: FilterValue[] = [];
     if (filtersParam) {
@@ -15,6 +16,10 @@ export async function GET(req: NextRequest) {
         const [key, condition, value] = filter.split(':');
         return { key, condition, value };
       });
+    }
+
+    if (activeOnly && !filters.some(f => f.key === 'enrollmentStatus')) {
+      filters.push({ key: 'enrollmentStatus', condition: 'eq', value: 'Active' });
     }
 
     const totalStudents = await countStudentsByFilterCriteria({filters});
