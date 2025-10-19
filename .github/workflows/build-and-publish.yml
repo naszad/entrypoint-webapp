@@ -10,12 +10,14 @@ env:
   IMAGE_NAME: "entrypoint-webapp"
   GAR_LOCATION: ${{ vars.GAR_LOCATION }}
   GAR_HOSTNAME: ${{ vars.GAR_HOSTNAME }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
 jobs:
   build-and-push:
     name: Build and Push Image
     runs-on: ubuntu-latest
-    environment: Dev # This specifies which GitHub environment is used for variables
+    environment: Artifacts # Central artifact project (entrypoint-common)
 
     permissions:
       contents: "read"
@@ -42,8 +44,8 @@ jobs:
         id: auth
         uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }} # e.g., projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }} # e.g., my-service-account@my-project.iam.gserviceaccount.com
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }} # e.g., projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }} # e.g., my-service-account@my-project.iam.gserviceaccount.com
 
       - name: Configure Docker for GAR
         run: gcloud auth configure-docker ${{ env.GAR_HOSTNAME }}

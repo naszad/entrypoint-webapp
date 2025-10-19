@@ -6,22 +6,33 @@ on:
       image:
         description: 'The full Docker image path to deploy (e.g., us-central1-docker.pkg.dev/project/repo/image:tag)'
         required: true
+      environment:
+        description: 'GitHub environment to target (for vars and secrets)'
+        required: false
+        default: 'Dev'
   workflow_call:
     inputs:
       image:
         description: 'The full Docker image path to deploy'
         required: true
         type: string
+      environment:
+        description: 'GitHub environment to target (for vars and secrets)'
+        required: false
+        type: string
+        default: 'Dev'
 
 env:
   CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
   CLOUD_RUN_REGION: ${{ vars.CLOUD_RUN_REGION }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
 jobs:
   deploy:
     name: Deploy to Cloud Run
     runs-on: ubuntu-latest
-    environment: Dev
+    environment: ${{ inputs.environment }}
 
     permissions:
       contents: "read"
@@ -35,8 +46,8 @@ jobs:
         id: auth
         uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
       - name: Deploy to Cloud Run
         id: deploy
@@ -44,4 +55,4 @@ jobs:
         with:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.CLOUD_RUN_REGION }}
-          image: ${{ github.event.inputs.image || inputs.image }}
+          image: ${{ inputs.image || github.event.inputs.image }}

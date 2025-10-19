@@ -1,0 +1,17 @@
+name: Promote image to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Full Docker image reference to deploy (e.g., us-central1-docker.pkg.dev/project/repo/image@sha256:...)'
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy selected image
+    uses: ./.github/workflows/deploy-to-cloud-run.yml
+    with:
+      image: ${{ inputs.image }}
+      environment: Production
+    secrets: inherit
