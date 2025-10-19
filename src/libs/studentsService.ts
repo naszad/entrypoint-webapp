@@ -186,6 +186,15 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
       case 'not_contains':
         q = q.not(columnName, 'ilike', `%${filter.value}%`);
         break;
+      case 'eq': {
+        if (isIntegerColumn(columnName)) {
+          const numericValue = Number(filter.value);
+          q = Number.isNaN(numericValue) ? q.eq(columnName, filter.value) : q.eq(columnName, numericValue);
+        } else {
+          q = q.eq(columnName, filter.value);
+        }
+        break;
+      }
       case 'is_empty': {
         q = q.or(`${columnName}.is.null,${columnName}.eq.`);
         break;
@@ -267,20 +276,23 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
         case 'starts':
           q = q.ilike(columnName, `${filter.value}%`);
           break;
-        case 'ends':
-          q = q.ilike(columnName, `%${filter.value}`);
-          break;
-        case 'not':
-          q = q.neq(columnName, filter.value);
-          break;
-        case 'not_contains':
-          q = q.not(columnName, 'ilike', `%${filter.value}%`);
-          break;
-        case 'is_empty': {
-          q = q.or(`${columnName}.is.null,${columnName}.eq.`);
-          break;
-        }
-        case 'is_not_empty': {
+      case 'ends':
+        q = q.ilike(columnName, `%${filter.value}`);
+        break;
+      case 'not':
+        q = q.neq(columnName, filter.value);
+        break;
+      case 'not_contains':
+        q = q.not(columnName, 'ilike', `%${filter.value}%`);
+        break;
+      case 'eq':
+        q = q.eq(columnName, filter.value);
+        break;
+      case 'is_empty': {
+        q = q.or(`${columnName}.is.null,${columnName}.eq.`);
+        break;
+      }
+      case 'is_not_empty': {
           q = q.not(columnName, 'is', null);
           q = q.neq(columnName, '');
           break;
@@ -324,9 +336,11 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const cookieStore = await cookies();
     const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
 
+    const selectOptions = fetchWithCount ? { count: 'exact' as const } : undefined;
+
     let query = supabase
       .from('school_student_link_students_gpa_view')
-      .select(`*`)
+      .select(`*`, selectOptions)
       .eq('school_id', selectedSchoolId);
     
     // Apply filters to main query
@@ -346,7 +360,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     }
 
     // Execute main query
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       console.error('Data query error:', error);
@@ -398,25 +412,9 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
       };
     }).filter((student): student is StudentInfo => student !== null);
 
-    let countResult: number | undefined = undefined;
-    if (fetchWithCount) {
-      let countQuery = supabase
-        .from('school_student_link_students_gpa_view')
-        .select('*', { count: 'exact', head: true })
-        .eq('school_id', selectedSchoolId);
-      
-      countQuery = applyFilters(countQuery, filters);
-      
-      const { count, error: countError } = await countQuery;
-      if (countError) {
-        throw new Error(countError.message);
-      }
-      countResult = count || 0;
-    }
-
     return {
       data: students,
-      count: countResult
+      count: fetchWithCount ? count ?? 0 : undefined
     };
 
   } catch (err) {

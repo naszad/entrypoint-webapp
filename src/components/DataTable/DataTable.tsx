@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/utils/utils";
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { DataTableToolbar, ActionItem } from "./DataTableToolbar";
 import { TableHeader as NewTableHeader } from "./TableHeader";
@@ -53,6 +53,7 @@ export interface DataTableProps<TData, TValue> {
   pageSize?: number;
   multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
   mostRecentOnly?: boolean;
+  scrollContainerRef?: RefObject<HTMLDivElement | null>;
 }
 
 export function DataTable<TData, TValue>({
@@ -72,10 +73,8 @@ export function DataTable<TData, TValue>({
   pageSize,
   multiSelectRemoteSource,
   mostRecentOnly = false,
+  scrollContainerRef,
 }: DataTableProps<TData, TValue>) {
-  const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
-  const [showColumnSettings, setShowColumnSettings] = useState(false);
-
   const {
     openFilterColumn,
     filterValues,
@@ -105,6 +104,9 @@ export function DataTable<TData, TValue>({
     enablePagination,
     mostRecentOnly,
   });
+
+  const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
 
   const table = useReactTable({
     data,
@@ -148,7 +150,7 @@ export function DataTable<TData, TValue>({
 
       {/* Table content - Flexible height with internal scroll */}
       <div className="flex-1 overflow-hidden relative flex flex-col">
-        <div className="overflow-auto flex-1">
+        <div className="overflow-auto flex-1" ref={scrollContainerRef}>
           <Table>
             <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 shadow-sm">
               {table.getHeaderGroups().map((headerGroup) => (

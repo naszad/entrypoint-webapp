@@ -92,9 +92,7 @@ export const initMixpanel = () => {
   if (isInitialized) return;
 
   if (!MIXPANEL_TOKEN) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Mixpanel token is missing! Check your .env file.');
-    }
+    //Silently fail if no token is configured
     return;
   }
 
@@ -125,18 +123,14 @@ function ensureReady(): boolean {
   if (!isInitialized) {
     initMixpanel();
     if (!isInitialized) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Mixpanel not initialized. Track skipped.');
-      }
+      //Silently fail if still not initialized
       return false;
     }
   }
 
   const token = mixpanel.get_config?.('token') || (mixpanel as unknown as { config?: { token?: string } }).config?.token;
   if (!token) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Mixpanel token missing at runtime. Track skipped.');
-    }
+    //Silently fail if no token is configured
     return false;
   }
 

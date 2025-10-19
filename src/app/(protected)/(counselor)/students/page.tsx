@@ -2,7 +2,7 @@
 import { columns, defaultVisibility as initialVisibility } from "@/components/StudentColumns"
 import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { ActionItem } from "@/components/DataTable/DataTableToolbar";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { StudentInfo } from "@/types/StudentInfo";
 import { SaveViewDialog } from "@/components/SaveViewDialog";
 import { useAuth } from '@/context/AuthContext'
@@ -29,6 +29,7 @@ const StudentsPage = () => {
   const { isChatAssistantOpen } = useChatAssistantOpen();
   const { trackExport, trackFiltersChanged } = useStudentsAnalytics();
   const lastFilterKeysRef = useRef<string>('');
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [activeOnly, setActiveOnly] = useState<boolean>(() => {
     const urlParam = searchParams.get('activeOnly');
@@ -111,6 +112,49 @@ const StudentsPage = () => {
 
   // Store current filters and sorting for pagination changes
   const [currentPageSize, setCurrentPageSize] = useState(initialPageSize);
+  const previousPageNumberRef = useRef<number>(1);
+  const previousPageSizeRef = useRef<number>(initialPageSize);
+  const shouldScrollToTopRef = useRef(false);
+
+  const scrollTableToTop = useCallback(() => {
+    const scrollContainer = tableScrollRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    const resetScroll = (element: HTMLElement) => {
+      element.scrollTop = 0;
+      if (typeof element.scrollTo === 'function') {
+        element.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      }
+    };
+
+    resetScroll(scrollContainer);
+
+    const innerScrollable = scrollContainer.querySelector<HTMLElement>('[data-slot="table-container"]');
+    if (innerScrollable) {
+      resetScroll(innerScrollable);
+    }
+  }, []);
+
+  const scheduleScrollToTopIfNeeded = useCallback(() => {
+    if (!shouldScrollToTopRef.current) {
+      return;
+    }
+
+    const performScroll = () => {
+      scrollTableToTop();
+      shouldScrollToTopRef.current = false;
+    };
+
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(performScroll);
+      });
+    } else {
+      performScroll();
+    }
+  }, [scrollTableToTop]);
 
   const fetchStudents = async (
     filters: FilterValue[], 
@@ -133,6 +177,7 @@ const StudentsPage = () => {
       const data = await response.json();
       
       if (!response.ok) {
+        shouldScrollToTopRef.current = false;
         setAlertMessage({ 
           type: 'destructive', 
           message: data.error || 'Failed to fetch students'
@@ -143,6 +188,7 @@ const StudentsPage = () => {
       setStudents(data.data);
       setTotalCount(data.count);
     } catch (err) {
+      shouldScrollToTopRef.current = false;
       setAlertMessage({ 
         type: 'destructive', 
         message: `Failed to fetch students ${err instanceof Error ? err.message : ''}`
@@ -161,8 +207,29 @@ const StudentsPage = () => {
     const sortId = sorting[0]?.id || '';
     const sortDirection = sorting[0]?.desc ? 'desc' : 'asc';
     setCurrentPageSize(params.pageSize);
+    const previousQuery = lastQuery;
     setLastQuery({ filters, sortField: sortId, sortDirection, pageNumber: params.pageNumber, pageSize: params.pageSize });
+    const previousFiltersSignature = previousQuery?.filters?.map(f => `${f.key}:${f.condition}:${f.value}`).join('|') ?? '';
+    const currentFiltersSignature = filters.map(f => `${f.key}:${f.condition}:${f.value}`).join('|');
+    const sortChanged =
+      sortId !== (previousQuery?.sortField ?? '') ||
+      sortDirection !== (previousQuery?.sortDirection ?? 'asc');
+    const filtersChanged = currentFiltersSignature !== previousFiltersSignature;
+    const shouldScroll =
+      params.pageNumber !== previousPageNumberRef.current ||
+      params.pageSize !== previousPageSizeRef.current ||
+      sortChanged ||
+      filtersChanged;
+
+    if (shouldScroll) {
+      shouldScrollToTopRef.current = true;
+    }
+
     await fetchStudents(filters, sortId, sortDirection, params.pageNumber, params.pageSize);
+    scheduleScrollToTopIfNeeded();
+
+    previousPageNumberRef.current = params.pageNumber;
+    previousPageSizeRef.current = params.pageSize;
 
     // Track filter applications (avoid duplicate firing if unchanged)
     const keySignature = Array.from(new Set(filters.map(f => f.key))).sort().join('|');
@@ -187,6 +254,10 @@ const StudentsPage = () => {
     const q = lastQuery;
     if (q) {
       await fetchStudents(q.filters, q.sortField, q.sortDirection, q.pageNumber, q.pageSize, checked);
+      previousPageNumberRef.current = q.pageNumber;
+      previousPageSizeRef.current = q.pageSize;
+      shouldScrollToTopRef.current = true;
+      scheduleScrollToTopIfNeeded();
     }
   };
 
@@ -316,6 +387,7 @@ const StudentsPage = () => {
           isLoading={isLoading}
           onRowClick={handleRowClick}
           pageSize={currentPageSize}
+          scrollContainerRef={tableScrollRef}
         />
       </div>
     </div>
