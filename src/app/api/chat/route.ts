@@ -1,5 +1,4 @@
-import { streamText, stepCountIs, convertToModelMessages } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages } from 'ai';
 import { createClient } from '@/utils/supabase/supabaseServer';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -7,8 +6,93 @@ import { ChatMessage } from '@/types/Models';
 import { UIMessage } from 'ai';
 
 // Import new modular services
-import systemMessageService from './services/systemMessageService';
 import { createToolRegistry } from './tools';
+import { routeChatRequest } from './workflows/routingWorkflow';
+import { runWorkflow } from './workflows/workflowRegistry';
+
+type ModelMessage = ReturnType<typeof convertToModelMessages>[number];
+
+function extractTextFromContent(content: unknown): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item;
+        }
+        if (item && typeof item === 'object' && 'text' in item && typeof (item as { text?: unknown }).text === 'string') {
+          return (item as { text: string }).text;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  if (content && typeof content === 'object' && 'text' in (content as { text?: unknown }) && typeof (content as { text?: unknown }).text === 'string') {
+    return (content as { text: string }).text;
+  }
+
+  return '';
+}
+
+function extractTextFromMessage(message: ModelMessage | Record<string, unknown>): string {
+  const fromContent = 'content' in message ? extractTextFromContent((message as { content?: unknown }).content) : '';
+  if (fromContent) {
+    return fromContent;
+  }
+
+  if ('parts' in message && Array.isArray((message as { parts?: unknown }).parts)) {
+    const parts = (message as { parts: unknown[] }).parts;
+    return parts
+      .map((part) => {
+        if (part && typeof part === 'object' && 'text' in (part as { text?: unknown }) && typeof (part as { text?: unknown }).text === 'string') {
+          return (part as { text: string }).text;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  return '';
+}
+
+function findLatestUserMessageText(messages: ModelMessage[]): string {
+  for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
+    const message = messages[idx];
+    if (message.role === 'user') {
+      const text = extractTextFromMessage(message);
+      if (text.trim()) {
+        return text;
+      }
+    }
+  }
+  return '';
+}
+
+function buildConversationSummary(messages: ModelMessage[], limit = 6): string {
+  if (!messages.length) {
+    return '';
+  }
+
+  const startIndex = Math.max(messages.length - limit, 0);
+  return messages
+    .slice(startIndex)
+    .map((message) => {
+      const role = message.role?.toUpperCase?.() ?? String(message.role ?? 'UNKNOWN').toUpperCase();
+      const text = extractTextFromMessage(message);
+      if (!text.trim()) {
+        return '';
+      }
+      return `${role}: ${text.trim()}`;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -177,127 +261,32 @@ export async function POST(req: Request) {
     userId: userData.user.id
   });
 
-  // Get system message from service
-  const systemMessage = systemMessageService.buildSystemMessage();
-
-  const result = streamText({
-    model: openai(modelToUse),
-    system: systemMessage,
-    messages,
-    stopWhen: stepCountIs(15), // Limit steps (tool calls + responses)
-
-    // Save AI response when complete
-    onFinish: async (finishData) => {
-      if (chatId) {
-        try {
-          const supabase = await createClient();
-          
-          // Build complete parts array from steps data
-          const parts = [];
-          
-          // Process each step to extract tool calls, tool results, and text
-          if (finishData.steps && finishData.steps.length > 0) {
-            for (const step of finishData.steps) {
-              if (step.content && Array.isArray(step.content)) {
-                for (const contentItem of step.content) {
-                  if (contentItem.type === 'tool-call') {
-                    // Add tool call (this represents the AI's intent to call a tool)
-                    parts.push({
-                      type: 'tool-call',
-                      toolCallId: contentItem.toolCallId,
-                      toolName: contentItem.toolName,
-                      input: contentItem.input
-                    });
-                  } else if (contentItem.type === 'tool-result') {
-                    // Format tool results to match frontend expectations
-                    if (contentItem.toolName === 'filter_students') {
-                      parts.push({
-                        type: 'tool-filter_students',
-                        toolCallId: contentItem.toolCallId,
-                        toolName: contentItem.toolName,
-                        output: contentItem.output
-                      });
-                    } else if (contentItem.toolName === 'filter_grades') {
-                      parts.push({
-                        type: 'tool-filter_grades',
-                        toolCallId: contentItem.toolCallId,
-                        toolName: contentItem.toolName,
-                        output: contentItem.output
-                      });
-                    } else {
-                      // Generic tool result format
-                      parts.push({
-                        type: 'dynamic-tool',
-                        toolCallId: contentItem.toolCallId,
-                        toolName: contentItem.toolName,
-                        output: contentItem.output
-                      });
-                    }
-                  } else if (contentItem.type === 'text') {
-                    // Add text content
-                    parts.push({
-                      type: 'text',
-                      text: contentItem.text
-                    });
-                  }
-                }
-              }
-            }
-          }
-          
-          // Fallback: Add text content if not already captured from steps
-          if (finishData.text && !parts.some(part => part.type === 'text')) {
-            parts.push({ type: 'text', text: finishData.text });
-          }
-          
-          // Save with complete message structure
-          await supabase
-            .from('chat_messages')
-            .insert({
-              chat_id: chatId,
-              role: 'assistant',
-              parts: parts,
-              created_at: new Date(),
-              metadata: {
-                finishReason: finishData.finishReason,
-                usage: finishData.usage,
-                toolCalls: finishData.toolCalls || [],
-                toolResults: finishData.toolResults || []
-              }
-            });
-            
-        } catch (error) {
-          console.error('Error saving AI response:', error);
-        }
-      }
-    },
-
-    // Log tool calls and results for debugging
-    onStepFinish: (step) => {
-      if (step.toolCalls && step.toolCalls.length > 0) {
-        for (const toolCall of step.toolCalls) {
-          console.log(`Tool called: ${toolCall.toolName}`, {
-            input: 'args' in toolCall ? toolCall.args : toolCall.input,
-            toolCallId: toolCall.toolCallId
-          });
-        }
-      }
-      
-      if (step.toolResults && step.toolResults.length > 0) {
-        for (const toolResult of step.toolResults) {
-          console.log(`Tool result: ${toolResult.toolName}`, {
-            output: 'result' in toolResult ? toolResult.result : toolResult.output,
-            toolCallId: toolResult.toolCallId
-          });
-        }
-      }
-    },
-
-    // Get tools from registry
-    tools: toolRegistry.getToolsForAI()
+  const latestUserMessageText = findLatestUserMessageText(messages);
+  const conversationSummary = buildConversationSummary(messages);
+  const routingDecision = await routeChatRequest({
+    latestUserMessage: latestUserMessageText,
+    conversationSummary,
+    toolRegistry
   });
 
-  return result.toUIMessageStreamResponse();
+  console.log('Routing decision', {
+    category: routingDecision.category,
+    confidence: routingDecision.confidence,
+    workflow: routingDecision.workflowId,
+    tools: routingDecision.toolNames
+  });
+
+  const workflowStream = await runWorkflow({
+    messages,
+    model: modelToUse,
+    toolRegistry,
+    decision: routingDecision,
+    chatId,
+    latestUserMessage: latestUserMessageText,
+    conversationSummary
+  });
+
+  return workflowStream.toUIMessageStreamResponse();
 }
 
 // DELETE endpoint to soft delete a chat

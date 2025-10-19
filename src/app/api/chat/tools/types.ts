@@ -1,6 +1,7 @@
 /**
  * Types and interfaces for AI chat tools
  */
+import type { SqlEvaluationResult } from '../workflows/sqlEvaluationWorkflow';
 
 export interface ToolMetadata {
   name: string;
@@ -18,6 +19,7 @@ export interface ChatTool<TInput = any> {
 export interface ToolContext {
   selectedSchoolId?: string;
   userId?: string;
+  sqlEvaluationCache?: Map<string, SqlEvaluationResult>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }

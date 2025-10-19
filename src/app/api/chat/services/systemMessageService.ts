@@ -122,7 +122,7 @@ export class SystemMessageService {
     this.toolRules.set(toolRules.toolName, toolRules);
   }
 
-  buildSystemMessage(): string {
+  buildSystemMessage(preferredToolNames?: string[]): string {
     const sections: string[] = [];
 
     // Sort rules by priority
@@ -169,15 +169,24 @@ export class SystemMessageService {
     }
 
     // Add tool-specific rules if any
-    if (this.toolRules.size > 0) {
+    const toolNamesToInclude = preferredToolNames && preferredToolNames.length > 0
+      ? preferredToolNames.filter(name => this.toolRules.has(name))
+      : Array.from(this.toolRules.keys());
+
+    if (toolNamesToInclude.length > 0) {
       sections.push('\nTool-Specific Guidelines:');
-      for (const [toolName, toolRule] of Array.from(this.toolRules.entries())) {
+      toolNamesToInclude.forEach(toolName => {
+        const toolRule = this.toolRules.get(toolName);
+        if (!toolRule) {
+          return;
+        }
+
         sections.push(`\n### ${toolName}:`);
         sections.push(toolRule.description);
         toolRule.rules.forEach(rule => {
           sections.push(`- ${rule}`);
         });
-      }
+      });
     }
 
     return sections.filter(Boolean).join('\n');

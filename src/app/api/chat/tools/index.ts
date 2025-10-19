@@ -3,6 +3,7 @@
  * Aggregates and manages all chat tools
  */
 
+import type { SqlEvaluationResult } from '../workflows/sqlEvaluationWorkflow';
 import { ChatTool, ToolContext } from './types';
 import systemMessageService from '../services/systemMessageService';
 
@@ -15,9 +16,10 @@ import { identifyStudentTool, getStudentGpaTool } from './studentTools';
 export class ToolRegistry {
   private tools: Map<string, ChatTool> = new Map();
   private context: ToolContext;
+  private sqlEvaluationCache: Map<string, SqlEvaluationResult> = new Map();
 
   constructor(context: ToolContext) {
-    this.context = context;
+    this.context = { ...context, sqlEvaluationCache: this.sqlEvaluationCache };
     this.registerTools();
   }
 
@@ -56,11 +58,11 @@ export class ToolRegistry {
   getToolsForAI(): Record<string, any> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tools: Record<string, any> = {};
-    
+
     for (const [name, tool] of Array.from(this.tools.entries())) {
       tools[name] = tool.definition;
     }
-    
+
     return tools;
   }
 
@@ -90,7 +92,7 @@ export class ToolRegistry {
    * Update context (e.g., when selectedSchoolId changes)
    */
   updateContext(newContext: Partial<ToolContext>): void {
-    this.context = { ...this.context, ...newContext };
+    this.context = { ...this.context, ...newContext, sqlEvaluationCache: this.sqlEvaluationCache };
     
     // Re-register context-dependent tools
     this.tools.delete('execute_sql');
@@ -99,6 +101,14 @@ export class ToolRegistry {
     this.registerTool(executeSqlTool(this.context));
     this.registerTool(getStudentGpaTool(this.context));
   }
+
+  registerSqlEvaluation(sql: string, evaluation: SqlEvaluationResult): void {
+    this.sqlEvaluationCache.set(normalizeSqlKey(sql), evaluation);
+  }
+
+  getSqlEvaluation(sql: string): SqlEvaluationResult | undefined {
+    return this.sqlEvaluationCache.get(normalizeSqlKey(sql));
+  }
 }
 
 /**
@@ -106,6 +116,10 @@ export class ToolRegistry {
  */
 export function createToolRegistry(context: ToolContext): ToolRegistry {
   return new ToolRegistry(context);
+}
+
+function normalizeSqlKey(sql: string): string {
+  return sql.replace(/\s+/g, ' ').trim();
 }
 
 // Export types for external use

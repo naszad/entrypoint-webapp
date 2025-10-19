@@ -7,6 +7,7 @@ import { tool } from 'ai';
 import { z } from 'zod/v3';
 import { ChatTool, ToolContext } from './types';
 import { createClient } from '@/utils/supabase/supabaseServer';
+import { evaluateSqlQuery } from '../workflows/sqlEvaluationWorkflow';
 
 export const listTablesTool: ChatTool = {
   metadata: {
@@ -87,18 +88,49 @@ export const executeSqlTool = (context: ToolContext): ChatTool => ({
         return { error: err_msg };
       }
 
+      const cache = context.sqlEvaluationCache;
+      const cacheKey = normalizeSqlKey(sql);
+
+      let evaluation = cache?.get(cacheKey);
+
+      if (!evaluation) {
+        evaluation = await evaluateSqlQuery(sql);
+        if (cache) {
+          cache.set(cacheKey, evaluation);
+        }
+      }
+
+      if (!evaluation.approved) {
+        return {
+          error: `SQL evaluation failed: ${evaluation.feedback}`,
+          evaluation,
+        };
+      }
+
+      const vettedSql = evaluation.normalizedSql ?? sql;
+
       const supabase = await createClient();
       const { data, error } = await supabase.rpc('execute_safe_select', { 
-        query_text: sql,
+        query_text: vettedSql,
         p_selected_school_id: context.selectedSchoolId
       });
 
       if (error) {
         console.error('Error executing SQL:', error);
-        return { error: `Failed to execute query: ${error.message}` };
+        return {
+          error: `Failed to execute query: ${error.message}`,
+          evaluation,
+        };
       }
 
-      return data;
+      return {
+        rows: data,
+        evaluation,
+      };
     },
   })
 });
+
+function normalizeSqlKey(sql: string): string {
+  return sql.replace(/\s+/g, ' ').trim();
+}

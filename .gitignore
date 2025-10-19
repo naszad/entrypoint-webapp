@@ -43,3 +43,6 @@ next-env.d.ts
 
 *storybook.log
 supabase/backups
+
+# cache
+.cache
