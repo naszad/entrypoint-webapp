@@ -7,6 +7,10 @@ on:
         description: 'Full Docker image reference to deploy (e.g., us-central1-docker.pkg.dev/project/repo/image@sha256:...)'
         required: true
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy:
     name: Deploy selected image
