@@ -1,0 +1,482 @@
+name: Deployment Release Notes
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy to Google Cloud Run
+    types:
+      - completed
+
+permissions:
+  contents: read
+  deployments: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  build-release-notes:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      release_notes: ${{ steps.generate_notes.outputs.release_notes }}
+      base_sha: ${{ steps.generate_notes.outputs.base_sha }}
+      head_sha: ${{ steps.generate_notes.outputs.head_sha }}
+      environment: ${{ steps.generate_notes.outputs.environment }}
+      deployment_id: ${{ steps.generate_notes.outputs.deployment_id }}
+      run_url: ${{ steps.generate_notes.outputs.run_url }}
+      status_summary: ${{ steps.generate_notes.outputs.status_summary }}
+    steps:
+      - name: Generate release notes
+        id: generate_notes
+        uses: actions/github-script@v7
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const payload = context.payload || {};
+            const run = payload.workflow_run;
+
+            if (!run) {
+              core.setFailed('workflow_run payload missing from event.');
+              return;
+            }
+
+            const runId = run.id;
+            const runAttempt = run.run_attempt;
+            const headSha = run.head_sha;
+            const runUrl = run.html_url || `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
+            const deployer = run.actor?.login || payload.sender?.login || context.actor || 'unknown';
+
+            const runStart = run.run_started_at ? new Date(run.run_started_at) : (run.created_at ? new Date(run.created_at) : new Date());
+            const bufferMs = 5 * 60 * 1000;
+
+            async function resolveCurrentDeployment() {
+              try {
+                const deploymentsForSha = await github.paginate(github.rest.repos.listDeployments, {
+                  owner,
+                  repo,
+                  sha: headSha,
+                  per_page: 50,
+                });
+
+                if (!deploymentsForSha.length) {
+                  return null;
+                }
+
+                const sorted = deploymentsForSha
+                  .map((d) => ({ deployment: d, createdAt: new Date(d.created_at).getTime() }))
+                  .sort((a, b) => b.createdAt - a.createdAt);
+
+                const candidate = sorted.find(({ createdAt }) => createdAt >= (runStart.getTime() - bufferMs));
+                return (candidate || sorted[0])?.deployment || null;
+              } catch (error) {
+                core.warning(`Unable to list deployments for SHA ${headSha}: ${error.message}`);
+                return null;
+              }
+            }
+
+            const currentDeployment = await resolveCurrentDeployment();
+
+            async function tryJobEnvironmentFallback() {
+              try {
+                const jobsResponse = await github.rest.actions.listJobsForWorkflowRunAttempt({
+                  owner,
+                  repo,
+                  run_id: runId,
+                  attempt_number: runAttempt,
+                  per_page: 50,
+                });
+
+                const jobs = jobsResponse.data.jobs || [];
+                const targetJob = jobs.find((job) => job.name === 'Deploy to Cloud Run') || jobs.find((job) => job.name?.includes('Deploy to Cloud Run')) || jobs[0];
+                return targetJob?.environment?.name || null;
+              } catch (error) {
+                core.warning(`Unable to read job metadata for workflow run ${runId}: ${error.message}`);
+                return null;
+              }
+            }
+
+            let environment = currentDeployment?.environment || null;
+
+            if (!environment) {
+              environment = await tryJobEnvironmentFallback();
+            }
+
+            if (!environment && Array.isArray(payload._jobs)) {
+              const fallbackJob = payload._jobs.find((job) => job.name === 'Deploy to Cloud Run' || job.name?.includes('Deploy to Cloud Run')) || payload._jobs[0];
+              environment = fallbackJob?.environment?.name || null;
+            }
+
+            const permittedEnvs = ['Dev', 'Production'];
+
+            if (!environment || !permittedEnvs.includes(environment)) {
+              core.notice(`Environment ${environment || 'Unknown'} is not configured for release notes.`);
+              core.setOutput('release_notes', '');
+              core.setOutput('base_sha', '');
+              core.setOutput('head_sha', headSha);
+              core.setOutput('environment', '');
+              core.setOutput('deployment_id', '');
+              core.setOutput('run_url', runUrl);
+              core.setOutput('status_summary', '');
+              return;
+            }
+
+            core.info(`Generating release notes for environment: ${environment}`);
+
+            const jiraBase = process.env.JIRA_BASE_URL ? process.env.JIRA_BASE_URL.replace(/\/+$/, '') : '';
+            const jiraEmail = process.env.JIRA_EMAIL;
+            const jiraToken = process.env.JIRA_API_TOKEN;
+            const hasJira = Boolean(jiraBase && jiraEmail && jiraToken);
+            const basicAuth = hasJira
+              ? Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64')
+              : null;
+
+            const keyRegex = /\b[A-Z][A-Z0-9]+-\d+\b/g;
+
+            const fetchFn = typeof fetch === 'function'
+              ? fetch
+              : async function fetchPolyfill(urlString, options = {}) {
+                  const { URL } = require('url');
+                  const parsed = new URL(urlString);
+                  const isHttps = parsed.protocol === 'https:';
+                  const httpModule = require(isHttps ? 'https' : 'http');
+                  const requestOptions = {
+                    method: options.method || 'GET',
+                    hostname: parsed.hostname,
+                    port: parsed.port || (isHttps ? 443 : 80),
+                    path: `${parsed.pathname}${parsed.search}`,
+                    headers: options.headers || {},
+                  };
+
+                  const body = options.body;
+
+                  return await new Promise((resolve, reject) => {
+                    const req = httpModule.request(requestOptions, (res) => {
+                      const chunks = [];
+                      res.on('data', (chunk) => chunks.push(chunk));
+                      res.on('end', () => {
+                        const buffer = Buffer.concat(chunks);
+                        const text = buffer.toString('utf-8');
+                        resolve({
+                          ok: res.statusCode >= 200 && res.statusCode < 300,
+                          status: res.statusCode,
+                          json: async () => (text ? JSON.parse(text) : {}),
+                          text: async () => text,
+                        });
+                      });
+                    });
+                    req.on('error', reject);
+                    if (body) {
+                      req.write(typeof body === 'string' ? body : JSON.stringify(body));
+                    }
+                    req.end();
+                  });
+                };
+
+            async function findPreviousSuccessfulDeployment() {
+              try {
+                const deployments = await github.paginate(github.rest.repos.listDeployments, {
+                  owner,
+                  repo,
+                  environment,
+                  per_page: 50,
+                });
+
+                for (const deployment of deployments) {
+                  if (currentDeployment && deployment.id === currentDeployment.id) {
+                    continue;
+                  }
+                  const statusesResponse = await github.rest.repos.listDeploymentStatuses({
+                    owner,
+                    repo,
+                    deployment_id: deployment.id,
+                    per_page: 20,
+                  });
+                  const hasSuccess = statusesResponse.data.find((status) => status.state === 'success');
+                  if (hasSuccess) {
+                    return deployment;
+                  }
+                }
+              } catch (error) {
+                core.warning(`Unable to locate previous deployment for ${environment}: ${error.message}`);
+              }
+
+              return null;
+            }
+
+            const previousDeployment = await findPreviousSuccessfulDeployment();
+            const baseSha = previousDeployment?.sha || null;
+
+            let commits = [];
+
+            const maxCommits = 50;
+
+            if (baseSha) {
+              const compareResponse = await github.rest.repos.compareCommitsWithBasehead({
+                owner,
+                repo,
+                basehead: `${baseSha}...${headSha}`,
+              });
+              const compared = compareResponse.data.commits || [];
+              commits = compared.slice(-maxCommits);
+            } else {
+              const commitsResponse = await github.paginate(github.rest.repos.listCommits, {
+                owner,
+                repo,
+                sha: headSha,
+                per_page: maxCommits,
+              });
+              commits = commitsResponse.slice(0, maxCommits).reverse();
+            }
+
+            if (!commits.length) {
+              core.notice('No commits found between deployments.');
+            }
+
+            const jiraCache = new Map();
+
+            async function fetchJiraIssue(key) {
+              if (!hasJira) {
+                return null;
+              }
+              if (jiraCache.has(key)) {
+                return jiraCache.get(key);
+              }
+              try {
+                const resp = await fetchFn(`${jiraBase}/rest/api/3/issue/${key}`, {
+                  headers: {
+                    Authorization: `Basic ${basicAuth}`,
+                    Accept: 'application/json',
+                  },
+                });
+                if (!resp.ok) {
+                  core.warning(`Failed to fetch JIRA issue ${key}: ${resp.status}`);
+                  jiraCache.set(key, null);
+                  return null;
+                }
+                const data = await resp.json();
+                const issue = {
+                  key,
+                  summary: data.fields?.summary || '',
+                  status: data.fields?.status?.name || '',
+                  url: `${jiraBase}/browse/${key}`,
+                };
+                jiraCache.set(key, issue);
+                return issue;
+              } catch (error) {
+                core.warning(`Error fetching JIRA issue ${key}: ${error.message}`);
+                jiraCache.set(key, null);
+                return null;
+              }
+            }
+
+            const issueMap = new Map();
+            const unlinkedChanges = [];
+
+            for (const commit of commits) {
+              const sha = commit.sha;
+              const shortSha = sha.substring(0, 7);
+              const commitMessage = commit.commit?.message?.split('\n')[0] || '';
+              const authorName = commit.commit?.author?.name || commit.author?.login || 'unknown';
+              const commitUrl = commit.html_url || `https://github.com/${owner}/${repo}/commit/${sha}`;
+
+              let prNumber = null;
+              let prTitle = null;
+              let prUrl = null;
+              let headRef = '';
+
+              try {
+                const associatedPRs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner,
+                  repo,
+                  commit_sha: sha,
+                });
+                const pr = associatedPRs.data?.[0];
+                if (pr) {
+                  prNumber = pr.number;
+                  prTitle = pr.title;
+                  prUrl = pr.html_url;
+                  headRef = pr.head?.ref || '';
+                }
+              } catch (error) {
+                core.warning(`Unable to load PR for commit ${sha}: ${error.message}`);
+              }
+
+              const keySearchSpace = [commitMessage, prTitle, headRef].filter(Boolean).join(' ');
+              const keys = new Set();
+              let match;
+              keyRegex.lastIndex = 0;
+              while ((match = keyRegex.exec(keySearchSpace)) !== null) {
+                keys.add(match[0]);
+              }
+
+              for (const key of keys) {
+                if (!issueMap.has(key)) {
+                  issueMap.set(key, { key, items: [] });
+                }
+                issueMap.get(key).items.push({
+                  commitMessage,
+                  prNumber,
+                  prTitle,
+                  prUrl,
+                  authorName,
+                  commitUrl,
+                });
+              }
+
+              if (!keys.size) {
+                const prFragment = prNumber ? `[#${prNumber}](${prUrl}) – ${prTitle}` : commitMessage;
+                unlinkedChanges.push(`- ${prFragment} (${authorName}) ([${shortSha}](${commitUrl}))`);
+              }
+            }
+
+            const jiraLines = [];
+            for (const [key, info] of issueMap.entries()) {
+              const issue = await fetchJiraIssue(key);
+              const summary = issue?.summary?.trim() || 'Summary unavailable';
+              const issueStatus = issue?.status ? ` _(Status: ${issue.status})_` : '';
+              const fallbackUrl = jiraBase ? `${jiraBase}/browse/${key}` : '';
+              const issueUrl = issue?.url || fallbackUrl;
+              const issueLabel = issueUrl ? `[${key}](${issueUrl})` : key;
+              jiraLines.push(`- ${issueLabel} – ${summary}${issueStatus}`);
+              for (const item of info.items) {
+                const prFragment = item.prNumber ? `[#${item.prNumber}](${item.prUrl}) – ${item.prTitle}` : item.commitMessage;
+                jiraLines.push(`  - ${prFragment} (${item.authorName})`);
+              }
+            }
+
+            const lines = [];
+            lines.push(`# Deployment Notes`);
+            lines.push('');
+            lines.push(`**Environment:** ${environment}`);
+            lines.push(`**Deployed by:** ${deployer}`);
+            lines.push(`**Workflow run:** [${run.id}](${runUrl})`);
+            lines.push(`**Head commit:** [${headSha.substring(0,7)}](https://github.com/${owner}/${repo}/commit/${headSha})`);
+            if (baseSha) {
+              lines.push(`**Previous deploy commit:** [${baseSha.substring(0,7)}](https://github.com/${owner}/${repo}/commit/${baseSha})`);
+            } else {
+              lines.push(`**Previous deploy commit:** _None found (initial deployment)_`);
+            }
+            lines.push('');
+
+            if (jiraLines.length || unlinkedChanges.length) {
+              lines.push(`## Changes`);
+              if (jiraLines.length) {
+                lines.push(...jiraLines);
+              }
+              if (unlinkedChanges.length) {
+                lines.push(`- Changes not linked to JIRA issues`);
+                for (const entry of unlinkedChanges) {
+                  lines.push(`  ${entry}`);
+                }
+              }
+              lines.push('');
+            } else {
+              lines.push(`No code changes detected between deployments.`);
+              lines.push('');
+            }
+
+            const markdownToPlain = (text) => (text || '')
+              .replace(/\!\[[^\]]*\]\([^)]+\)/g, '')
+              .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+              .replace(/[*_`]/g, '')
+              .trim();
+
+            const summaryCandidates = [
+              jiraLines.find((line) => line.trim().startsWith('- ')),
+              unlinkedChanges[0],
+              `Deployment to ${environment} completed`,
+            ].filter(Boolean);
+
+            const statusSummary = markdownToPlain(
+              summaryCandidates[0]?.replace(/^[-*]\s*/, '') || 'Deployment completed successfully.'
+            );
+
+            const noteBody = lines.join('\n');
+
+            core.setOutput('release_notes', noteBody);
+            core.setOutput('base_sha', baseSha || '');
+            core.setOutput('head_sha', headSha);
+            core.setOutput('environment', environment);
+            core.setOutput('deployment_id', currentDeployment?.id ? String(currentDeployment.id) : '');
+            core.setOutput('run_url', runUrl);
+            core.setOutput('status_summary', statusSummary);
+
+            if (noteBody) {
+              core.summary.addHeading('Deployment Notes');
+              core.summary.addRaw(noteBody);
+              await core.summary.write();
+            }
+      - name: Save release notes file
+        if: ${{ steps.generate_notes.outputs.release_notes != '' }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+
+          notes = os.environ["RELEASE_NOTES"]
+          Path("release_notes.md").write_text(notes, encoding="utf-8")
+          PY
+        env:
+          RELEASE_NOTES: ${{ steps.generate_notes.outputs.release_notes }}
+
+      - name: Upload release notes artifact
+        if: ${{ steps.generate_notes.outputs.release_notes != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes-${{ steps.generate_notes.outputs.environment || 'unknown' }}-${{ github.run_id }}
+          path: release_notes.md
+          retention-days: 14
+
+  update-deployment-status:
+    needs: build-release-notes
+    if: ${{ needs.build-release-notes.outputs.deployment_id != '' && needs.build-release-notes.outputs.environment != '' }}
+    runs-on: ubuntu-latest
+    environment: ${{ needs.build-release-notes.outputs.environment }}
+    permissions:
+      deployments: write
+      contents: read
+    env:
+      DEPLOYMENT_ID: ${{ needs.build-release-notes.outputs.deployment_id }}
+      RELEASE_NOTES: ${{ needs.build-release-notes.outputs.release_notes }}
+      RUN_URL: ${{ needs.build-release-notes.outputs.run_url }}
+      ENVIRONMENT_NAME: ${{ needs.build-release-notes.outputs.environment }}
+      STATUS_SUMMARY: ${{ needs.build-release-notes.outputs.status_summary }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - name: Update deployment status with release notes
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const deploymentId = Number(process.env.DEPLOYMENT_ID);
+            const runUrl = process.env.RUN_URL || '';
+            const envName = (process.env.ENVIRONMENT_NAME || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+            let environmentUrl = process.env.APP_URL || '';
+            if (!environmentUrl && envName) {
+              environmentUrl = process.env[`APP_URL_${envName}`] || '';
+            }
+            const summary = process.env.STATUS_SUMMARY || 'Deployment completed successfully.';
+
+            const description = summary.length > 140 ? `${summary.slice(0, 137)}...` : summary;
+
+            if (!deploymentId) {
+              core.notice('Skipping deployment status update because deployment ID is missing.');
+              return;
+            }
+
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deploymentId,
+              state: 'success',
+              description,
+              log_url: runUrl || undefined,
+              environment_url: environmentUrl || undefined,
+              auto_inactive: true,
+            });

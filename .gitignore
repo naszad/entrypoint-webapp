@@ -24,6 +24,12 @@
 .DS_Store
 *.pem
 
+# github
+.secrets
+event.json
+jobs.json
+run.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*
