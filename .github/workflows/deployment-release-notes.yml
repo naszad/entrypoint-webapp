@@ -3,6 +3,8 @@ name: Deployment Release Notes
 on:
   workflow_run:
     workflows:
+      - Build and Publish to Google Artifact Registry
+      - Promote image to Production
       - Deploy to Google Cloud Run
     types:
       - completed
