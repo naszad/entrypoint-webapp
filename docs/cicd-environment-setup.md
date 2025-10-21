@@ -108,19 +108,19 @@ gcloud iam service-accounts add-iam-policy-binding "${COMMON_SA}" \
 echo "projects/${COMMON_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${COMMON_POOL}/providers/${COMMON_PROVIDER}"
 ```
 
-Record the provider resource string printed by the final `echo`; it becomes the `GCP_WORKLOAD_IDENTITY_PROVIDER` environment variable value for the `Artifacts` GitHub environment.
+Record the provider resource string printed by the final `echo`; it becomes the `GAR_WORKLOAD_IDENTITY_PROVIDER` value used by GitHub Actions.
 
-### 4. Configure the GitHub `Artifacts` environment
+### 4. Configure shared GitHub variables/secrets for the build pipeline
 
-In GitHub → **Settings → Environments** create (or update) the `Artifacts` environment with:
+Because every repository publishes to the same Artifact Registry, define these at the organization or repository level (GitHub → **Settings → Secrets and variables → Actions**):
 
-- **Environment variables**
-  - `GAR_HOSTNAME` = `us-central1-docker.pkg.dev`
-  - `GAR_LOCATION` = `us-central1-docker.pkg.dev/entrypoint-common/webapp`
-  - `GCP_WORKLOAD_IDENTITY_PROVIDER` = provider string from Step 3.
-  - `GCP_SERVICE_ACCOUNT` = `github-actions@entrypoint-common.iam.gserviceaccount.com`
+- **Variables**
+  - `GAR_HOSTNAME` → `us-central1-docker.pkg.dev`
+  - `GAR_LOCATION` → `us-central1-docker.pkg.dev/entrypoint-common/webapp`
+  - `GAR_WORKLOAD_IDENTITY_PROVIDER` → provider string from Step 3
+  - `GAR_SERVICE_ACCOUNT` → `github-actions@entrypoint-common.iam.gserviceaccount.com`
 
-The `build-and-publish.yml` workflow targets this environment, authenticates as `github-actions@entrypoint-common`, and pushes images into the shared `webapp` repository.
+If you prefer to scope them to an environment, use the same names, but the workflow no longer relies on the `Artifacts` environment being present—it reads the values directly from `vars.*`.
 
 ---
 
@@ -250,14 +250,12 @@ Grant the runtime account additional project-specific permissions (Secrets Manag
 In GitHub → **Settings → Environments**, create or update the environment that will deploy into this project (for example `Dev`, `Staging`, or `Production`):
 
 - **Environment variables**
-  - `GAR_HOSTNAME` = `us-central1-docker.pkg.dev`
-  - `GAR_LOCATION` = `us-central1-docker.pkg.dev/entrypoint-common/webapp`
   - `CLOUD_RUN_SERVICE` = `entrypoint-webapp` (or the actual Cloud Run service name)
   - `CLOUD_RUN_REGION` = `us-central1`
   - `GCP_WORKLOAD_IDENTITY_PROVIDER` = provider string from the Google Cloud setup script
   - `GCP_SERVICE_ACCOUNT` = `github-actions@<env-project>.iam.gserviceaccount.com`
 
-Note that if your GitHub plan supports org-level variables, you can set some of these at that level to avoid replicating them for each environment.
+Note that if your GitHub plan supports org-level variables, you can set shared values (for example `CLOUD_RUN_REGION`) at that level to avoid replicating them for each environment.
 
 Add additional vars/secrets as needed for that environment.
 
@@ -266,7 +264,7 @@ Add additional vars/secrets as needed for that environment.
 ## Workflow Expectations & Validation
 
 - **Build (`.github/workflows/build-and-publish.yml`)**
-  - Uses the `Artifacts` environment, authenticates as `github-actions@entrypoint-common`, and publishes images to `us-central1-docker.pkg.dev/entrypoint-common/webapp/entrypoint-webapp:${GITHUB_SHA}`.
+  - Uses organization/repository-level variables (`GAR_*`) to authenticate as `github-actions@entrypoint-common` and publishes images to `us-central1-docker.pkg.dev/entrypoint-common/webapp/entrypoint-webapp:${GITHUB_SHA}`.
   - Exposes the image URI via the `image_path` output for downstream workflows.
 
 - **Deploy (`.github/workflows/deploy-to-cloud-run.yml`)**

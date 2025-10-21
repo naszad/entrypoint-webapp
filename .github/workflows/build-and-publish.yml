@@ -10,8 +10,8 @@ env:
   IMAGE_NAME: "entrypoint-webapp"
   GAR_LOCATION: ${{ vars.GAR_LOCATION }}
   GAR_HOSTNAME: ${{ vars.GAR_HOSTNAME }}
-  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-  GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+  GAR_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GAR_WORKLOAD_IDENTITY_PROVIDER }}
+  GAR_SERVICE_ACCOUNT: ${{ vars.GAR_SERVICE_ACCOUNT }}
 
 jobs:
   build-and-push:
@@ -36,15 +36,15 @@ jobs:
       # a service account with the 'Artifact Registry Writer' role.
       #
       # Then, you must create two secrets in your GitHub repository settings:
-      #   - `GCP_WORKLOAD_IDENTITY_PROVIDER`: The full name of your WIF provider.
-      #   - `GCP_SERVICE_ACCOUNT`: The email address of your GCP service account.
+      #   - `GAR_WORKLOAD_IDENTITY_PROVIDER`: The full name of your WIF provider.
+      #   - `GAR_SERVICE_ACCOUNT`: The email address of your GCP service account.
       #
       - name: Authenticate to Google Cloud
         id: auth
         uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }} # e.g., projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }} # e.g., my-service-account@my-project.iam.gserviceaccount.com
+          workload_identity_provider: ${{ env.GAR_WORKLOAD_IDENTITY_PROVIDER }} # e.g., projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+          service_account: ${{ env.GAR_SERVICE_ACCOUNT }} # e.g., my-service-account@my-project.iam.gserviceaccount.com
 
       - name: Configure Docker for GAR
         run: gcloud auth configure-docker ${{ env.GAR_HOSTNAME }}
