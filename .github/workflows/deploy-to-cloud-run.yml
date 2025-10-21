@@ -62,6 +62,10 @@ jobs:
     needs: deploy
     if: ${{ needs.deploy.result == 'success' }}
     uses: ./.github/workflows/deployment-release-notes.yml
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: read
     with:
       environment: ${{ inputs.environment || github.event.inputs.environment || 'Dev' }}
       head_sha: ${{ github.sha }}
