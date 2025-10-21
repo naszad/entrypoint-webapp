@@ -77,4 +77,5 @@ jobs:
     uses: ./.github/workflows/deploy-to-cloud-run.yml
     with:
       image: ${{ needs.build-and-push.outputs.image_path }}
+      environment: Dev
     secrets: inherit

@@ -76,6 +76,7 @@ jobs:
               core.setFailed('Environment input is required.');
               return;
             }
+            core.info(`Release notes for environment: ${environment}`);
 
             if (!headSha) {
               core.setFailed('head_sha input is required.');
