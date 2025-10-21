@@ -59,18 +59,24 @@ jobs:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          DEPLOY_HEAD_SHA: ${{ inputs.head_sha }}
+          DEPLOY_RUN_ID: ${{ inputs.run_id }}
+          DEPLOYMENT_ID_INPUT: ${{ inputs.deployment_id }}
+          DEPLOY_IMAGE: ${{ inputs.image }}
+          DEPLOY_INITIATOR: ${{ inputs.deployer }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            const environment = core.getInput('environment').trim();
-            const headSha = core.getInput('head_sha').trim();
-            const runId = core.getInput('run_id').trim();
-            const explicitDeploymentId = core.getInput('deployment_id').trim();
-            const deployerInput = core.getInput('deployer').trim();
-            const image = core.getInput('image').trim();
+            const environment = (process.env.DEPLOY_ENVIRONMENT || '').trim();
+            const headSha = (process.env.DEPLOY_HEAD_SHA || '').trim();
+            const runId = (process.env.DEPLOY_RUN_ID || '').trim();
+            const explicitDeploymentId = (process.env.DEPLOYMENT_ID_INPUT || '').trim();
+            const deployerInput = (process.env.DEPLOY_INITIATOR || '').trim();
+            const image = (process.env.DEPLOY_IMAGE || '').trim();
 
             if (!environment) {
               core.setFailed('Environment input is required.');
