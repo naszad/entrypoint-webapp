@@ -1,23 +1,47 @@
 name: Deployment Release Notes
 
 on:
-  workflow_run:
-    workflows:
-      - Build and Publish to Google Artifact Registry
-      - Promote image to Production
-      - Deploy to Google Cloud Run
-    types:
-      - completed
+  workflow_call:
+    inputs:
+      environment:
+        description: "GitHub environment name (e.g., Dev, Production)"
+        required: true
+        type: string
+      head_sha:
+        description: "Commit SHA that was deployed"
+        required: true
+        type: string
+      run_id:
+        description: "GitHub Actions run ID that performed the deployment"
+        required: true
+        type: string
+      deployment_id:
+        description: "GitHub deployment ID (optional; workflow will auto-discover if omitted)"
+        required: false
+        type: string
+      image:
+        description: "Deployed image reference (optional)"
+        required: false
+        type: string
+      deployer:
+        description: "GitHub username that initiated the deployment"
+        required: false
+        type: string
+    secrets:
+      JIRA_BASE_URL:
+        required: false
+      JIRA_EMAIL:
+        required: false
+      JIRA_API_TOKEN:
+        required: false
 
 permissions:
   contents: read
   deployments: read
-  actions: read
   pull-requests: read
 
 jobs:
   build-release-notes:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       release_notes: ${{ steps.generate_notes.outputs.release_notes }}
@@ -40,92 +64,89 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const payload = context.payload || {};
-            const run = payload.workflow_run;
 
-            if (!run) {
-              core.setFailed('workflow_run payload missing from event.');
+            const environment = core.getInput('environment').trim();
+            const headSha = core.getInput('head_sha').trim();
+            const runId = core.getInput('run_id').trim();
+            const explicitDeploymentId = core.getInput('deployment_id').trim();
+            const deployerInput = core.getInput('deployer').trim();
+            const image = core.getInput('image').trim();
+
+            if (!environment) {
+              core.setFailed('Environment input is required.');
               return;
             }
 
-            const runId = run.id;
-            const runAttempt = run.run_attempt;
-            const headSha = run.head_sha;
-            const runUrl = run.html_url || `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
-            const deployer = run.actor?.login || payload.sender?.login || context.actor || 'unknown';
-
-            const runStart = run.run_started_at ? new Date(run.run_started_at) : (run.created_at ? new Date(run.created_at) : new Date());
-            const bufferMs = 5 * 60 * 1000;
-
-            async function resolveCurrentDeployment() {
-              try {
-                const deploymentsForSha = await github.paginate(github.rest.repos.listDeployments, {
-                  owner,
-                  repo,
-                  sha: headSha,
-                  per_page: 50,
-                });
-
-                if (!deploymentsForSha.length) {
-                  return null;
-                }
-
-                const sorted = deploymentsForSha
-                  .map((d) => ({ deployment: d, createdAt: new Date(d.created_at).getTime() }))
-                  .sort((a, b) => b.createdAt - a.createdAt);
-
-                const candidate = sorted.find(({ createdAt }) => createdAt >= (runStart.getTime() - bufferMs));
-                return (candidate || sorted[0])?.deployment || null;
-              } catch (error) {
-                core.warning(`Unable to list deployments for SHA ${headSha}: ${error.message}`);
-                return null;
-              }
+            if (!headSha) {
+              core.setFailed('head_sha input is required.');
+              return;
             }
 
-            const currentDeployment = await resolveCurrentDeployment();
-
-            async function tryJobEnvironmentFallback() {
-              try {
-                const jobsResponse = await github.rest.actions.listJobsForWorkflowRunAttempt({
-                  owner,
-                  repo,
-                  run_id: runId,
-                  attempt_number: runAttempt,
-                  per_page: 50,
-                });
-
-                const jobs = jobsResponse.data.jobs || [];
-                const targetJob = jobs.find((job) => job.name === 'Deploy to Cloud Run') || jobs.find((job) => job.name?.includes('Deploy to Cloud Run')) || jobs[0];
-                return targetJob?.environment?.name || null;
-              } catch (error) {
-                core.warning(`Unable to read job metadata for workflow run ${runId}: ${error.message}`);
-                return null;
-              }
-            }
-
-            let environment = currentDeployment?.environment || null;
-
-            if (!environment) {
-              environment = await tryJobEnvironmentFallback();
-            }
-
-            if (!environment && Array.isArray(payload._jobs)) {
-              const fallbackJob = payload._jobs.find((job) => job.name === 'Deploy to Cloud Run' || job.name?.includes('Deploy to Cloud Run')) || payload._jobs[0];
-              environment = fallbackJob?.environment?.name || null;
+            if (!runId) {
+              core.setFailed('run_id input is required.');
+              return;
             }
 
             const permittedEnvs = ['Dev', 'Production'];
-
-            if (!environment || !permittedEnvs.includes(environment)) {
-              core.notice(`Environment ${environment || 'Unknown'} is not configured for release notes.`);
+            if (!permittedEnvs.includes(environment)) {
+              core.notice(`Environment ${environment} is not configured for release notes.`);
               core.setOutput('release_notes', '');
               core.setOutput('base_sha', '');
               core.setOutput('head_sha', headSha);
               core.setOutput('environment', '');
               core.setOutput('deployment_id', '');
-              core.setOutput('run_url', runUrl);
+              core.setOutput('run_url', '');
               core.setOutput('status_summary', '');
               return;
+            }
+
+            const deployer = deployerInput || context.actor || github.actor || 'unknown';
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            async function fetchDeploymentById(id) {
+              try {
+                const { data } = await github.rest.repos.getDeployment({
+                  owner,
+                  repo,
+                  deployment_id: Number(id),
+                });
+                return data;
+              } catch (error) {
+                core.warning(`Unable to load deployment ${id}: ${error.message}`);
+                return null;
+              }
+            }
+
+            async function findCurrentDeployment() {
+              if (explicitDeploymentId) {
+                const deployment = await fetchDeploymentById(explicitDeploymentId);
+                if (deployment) {
+                  return deployment;
+                }
+              }
+
+              try {
+                const deploymentsForSha = await github.paginate(github.rest.repos.listDeployments, {
+                  owner,
+                  repo,
+                  sha: headSha,
+                  environment,
+                  per_page: 50,
+                });
+                if (deploymentsForSha.length) {
+                  return deploymentsForSha[0];
+                }
+              } catch (error) {
+                core.warning(`Unable to list deployments for ${environment} / ${headSha}: ${error.message}`);
+              }
+
+              return null;
+            }
+
+            const currentDeployment = await findCurrentDeployment();
+
+            if (!currentDeployment) {
+              core.warning(`No deployment found for environment ${environment} and SHA ${headSha}. Release notes will still be generated, but deployment status cannot be updated.`);
             }
 
             core.info(`Generating release notes for environment: ${environment}`);
@@ -357,12 +378,15 @@ jobs:
             lines.push('');
             lines.push(`**Environment:** ${environment}`);
             lines.push(`**Deployed by:** ${deployer}`);
-            lines.push(`**Workflow run:** [${run.id}](${runUrl})`);
+            lines.push(`**Workflow run:** [${runId}](${runUrl})`);
             lines.push(`**Head commit:** [${headSha.substring(0,7)}](https://github.com/${owner}/${repo}/commit/${headSha})`);
             if (baseSha) {
               lines.push(`**Previous deploy commit:** [${baseSha.substring(0,7)}](https://github.com/${owner}/${repo}/commit/${baseSha})`);
             } else {
               lines.push(`**Previous deploy commit:** _None found (initial deployment)_`);
+            }
+            if (image) {
+              lines.push(`**Image:** \`${image}\``);
             }
             lines.push('');
 
@@ -449,6 +473,8 @@ jobs:
       ENVIRONMENT_NAME: ${{ needs.build-release-notes.outputs.environment }}
       STATUS_SUMMARY: ${{ needs.build-release-notes.outputs.status_summary }}
       APP_URL: ${{ vars.APP_URL }}
+      APP_URL_DEV: ${{ vars.APP_URL_DEV }}
+      APP_URL_PRODUCTION: ${{ vars.APP_URL_PRODUCTION }}
     steps:
       - name: Update deployment status with release notes
         uses: actions/github-script@v7

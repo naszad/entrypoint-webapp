@@ -270,6 +270,7 @@ Add additional vars/secrets as needed for that environment.
 - **Deploy (`.github/workflows/deploy-to-cloud-run.yml`)**
   - Invoked either automatically (for Dev) or manually (via reusable workflow) with an `image` input.
   - Authenticates using the environment-specific `github-actions@<env-project>` service account and deploys to Cloud Run as `entrypoint-webapp-sa@<env-project>`.
+  - On success, calls the shared `deployment-release-notes.yml` reusable workflow to generate notes, upload the Markdown artifact, and update the GitHub deployment status (including environment URL and summary).
 
 ### Validation Checklist
 
