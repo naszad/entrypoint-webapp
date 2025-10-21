@@ -439,7 +439,6 @@ jobs:
     needs: build-release-notes
     if: ${{ needs.build-release-notes.outputs.deployment_id != '' && needs.build-release-notes.outputs.environment != '' }}
     runs-on: ubuntu-latest
-    environment: ${{ needs.build-release-notes.outputs.environment }}
     permissions:
       deployments: write
       contents: read

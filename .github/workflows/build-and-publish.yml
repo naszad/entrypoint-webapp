@@ -17,7 +17,6 @@ jobs:
   build-and-push:
     name: Build and Push Image
     runs-on: ubuntu-latest
-    environment: Artifacts # Central artifact project (entrypoint-common)
 
     permissions:
       contents: "read"
