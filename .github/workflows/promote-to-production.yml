@@ -14,6 +14,11 @@ permissions:
 jobs:
   deploy:
     name: Deploy selected image
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+      pull-requests: read
     uses: ./.github/workflows/deploy-to-cloud-run.yml
     with:
       image: ${{ inputs.image }}
