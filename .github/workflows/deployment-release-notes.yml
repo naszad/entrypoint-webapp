@@ -44,7 +44,6 @@ jobs:
   build-release-notes:
     runs-on: ubuntu-latest
     outputs:
-      release_notes: ${{ steps.generate_notes.outputs.release_notes }}
       base_sha: ${{ steps.generate_notes.outputs.base_sha }}
       head_sha: ${{ steps.generate_notes.outputs.head_sha }}
       environment: ${{ steps.generate_notes.outputs.environment }}
@@ -453,7 +452,6 @@ jobs:
 
             const noteBody = lines.join('\n');
 
-            core.setOutput('release_notes', noteBody);
             core.setOutput('base_sha', baseSha || '');
             core.setOutput('head_sha', headSha);
             core.setOutput('environment', environment);
@@ -461,35 +459,35 @@ jobs:
             core.setOutput('run_url', runUrl);
             core.setOutput('status_summary', statusSummary);
             core.setOutput('deployed_by', deployer);
-            core.setOutput('highlights_json', JSON.stringify({
-              issues: issueHighlights,
-              misc: miscHighlights,
-            }));
+
+            const fs = require('fs');
+            fs.writeFileSync('release_notes.md', noteBody, { encoding: 'utf8' });
+            fs.writeFileSync(
+              'highlights.json',
+              JSON.stringify(
+                {
+                  issues: issueHighlights,
+                  misc: miscHighlights,
+                },
+                null,
+                2
+              ),
+              { encoding: 'utf8' }
+            );
 
             if (noteBody) {
               core.summary.addHeading('Deployment Notes');
               core.summary.addRaw(noteBody);
               await core.summary.write();
             }
-      - name: Save release notes file
-        if: ${{ steps.generate_notes.outputs.release_notes != '' }}
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import os
-
-          notes = os.environ["RELEASE_NOTES"]
-          Path("release_notes.md").write_text(notes, encoding="utf-8")
-          PY
-        env:
-          RELEASE_NOTES: ${{ steps.generate_notes.outputs.release_notes }}
-
       - name: Upload release notes artifact
-        if: ${{ steps.generate_notes.outputs.release_notes != '' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: release-notes-${{ steps.generate_notes.outputs.environment || 'unknown' }}-${{ github.run_id }}
-          path: release_notes.md
+          name: deployment-notes-${{ github.run_id }}
+          path: |
+            release_notes.md
+            highlights.json
           retention-days: 14
 
   update-deployment-status:
@@ -501,13 +499,19 @@ jobs:
       contents: read
     env:
       DEPLOYMENT_ID: ${{ needs.build-release-notes.outputs.deployment_id }}
-      RELEASE_NOTES: ${{ needs.build-release-notes.outputs.release_notes }}
       RUN_URL: ${{ needs.build-release-notes.outputs.run_url }}
       ENVIRONMENT_NAME: ${{ needs.build-release-notes.outputs.environment }}
       STATUS_SUMMARY: ${{ needs.build-release-notes.outputs.status_summary }}
       APP_URL: ${{ vars.APP_URL }}
       NOTIFY_WEBHOOK: ${{ vars.NOTIFY_WEBHOOK }}
     steps:
+      - name: Download release notes artifacts
+        id: download_notes
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-notes-${{ github.run_id }}
+          path: deployment-notes
+
       - name: Prepare notification context
         shell: bash
         run: |
@@ -551,19 +555,20 @@ jobs:
         if: ${{ env.NOTIFY_WEBHOOKS != '' }}
         env:
           WEBHOOKS: ${{ env.NOTIFY_WEBHOOKS }}
-          RELEASE_NOTES: ${{ needs.build-release-notes.outputs.release_notes }}
           STATUS_SUMMARY: ${{ needs.build-release-notes.outputs.status_summary }}
           ENVIRONMENT_NAME: ${{ needs.build-release-notes.outputs.environment }}
           DEPLOYED_BY: ${{ needs.build-release-notes.outputs.deployed_by }}
           RUN_URL: ${{ needs.build-release-notes.outputs.run_url }}
           ENVIRONMENT_URL: ${{ env.ENVIRONMENT_URL }}
-          HIGHLIGHTS_JSON: ${{ needs.build-release-notes.outputs.highlights_json }}
+          ARTIFACT_DIR: ${{ steps.download_notes.outputs.download-path }}
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const https = require('https');
           const { URL } = require('url');
+          const fs = require('fs');
+          const path = require('path');
 
           const splitWebhooks = (value = '') =>
             value
@@ -582,14 +587,17 @@ jobs:
           const summary = process.env.STATUS_SUMMARY || 'Deployment completed successfully.';
           const runUrl = process.env.RUN_URL || '';
           const environmentUrl = process.env.ENVIRONMENT_URL || '';
+          const artifactDir = process.env.ARTIFACT_DIR || '.';
+          const highlightsPath = path.join(artifactDir, 'highlights.json');
           let highlightsData = {};
           try {
-            const parsed = JSON.parse(process.env.HIGHLIGHTS_JSON || '{}');
+            const fileData = fs.readFileSync(highlightsPath, { encoding: 'utf8' });
+            const parsed = JSON.parse(fileData);
             if (parsed && typeof parsed === 'object') {
               highlightsData = parsed;
             }
           } catch (error) {
-            console.warn(`Failed to parse highlights JSON: ${error.message}`);
+            console.warn(`Failed to read highlights data: ${error.message}`);
           }
 
           const issueHighlights = Array.isArray(highlightsData.issues) ? highlightsData.issues : [];
