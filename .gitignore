@@ -52,3 +52,6 @@ supabase/backups
 
 # cache
 .cache
+
+# supabase
+supabase/prod.sql

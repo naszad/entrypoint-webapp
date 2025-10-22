@@ -18,13 +18,13 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const pathname = usePathname();
+    const studentId = params.id as string;
     useEffect(() => {
       const fetchData = async () => {
         try {
-          const { id } = params
           
           // Fetch student data
-          const studentResponse = await fetch(`/api/students/${id}`);
+          const studentResponse = await fetch(`/api/students/${studentId}`);
           if (!studentResponse.ok) {
             setError('An error occurred while fetching the student, please try again later');
             return;
@@ -33,7 +33,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
           setStudent(studentData);
           
           // Fetch student tags
-          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setStudentTags(tagsData);
@@ -60,14 +60,13 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
       };
   
       fetchData();
-    }, [params]);
+    }, [studentId]);
     
     // Listen for immediate tag refresh requests from child pages (e.g., meeting notes page)
     useEffect(() => {
       const handleTagsRefresh = async () => {
         try {
-          const { id } = params;
-          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setStudentTags(tagsData);
@@ -88,7 +87,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
               // After a short delay, drop the temp markers by reloading again silently
               setTimeout(async () => {
                 try {
-                  const resp = await fetch(`/api/students/${id}/tags`);
+                  const resp = await fetch(`/api/students/${studentId}/tags`);
                   if (resp.ok) {
                     const fresh = await resp.json();
                     setStudentTags(fresh);
@@ -113,12 +112,11 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
         window.removeEventListener('student-tags:refresh', directAddHandler);
         window.removeEventListener('student-tags:added', directAddHandler);
       };
-    }, [params]);
+    }, [studentId]);
     
     const handleTagAdd = async (tag: { tagId?: string; tagName: string; tagCategoryId: string; value: string }) => {
       try {
-        const { id } = params;
-        const response = await fetch(`/api/students/${id}/tags`, {
+        const response = await fetch(`/api/students/${studentId}/tags`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(tag),
@@ -126,7 +124,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
         
         if (response.ok) {
           // Refresh tags
-          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setStudentTags(tagsData);
@@ -148,8 +146,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
     
     const handleTagEdit = async (studentTagId: string, value: string) => {
       try {
-        const { id } = params;
-        const response = await fetch(`/api/students/${id}/tags`, {
+        const response = await fetch(`/api/students/${studentId}/tags`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ studentTagId, value }),
@@ -157,7 +154,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
         
         if (response.ok) {
           // Refresh tags
-          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setStudentTags(tagsData);
@@ -170,8 +167,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
     
     const handleTagDelete = async (studentTagId: string) => {
       try {
-        const { id } = params;
-        const response = await fetch(`/api/students/${id}/tags`, {
+        const response = await fetch(`/api/students/${studentId}/tags`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ studentTagId }),
@@ -179,7 +175,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
         
         if (response.ok) {
           // Refresh tags
-          const tagsResponse = await fetch(`/api/students/${id}/tags`);
+          const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setStudentTags(tagsData);

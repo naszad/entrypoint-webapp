@@ -43,6 +43,7 @@ const StudentProfilePage = () => {
   const { user } = useAuth();
   const configKeys = useMemo(() => ['final_grade_codes'], []);
   const { loading: loadingConfig, finalGradeCodes } = useConfig(configKeys);
+  const studentId = params.id as string;
 
   const fetchStudentCurrentGrades = useCallback(async ( studentId: string ) => {
     try {
@@ -153,15 +154,13 @@ const StudentProfilePage = () => {
   }, []);
 
   useEffect(() => {
-    const studentId = params.id as string;
-    if (studentId) {
-      // Fetch data independently - each will update its own state when ready
-      fetchStudentCurrentGrades(studentId);
-      fetchGpa(studentId);
-      fetchFinalTermsGpas(studentId);
-      fetchStudentAbsences(studentId);
-    }
-  }, [params, fetchGpa, fetchStudentCurrentGrades, fetchFinalTermsGpas, fetchStudentAbsences]);
+    if (!studentId || loadingConfig) return;
+    fetchStudentCurrentGrades(studentId);
+    fetchGpa(studentId); 
+    fetchFinalTermsGpas(studentId);
+    fetchStudentAbsences(studentId);
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId, loadingConfig]);
 
   return (
     <>
@@ -379,7 +378,7 @@ const StudentProfilePage = () => {
                <div className="flex justify-between">
                  <div 
                    className="text-center cursor-pointer hover:bg-gray-50 rounded-lg p-4 transition-colors"
-                   onClick={() => router.push(`/students/${params.id}/absences`)}
+                   onClick={() => router.push(`/students/${studentId}/absences`)}
                  >
                    <div className="text-4xl font-bold text-gray-900 mb-1">
                      {studentData.absences?.totalAbsences ?? 0}
@@ -390,7 +389,7 @@ const StudentProfilePage = () => {
                  </div>
                  <div 
                    className="text-center cursor-pointer hover:bg-gray-50 rounded-lg p-4 transition-colors"
-                   onClick={() => router.push(`/students/${params.id}/tardies`)}
+                   onClick={() => router.push(`/students/${studentId}/tardies`)}
                  >
                    <div className="text-4xl font-bold text-gray-900 mb-1">
                      {studentData.absences?.totalTardies ?? 0}

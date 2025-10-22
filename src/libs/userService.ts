@@ -4,7 +4,7 @@ import { UserInfo } from '@/types/UserInfo';
 import { cookies } from 'next/headers';
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { User } from '@/types/Models';
-import bcrypt from 'bcrypt';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 type UsersRequest = {
   fetchWithCount?: boolean;
@@ -323,23 +323,55 @@ export async function addUser(userData: {
       throw new Error('No school selected');
     }
 
-    const defaultPassword = process.env.DEFAULT_USER_PASSWORD || 'TempPassword123!';
-    const encryptedPassword = await bcrypt.hash(defaultPassword, 10);
-    
-    const { data: userId, error: rpcError } = await supabaseAdmin.rpc('create_user_with_membership', {
-      p_email: userData.email.trim(),
-      p_encrypted_password: encryptedPassword,
-      p_first_name: userData.firstName.trim(),
-      p_last_name: userData.lastName.trim(),
-      p_school_id: selectedSchoolId,
-      p_membership_role: 'user'
+    const { data: isWhitelisted, error: whitelistError } = await supabase.rpc('is_email_domain_whitelisted', {
+      p_email_domain: userData.email.trim().toLowerCase().split('@')[1],
+      p_school_id: selectedSchoolId
     });
 
-    if (rpcError) {
-      throw new Error(`Failed to create user: ${rpcError.message}`);
+    if (whitelistError || !isWhitelisted) {
+      throw new Error('Email domain is not whitelisted');
     }
 
-    return userId;
+    const {userId: auth_user_id, existingUser} = await getOrCreateAuthUser({
+      supabase: supabaseAdmin,
+      email: userData.email.trim().toLowerCase(),
+      password: process.env.DEFAULT_USER_PASSWORD || 'TempPassword123!',
+      firstName: userData.firstName.trim(),
+      lastName: userData.lastName.trim(),
+    });
+     
+    const { error: insertError } = await supabase.from('user_school_memberships').upsert({
+      user_id: auth_user_id,
+      school_id: selectedSchoolId,
+      role: userData.role,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    if (insertError) {
+      throw new Error('An error occurred while creating the user school membership. Please try again.');
+    }
+
+    if (!existingUser) {
+      
+      // Send invite email to user
+      const redirectUrl = `${process.env.APP_URL}/forgot-password`;
+      const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        userData.email.trim().toLowerCase(),
+        {
+          redirectTo: redirectUrl,
+        }
+      );
+      
+      if (inviteError) {
+        console.error('Failed to send invite email:', inviteError);
+        throw inviteError;
+      }
+      
+    }
+
+
+    return auth_user_id;
 
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
@@ -473,3 +505,45 @@ export async function updateUserProfile(profile: UpdateUserProfileRequest): Prom
     throw new Error(`Error: ${message}`);
   }
 }
+
+export async function getOrCreateAuthUser({supabase, email, password, firstName, lastName }: { supabase: SupabaseClient, email: string, password: string, firstName: string, lastName: string }) {
+
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('user_id, first_name, last_name')
+    .eq('email', email.trim().toLowerCase())
+    .single();
+
+  if (existingUser) {
+    return {userId: existingUser.user_id, existingUser: true};
+  }
+
+  // Step 1: Try to create a new user
+  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: false
+  });
+
+  
+  if (createError) {
+    throw new Error('An error occurred while creating the auth user. Please try again.');
+  }
+  
+  if (newUser?.user?.id) {
+    const { error: insertError } = await supabase.from('users').insert({
+      user_id: newUser.user.id,
+      auth_user_id: newUser.user.id,
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`,
+      email: email.toLowerCase(),
+    });
+    if (insertError) {
+      throw new Error('An error occurred while creating the user profile. Please try again.');
+    }
+    return {userId: newUser.user.id, existingUser: false};
+  }
+  throw new Error('An unexpected error occurred while creating the user profile. Please try again.');
+}
+

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { createClient } from '@/utils/supabase/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import LoginHeader from '@/components/LoginHeader'
+import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,6 +17,15 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullScreenMessage, setFullScreenMessage] = useState('');
   const [message, setMessage] = useState('')
+  const { handleLogout } = useAuth();
+
+  const code = searchParams.get('code');
+
+  const hash = window.location.hash.substring(1) // remove '#'
+  const hashParams = new URLSearchParams(hash)
+  const accessToken = hashParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token');
+  const type = hashParams.get('type');
 
 const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,23 +59,26 @@ const handleResetPassword = async (e: React.FormEvent) => {
       setMessage('Passwords do not match');
       return;
     }
-    const supabase = await createClient() 
+    const supabase = await createClient()
+    if (accessToken && refreshToken) {
+     await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+    }
     const { error } = await supabase.auth.updateUser({ password })    
 
     if (error) {
-      setMessage(error.message);
+      setMessage('Something went wrong while updating your password. Please use the forgot password link on login page to reset your password again.');
     } else {
+      await handleLogout();
       setShowUpdatePassword(false);
       setFullScreenMessage('Password updated successfully.');
     }
   }
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    if (code) {
-      setShowUpdatePassword(true);
-    }
-  }, [searchParams]);
+    if (!code && !accessToken && !type) return;
+    console.log('code', code, 'accessToken', accessToken, 'type', type);
+    setShowUpdatePassword(true);
+  }, [code, accessToken, type]);
 
   if (showUpdatePassword) {
 

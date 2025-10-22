@@ -86,7 +86,6 @@ const UsersPage = () => {
     email: string;
     role: string;
   }) => {
-    // Add new user
     const response = await fetch('/api/users', {
       method: 'POST',
       headers: {
@@ -98,11 +97,7 @@ const UsersPage = () => {
     const result = await response.json();
 
     if (!response.ok) {
-      setAlertMessage({
-        type: 'destructive',
-        message: result.error || 'Failed to add user'
-      });
-      return;
+      throw new Error(result.error || 'Failed to add user');
     }
 
     // Refresh the users list to get the updated data

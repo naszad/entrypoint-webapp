@@ -7,8 +7,6 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const filtersParam = url.searchParams.get('filters');
     const sort = url.searchParams.get('sort');
-    const pageNumber = parseInt(url.searchParams.get('pageNumber') || '1', 10);
-    const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
     const fetchWithCount = url.searchParams.get('fetchWithCount') === 'true';
 
     let filters: FilterValue[] = [];
@@ -23,7 +21,6 @@ export async function GET(req: Request) {
       fetchWithCount,
       filters,
       sort,
-      pagingInfo: { pageNumber, pageSize }
     });
     return NextResponse.json(usersResponse);
   } catch (err: unknown) {
@@ -47,7 +44,7 @@ export async function POST(req: Request) {
     const userId = await addUser({ firstName, lastName, email, role });
     return NextResponse.json({ userId }, { status: 201 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
+    const message = err instanceof Error ? err.message : 'An error occurred while adding the user. Please try again.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
