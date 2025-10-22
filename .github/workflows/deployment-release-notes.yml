@@ -52,6 +52,7 @@ jobs:
       run_url: ${{ steps.generate_notes.outputs.run_url }}
       status_summary: ${{ steps.generate_notes.outputs.status_summary }}
       deployed_by: ${{ steps.generate_notes.outputs.deployed_by }}
+      highlights_json: ${{ steps.generate_notes.outputs.highlights_json }}
     steps:
       - name: Generate release notes
         id: generate_notes
@@ -308,6 +309,8 @@ jobs:
 
             const issueMap = new Map();
             const unlinkedChanges = [];
+            const issueHighlights = [];
+            const miscHighlights = [];
 
             for (const commit of commits) {
               const sha = commit.sha;
@@ -363,6 +366,11 @@ jobs:
               if (!keys.size) {
                 const prFragment = prNumber ? `[#${prNumber}](${prUrl}) – ${prTitle}` : commitMessage;
                 unlinkedChanges.push(`- ${prFragment} (${authorName}) ([${shortSha}](${commitUrl}))`);
+                miscHighlights.push({
+                  title: prNumber ? `#${prNumber} – ${prTitle || commitMessage}` : commitMessage,
+                  url: prNumber ? prUrl : commitUrl,
+                  author: authorName,
+                });
               }
             }
 
@@ -375,6 +383,19 @@ jobs:
               const issueUrl = issue?.url || fallbackUrl;
               const issueLabel = issueUrl ? `[${key}](${issueUrl})` : key;
               jiraLines.push(`- ${issueLabel} – ${summary}${issueStatus}`);
+              issueHighlights.push({
+                key,
+                summary,
+                status: issue?.status || '',
+                url: issueUrl || '',
+                items: info.items.map((item) => ({
+                  prNumber: item.prNumber,
+                  prTitle: item.prTitle || item.commitMessage,
+                  prUrl: item.prUrl || item.commitUrl,
+                  author: item.authorName,
+                  commitUrl: item.commitUrl,
+                })),
+              });
               for (const item of info.items) {
                 const prFragment = item.prNumber ? `[#${item.prNumber}](${item.prUrl}) – ${item.prTitle}` : item.commitMessage;
                 jiraLines.push(`  - ${prFragment} (${item.authorName})`);
@@ -440,6 +461,10 @@ jobs:
             core.setOutput('run_url', runUrl);
             core.setOutput('status_summary', statusSummary);
             core.setOutput('deployed_by', deployer);
+            core.setOutput('highlights_json', JSON.stringify({
+              issues: issueHighlights,
+              misc: miscHighlights,
+            }));
 
             if (noteBody) {
               core.summary.addHeading('Deployment Notes');
@@ -532,6 +557,7 @@ jobs:
           DEPLOYED_BY: ${{ needs.build-release-notes.outputs.deployed_by }}
           RUN_URL: ${{ needs.build-release-notes.outputs.run_url }}
           ENVIRONMENT_URL: ${{ env.ENVIRONMENT_URL }}
+          HIGHLIGHTS_JSON: ${{ needs.build-release-notes.outputs.highlights_json }}
         shell: bash
         run: |
           set -euo pipefail
@@ -556,24 +582,114 @@ jobs:
           const summary = process.env.STATUS_SUMMARY || 'Deployment completed successfully.';
           const runUrl = process.env.RUN_URL || '';
           const environmentUrl = process.env.ENVIRONMENT_URL || '';
-          const releaseNotesRaw = process.env.RELEASE_NOTES || '';
+          let highlightsData = {};
+          try {
+            const parsed = JSON.parse(process.env.HIGHLIGHTS_JSON || '{}');
+            if (parsed && typeof parsed === 'object') {
+              highlightsData = parsed;
+            }
+          } catch (error) {
+            console.warn(`Failed to parse highlights JSON: ${error.message}`);
+          }
 
-          const markdownToPlain = (text) =>
-            (text || '')
-              .replace(/\r/g, '')
-              .replace(/\*\*(.*?)\*\*/g, '$1')
-              .replace(/\*(.*?)\*/g, '$1')
-              .replace(/`([^`]*)`/g, '$1')
-              .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
-              .replace(/#+\s*/g, '')
-              .trim();
+          const issueHighlights = Array.isArray(highlightsData.issues) ? highlightsData.issues : [];
+          const miscHighlights = Array.isArray(highlightsData.misc) ? highlightsData.misc : [];
 
-          const trimmedNotes = releaseNotesRaw
-            .split('\n')
-            .slice(0, 20)
-            .map((line) => markdownToPlain(line))
-            .filter(Boolean)
-            .join('\n');
+          const widgets = [];
+
+          widgets.push({
+            decoratedText: {
+              topLabel: 'Summary',
+              text: summary,
+              wrapText: true,
+            },
+          });
+
+          widgets.push({
+            decoratedText: {
+              topLabel: 'Deployed by',
+              text: deployedBy,
+            },
+          });
+
+          if (environmentUrl) {
+          widgets.push({
+            decoratedText: {
+              topLabel: 'Environment URL',
+              text: environmentUrl,
+              wrapText: true,
+              onClick: { openLink: { url: environmentUrl } },
+            },
+          });
+          }
+
+          if (runUrl) {
+            widgets.push({
+              decoratedText: {
+                topLabel: 'Workflow Run',
+                text: runUrl,
+                wrapText: true,
+                onClick: { openLink: { url: runUrl } },
+              },
+            });
+          }
+
+          const sections = [{ widgets }];
+
+          if (issueHighlights.length) {
+            const issueText = issueHighlights
+              .map((issue) => {
+                const issueLink = issue.url ? `<a href="${issue.url}">${issue.key}</a>` : issue.key;
+                const statusSuffix = issue.status ? ` (Status: ${issue.status})` : '';
+                const header = `<b>${issueLink}</b> – ${issue.summary || 'No summary'}${statusSuffix}`;
+                const items = Array.isArray(issue.items)
+                  ? issue.items
+                      .map((item) => {
+                        const linkTarget = item.prUrl || item.commitUrl || '';
+                        const linkText = item.prNumber
+                          ? `#${item.prNumber} – ${item.prTitle || 'Details'}`
+                          : item.prTitle || linkTarget || 'Details';
+                        const link = linkTarget ? `<a href="${linkTarget}">${linkText}</a>` : linkText;
+                        const authorPart = item.author ? ` (${item.author})` : '';
+                        return `• ${link}${authorPart}`;
+                      })
+                      .join('<br>')
+                  : '';
+                return items ? `${header}<br>${items}` : header;
+              })
+              .join('<br><br>');
+
+            sections.push({
+              header: 'JIRA Issues',
+              widgets: [
+                {
+                  textParagraph: {
+                    text: issueText,
+                  },
+                },
+              ],
+            });
+          }
+
+          if (miscHighlights.length) {
+            const miscText = miscHighlights
+              .map((item) => {
+                const link = item.url ? `<a href="${item.url}">${item.title}</a>` : item.title;
+                const authorPart = item.author ? ` (${item.author})` : '';
+                return `• ${link}${authorPart}`;
+              })
+              .join('<br>');
+            sections.push({
+              header: 'Changes without JIRA',
+              widgets: [
+                {
+                  textParagraph: {
+                    text: miscText,
+                  },
+                },
+              ],
+            });
+          }
 
           const buttons = [];
           if (environmentUrl) {
@@ -586,52 +702,6 @@ jobs:
             buttons.push({
               text: 'Workflow Run',
               onClick: { openLink: { url: runUrl } },
-            });
-          }
-
-          const noteLines = trimmedNotes
-            ? trimmedNotes.split('\n').map((line) => {
-                const cleaned = line.replace(/^[-*]\s*/, '');
-                return `• ${cleaned}`;
-              })
-            : [];
-
-          const sections = [
-            {
-              widgets: [
-                {
-                  keyValue: {
-                    topLabel: 'Summary',
-                    content: summary,
-                    contentMultiline: true,
-                  },
-                },
-                {
-                  keyValue: {
-                    topLabel: 'Environment',
-                    content: environment,
-                  },
-                },
-                {
-                  keyValue: {
-                    topLabel: 'Deployed by',
-                    content: deployedBy,
-                  },
-                },
-              ],
-            },
-          ];
-
-          if (noteLines.length) {
-            sections.push({
-              header: 'Highlights',
-              widgets: [
-                {
-                  textParagraph: {
-                    text: noteLines.join('<br>'),
-                  },
-                },
-              ],
             });
           }
 
@@ -653,8 +723,7 @@ jobs:
                 cardId: 'deployment-notes',
                 card: {
                   header: {
-                    title: `Deployment to ${environment} succeeded`,
-                    subtitle: `Deployed by ${deployedBy}`,
+                    title: `Deployment to ${environment} succeeded`
                   },
                   sections,
                 },
