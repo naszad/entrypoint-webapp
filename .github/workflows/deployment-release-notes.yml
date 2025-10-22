@@ -607,6 +607,13 @@ jobs:
 
           widgets.push({
             decoratedText: {
+              topLabel: 'Environment',
+              text: environment,
+            },
+          });
+
+          widgets.push({
+            decoratedText: {
               topLabel: 'Summary',
               text: summary,
               wrapText: true,
@@ -621,14 +628,14 @@ jobs:
           });
 
           if (environmentUrl) {
-          widgets.push({
-            decoratedText: {
-              topLabel: 'Environment URL',
-              text: environmentUrl,
-              wrapText: true,
-              onClick: { openLink: { url: environmentUrl } },
-            },
-          });
+            widgets.push({
+              decoratedText: {
+                topLabel: 'Environment URL',
+                text: environmentUrl,
+                wrapText: true,
+                onClick: { openLink: { url: environmentUrl } },
+              },
+            });
           }
 
           if (runUrl) {
