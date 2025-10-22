@@ -52,7 +52,6 @@ jobs:
       run_url: ${{ steps.generate_notes.outputs.run_url }}
       status_summary: ${{ steps.generate_notes.outputs.status_summary }}
       deployed_by: ${{ steps.generate_notes.outputs.deployed_by }}
-      deployed_by: ${{ steps.generate_notes.outputs.deployed_by }}
     steps:
       - name: Generate release notes
         id: generate_notes
