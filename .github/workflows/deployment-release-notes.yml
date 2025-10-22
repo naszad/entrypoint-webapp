@@ -381,7 +381,6 @@ jobs:
             }
 
             const lines = [];
-            lines.push(`# Deployment Notes`);
             lines.push('');
             lines.push(`**Environment:** ${environment}`);
             lines.push(`**Deployed by:** ${deployer}`);
@@ -480,9 +479,19 @@ jobs:
       ENVIRONMENT_NAME: ${{ needs.build-release-notes.outputs.environment }}
       STATUS_SUMMARY: ${{ needs.build-release-notes.outputs.status_summary }}
       APP_URL: ${{ vars.APP_URL }}
-      APP_URL_DEV: ${{ vars.APP_URL_DEV }}
-      APP_URL_PRODUCTION: ${{ vars.APP_URL_PRODUCTION }}
+      NOTIFY_WEBHOOK: ${{ vars.NOTIFY_WEBHOOK }}
     steps:
+      - name: Prepare notification context
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_url="${APP_URL:-}"
+
+          notify_combined="${NOTIFY_WEBHOOK:-}"
+
+          echo "ENVIRONMENT_URL=$env_url" >> "$GITHUB_ENV"
+          echo "NOTIFY_WEBHOOKS=$notify_combined" >> "$GITHUB_ENV"
+
       - name: Update deployment status with release notes
         uses: actions/github-script@v7
         with:
@@ -490,11 +499,7 @@ jobs:
           script: |
             const deploymentId = Number(process.env.DEPLOYMENT_ID);
             const runUrl = process.env.RUN_URL || '';
-            const envName = (process.env.ENVIRONMENT_NAME || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
-            let environmentUrl = process.env.APP_URL || '';
-            if (!environmentUrl && envName) {
-              environmentUrl = process.env[`APP_URL_${envName}`] || '';
-            }
+            const environmentUrl = process.env.ENVIRONMENT_URL || '';
             const summary = process.env.STATUS_SUMMARY || 'Deployment completed successfully.';
 
             const description = summary.length > 140 ? `${summary.slice(0, 137)}...` : summary;
@@ -514,3 +519,125 @@ jobs:
               environment_url: environmentUrl || undefined,
               auto_inactive: true,
             });
+
+      - name: Notify Google Chat
+        if: ${{ env.NOTIFY_WEBHOOKS != '' }}
+        env:
+          WEBHOOKS: ${{ env.NOTIFY_WEBHOOKS }}
+          RELEASE_NOTES: ${{ needs.build-release-notes.outputs.release_notes }}
+          STATUS_SUMMARY: ${{ needs.build-release-notes.outputs.status_summary }}
+          ENVIRONMENT_NAME: ${{ needs.build-release-notes.outputs.environment }}
+          RUN_URL: ${{ needs.build-release-notes.outputs.run_url }}
+          ENVIRONMENT_URL: ${{ env.ENVIRONMENT_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const https = require('https');
+          const { URL } = require('url');
+
+          const splitWebhooks = (value = '') =>
+            value
+              .split(/(\|\||\n|,)/)
+              .map((part) => part.trim())
+              .filter((part) => part && part !== '||' && part !== ',');
+
+          const webhooks = splitWebhooks(process.env.WEBHOOKS || '');
+          if (!webhooks.length) {
+            console.log('No Google Chat webhooks configured; skipping notification.');
+            process.exit(0);
+          }
+
+          const environment = process.env.ENVIRONMENT_NAME || 'Unknown';
+          const summary = process.env.STATUS_SUMMARY || 'Deployment completed successfully.';
+          const runUrl = process.env.RUN_URL || '';
+          const environmentUrl = process.env.ENVIRONMENT_URL || '';
+          const releaseNotesRaw = process.env.RELEASE_NOTES || '';
+
+          const markdownToPlain = (text) =>
+            (text || '')
+              .replace(/\r/g, '')
+              .replace(/\*\*(.*?)\*\*/g, '$1')
+              .replace(/\*(.*?)\*/g, '$1')
+              .replace(/`([^`]*)`/g, '$1')
+              .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
+              .replace(/#+\s*/g, '')
+              .trim();
+
+          const trimmedNotes = releaseNotesRaw
+            .split('\n')
+            .slice(0, 20)
+            .map((line) => markdownToPlain(line))
+            .filter(Boolean)
+            .join('\n');
+
+          const lines = [];
+          lines.push(`Deployment to ${environment} succeeded.`);
+          lines.push(`Summary: ${summary}`);
+          if (environmentUrl) {
+            lines.push(`Environment: ${environmentUrl}`);
+          }
+          if (runUrl) {
+            lines.push(`Workflow run: ${runUrl}`);
+          }
+          if (trimmedNotes) {
+            lines.push('');
+            lines.push(trimmedNotes);
+          }
+
+          const payload = { text: lines.join('\n') };
+          const payloadData = JSON.stringify(payload);
+
+          const send = (webhook) =>
+            new Promise((resolve, reject) => {
+              try {
+                const url = new URL(webhook);
+                const options = {
+                  method: 'POST',
+                  hostname: url.hostname,
+                  path: url.pathname + url.search,
+                  headers: {
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'Content-Length': Buffer.byteLength(payloadData),
+                  },
+                };
+
+                const req = https.request(options, (res) => {
+                  const chunks = [];
+                  res.on('data', (chunk) => chunks.push(chunk));
+                  res.on('end', () => {
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                      console.log(`Sent notification to ${webhook.substring(0, 60)}…`);
+                      resolve();
+                    } else {
+                      const body = Buffer.concat(chunks).toString();
+                      reject(new Error(`Webhook ${webhook} returned HTTP ${res.statusCode}: ${body}`));
+                    }
+                  });
+                });
+                req.on('error', reject);
+                req.write(payloadData);
+                req.end();
+              } catch (error) {
+                reject(error);
+              }
+            });
+
+          Promise.allSettled(webhooks.map(send))
+            .then((results) => {
+              const failures = results.filter((result) => result.status === 'rejected');
+              if (failures.length) {
+                failures.forEach((failure) => console.error(failure.reason));
+                console.warn(`One or more webhook notifications failed (${failures.length}/${webhooks.length}).`);
+                process.exit(0);
+              } else {
+                console.log(`Webhook notifications sent (${webhooks.length}).`);
+                process.exit(0);
+              }
+            })
+            .catch((error) => {
+              console.error(error);
+              console.warn('Error sending webhook notifications; continuing workflow.');
+              process.exit(0);
+            });
+          NODE
