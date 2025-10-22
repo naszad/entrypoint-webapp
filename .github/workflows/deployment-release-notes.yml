@@ -51,6 +51,8 @@ jobs:
       deployment_id: ${{ steps.generate_notes.outputs.deployment_id }}
       run_url: ${{ steps.generate_notes.outputs.run_url }}
       status_summary: ${{ steps.generate_notes.outputs.status_summary }}
+      deployed_by: ${{ steps.generate_notes.outputs.deployed_by }}
+      deployed_by: ${{ steps.generate_notes.outputs.deployed_by }}
     steps:
       - name: Generate release notes
         id: generate_notes
@@ -438,6 +440,7 @@ jobs:
             core.setOutput('deployment_id', currentDeployment?.id ? String(currentDeployment.id) : '');
             core.setOutput('run_url', runUrl);
             core.setOutput('status_summary', statusSummary);
+            core.setOutput('deployed_by', deployer);
 
             if (noteBody) {
               core.summary.addHeading('Deployment Notes');
@@ -527,6 +530,7 @@ jobs:
           RELEASE_NOTES: ${{ needs.build-release-notes.outputs.release_notes }}
           STATUS_SUMMARY: ${{ needs.build-release-notes.outputs.status_summary }}
           ENVIRONMENT_NAME: ${{ needs.build-release-notes.outputs.environment }}
+          DEPLOYED_BY: ${{ needs.build-release-notes.outputs.deployed_by }}
           RUN_URL: ${{ needs.build-release-notes.outputs.run_url }}
           ENVIRONMENT_URL: ${{ env.ENVIRONMENT_URL }}
         shell: bash
@@ -549,6 +553,7 @@ jobs:
           }
 
           const environment = process.env.ENVIRONMENT_NAME || 'Unknown';
+          const deployedBy = process.env.DEPLOYED_BY || 'unknown';
           const summary = process.env.STATUS_SUMMARY || 'Deployment completed successfully.';
           const runUrl = process.env.RUN_URL || '';
           const environmentUrl = process.env.ENVIRONMENT_URL || '';
@@ -571,21 +576,93 @@ jobs:
             .filter(Boolean)
             .join('\n');
 
-          const lines = [];
-          lines.push(`Deployment to ${environment} succeeded.`);
-          lines.push(`Summary: ${summary}`);
+          const buttons = [];
           if (environmentUrl) {
-            lines.push(`Environment: ${environmentUrl}`);
+            buttons.push({
+              text: 'View Environment',
+              onClick: { openLink: { url: environmentUrl } },
+            });
           }
           if (runUrl) {
-            lines.push(`Workflow run: ${runUrl}`);
-          }
-          if (trimmedNotes) {
-            lines.push('');
-            lines.push(trimmedNotes);
+            buttons.push({
+              text: 'Workflow Run',
+              onClick: { openLink: { url: runUrl } },
+            });
           }
 
-          const payload = { text: lines.join('\n') };
+          const noteLines = trimmedNotes
+            ? trimmedNotes.split('\n').map((line) => {
+                const cleaned = line.replace(/^[-*]\s*/, '');
+                return `• ${cleaned}`;
+              })
+            : [];
+
+          const sections = [
+            {
+              widgets: [
+                {
+                  keyValue: {
+                    topLabel: 'Summary',
+                    content: summary,
+                    contentMultiline: true,
+                  },
+                },
+                {
+                  keyValue: {
+                    topLabel: 'Environment',
+                    content: environment,
+                  },
+                },
+                {
+                  keyValue: {
+                    topLabel: 'Deployed by',
+                    content: deployedBy,
+                  },
+                },
+              ],
+            },
+          ];
+
+          if (noteLines.length) {
+            sections.push({
+              header: 'Highlights',
+              widgets: [
+                {
+                  textParagraph: {
+                    text: noteLines.join('<br>'),
+                  },
+                },
+              ],
+            });
+          }
+
+          if (buttons.length) {
+            sections.push({
+              widgets: [
+                {
+                  buttonList: {
+                    buttons,
+                  },
+                },
+              ],
+            });
+          }
+
+          const payload = {
+            cardsV2: [
+              {
+                cardId: 'deployment-notes',
+                card: {
+                  header: {
+                    title: `Deployment to ${environment} succeeded`,
+                    subtitle: `Deployed by ${deployedBy}`,
+                  },
+                  sections,
+                },
+              },
+            ],
+          };
+
           const payloadData = JSON.stringify(payload);
 
           const send = (webhook) =>
