@@ -50,6 +50,9 @@ next-env.d.ts
 *storybook.log
 supabase/backups
 
+# temporary audio chunks
+/tmp/
+
 # cache
 .cache
 
