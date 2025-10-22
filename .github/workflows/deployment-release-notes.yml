@@ -516,12 +516,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          env_url="${APP_URL:-}"
-
-          notify_combined="${NOTIFY_WEBHOOK:-}"
-
-          echo "ENVIRONMENT_URL=$env_url" >> "$GITHUB_ENV"
-          echo "NOTIFY_WEBHOOKS=$notify_combined" >> "$GITHUB_ENV"
+          echo "ENVIRONMENT_URL=${APP_URL:-}" >> "$GITHUB_ENV"
+          echo "NOTIFY_WEBHOOKS=${NOTIFY_WEBHOOK:-}" >> "$GITHUB_ENV"
 
       - name: Update deployment status with release notes
         uses: actions/github-script@v7
