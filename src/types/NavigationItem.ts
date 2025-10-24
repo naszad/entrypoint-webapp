@@ -4,4 +4,5 @@ export interface NavigationItem {
   name: string;
   href: string;
   icon: LucideIcon;
+  divider?: boolean;
 }

@@ -143,10 +143,6 @@ const getGradeColumnName = (key: string) => {
 const applyFilters = (q: any, filters: FilterValue[]) => {
 
   filters.forEach((filter) => {
-    // Skip GPA filter as it needs to be applied after data fetching
-    if (filter.key === 'gpa') {
-      return;
-    }
     
     let baseColumnKey = filter.key;
     if (filter.key.endsWith('RecentOnly') && parseInt(filter.value) > 0) {

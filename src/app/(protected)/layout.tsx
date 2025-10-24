@@ -16,7 +16,7 @@ function ChatAssistantOpenLayout({ children }: { children: React.ReactNode }) {
       )}
     >
       <Suspense>
-        <main className="px-9 py-5 w-full min-h-full bg-gray-100 pt-9">{children}</main>
+        <main className="px-9 w-full min-h-full bg-gray-100 pt-9">{children}</main>
       </Suspense>
     </div>
   );

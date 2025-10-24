@@ -1485,7 +1485,7 @@ export function ChatAssistant() {
               <div className="flex-1">
                 <Input
                   autoFocus={isChatAssistantOpen}
-                  placeholder={status === 'streaming' || status === 'submitted' ? "Please wait..." : "Ask a question about your students..."}
+                  placeholder={status === 'streaming' || status === 'submitted' ? "Please wait..." : "How can I help?"}
                   value={input}
                   onChange={handleInputChange}
                   disabled={status === 'streaming' || status === 'submitted'}
