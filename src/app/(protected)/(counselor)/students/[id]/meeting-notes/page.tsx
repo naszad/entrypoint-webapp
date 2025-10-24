@@ -325,6 +325,10 @@ const StudentMeetingNotesPage = () => {
               <h3 className="text-lg font-semibold mb-3 text-gray-700">
                 Generating summary
               </h3>
+              <p className="text-gray-600 mb-3 italic">
+                Please do not close your browser or navigate away until the
+                summary is generated.
+              </p>
               <div className="flex space-x-1">
                 <div
                   className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"

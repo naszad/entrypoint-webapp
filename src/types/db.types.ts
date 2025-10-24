@@ -123,6 +123,68 @@ export type Database = {
           },
         ]
       }
+      contacts: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          customer_id: string
+          email_address: string | null
+          external_id: string
+          external_key: string
+          external_key_hash: string
+          external_source: string
+          first_name: string | null
+          gender: string | null
+          last_name: string | null
+          phone_mobile: string | null
+          phone_preferred: string | null
+          source_updated_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string
+          created_at?: string | null
+          customer_id: string
+          email_address?: string | null
+          external_id: string
+          external_key: string
+          external_key_hash: string
+          external_source?: string
+          first_name?: string | null
+          gender?: string | null
+          last_name?: string | null
+          phone_mobile?: string | null
+          phone_preferred?: string | null
+          source_updated_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          customer_id?: string
+          email_address?: string | null
+          external_id?: string
+          external_key?: string
+          external_key_hash?: string
+          external_source?: string
+          first_name?: string | null
+          gender?: string | null
+          last_name?: string | null
+          phone_mobile?: string | null
+          phone_preferred?: string | null
+          source_updated_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_customer_id_customers_customer_id_fk"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           course_id: string
@@ -616,6 +678,75 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["customer_id"]
+          },
+        ]
+      }
+      student_contact_relationships: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          customer_id: string
+          relation_to_student: string | null
+          school_id: string
+          student_contact_relationship_id: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          customer_id: string
+          relation_to_student?: string | null
+          school_id: string
+          student_contact_relationship_id?: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          customer_id?: string
+          relation_to_student?: string | null
+          school_id?: string
+          student_contact_relationship_id?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_contact_relationships_contact_id_contacts_contact_id_fk"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "student_contact_relationships_customer_id_customers_customer_id"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "student_contact_relationships_school_id_schools_school_id_fk"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "student_contact_relationships_student_id_students_student_id_fk"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_notes_students_school_student_link_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_contact_relationships_student_id_students_student_id_fk"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["student_id"]
           },
         ]
       }
@@ -1663,7 +1794,7 @@ export type Database = {
           },
         ]
       }
-      school_student_link_students_view: {
+      school_student_link_students_gpa_view: {
         Row: {
           created_at: string | null
           customer_id: string | null
@@ -1678,6 +1809,7 @@ export type Database = {
           first_name: string | null
           full_name: string | null
           gender: string | null
+          gpa: number | null
           grade_level: number | null
           graduation_year: number | null
           homeroom_name: string | null
@@ -2128,6 +2260,10 @@ export type Database = {
       get_student_year_labels: {
         Args: { p_student_id: string }
         Returns: string[]
+      }
+      is_email_domain_whitelisted: {
+        Args: { p_email_domain: string; p_school_id: string }
+        Returns: boolean
       }
       list_public_tables: {
         Args: Record<PropertyKey, never>
