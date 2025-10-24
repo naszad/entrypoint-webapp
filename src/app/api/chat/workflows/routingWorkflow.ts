@@ -23,6 +23,8 @@ const ALL_TOOL_NAMES = [
   'execute_sql',
   'identify_student',
   'get_student_gpa',
+  'get_current_date',
+  'get_academic_terms',
 ] as const;
 
 const WORKFLOW_CONFIGS: Record<WorkflowCategory, WorkflowConfig> = {

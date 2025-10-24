@@ -12,6 +12,8 @@ import { filterStudentsTool } from './filterStudents';
 import { filterGradesTool } from './filterGrades';
 import { listTablesTool, getTableSchemaTool, executeSqlTool } from './databaseTools';
 import { identifyStudentTool, getStudentGpaTool } from './studentTools';
+import { getCurrentDateTool } from './dateTools';
+import { getAcademicTermsTool } from './termTools';
 
 export class ToolRegistry {
   private tools: Map<string, ChatTool> = new Map();
@@ -36,6 +38,10 @@ export class ToolRegistry {
     // Register student-specific tools
     this.registerTool(identifyStudentTool);
     this.registerTool(getStudentGpaTool(this.context));
+
+    // Register utility tools
+    this.registerTool(getCurrentDateTool);
+    this.registerTool(getAcademicTermsTool(this.context));
   }
 
   private registerTool(tool: ChatTool): void {
@@ -97,9 +103,11 @@ export class ToolRegistry {
     // Re-register context-dependent tools
     this.tools.delete('execute_sql');
     this.tools.delete('get_student_gpa');
+    this.tools.delete('get_academic_terms');
     
     this.registerTool(executeSqlTool(this.context));
     this.registerTool(getStudentGpaTool(this.context));
+    this.registerTool(getAcademicTermsTool(this.context));
   }
 
   registerSqlEvaluation(sql: string, evaluation: SqlEvaluationResult): void {
