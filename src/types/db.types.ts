@@ -336,6 +336,51 @@ export type Database = {
           },
         ]
       }
+      pipeline_error_log: {
+        Row: {
+          conflict_key: string | null
+          created_at: string | null
+          customer_id: string | null
+          error_message: string | null
+          id: string
+          record: Json | null
+          run_id: string | null
+          school_external_id: string | null
+          section_external_id: string | null
+          student_external_id: string | null
+          table_name: string | null
+          year_external_id: string | null
+        }
+        Insert: {
+          conflict_key?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          error_message?: string | null
+          id?: string
+          record?: Json | null
+          run_id?: string | null
+          school_external_id?: string | null
+          section_external_id?: string | null
+          student_external_id?: string | null
+          table_name?: string | null
+          year_external_id?: string | null
+        }
+        Update: {
+          conflict_key?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          error_message?: string | null
+          id?: string
+          record?: Json | null
+          run_id?: string | null
+          school_external_id?: string | null
+          section_external_id?: string | null
+          student_external_id?: string | null
+          table_name?: string | null
+          year_external_id?: string | null
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           created_at: string | null
@@ -1437,7 +1482,7 @@ export type Database = {
             referencedColumns: ["school_id"]
           },
           {
-            foreignKeyName: "user_school_memberships_user_id_users_user_id_fk"
+            foreignKeyName: "user_school_memberships_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -2101,7 +2146,7 @@ export type Database = {
             referencedColumns: ["school_id"]
           },
           {
-            foreignKeyName: "user_school_memberships_user_id_users_user_id_fk"
+            foreignKeyName: "user_school_memberships_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -2217,11 +2262,14 @@ export type Database = {
           user_id: string | null
           value: Json | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "public_configuration"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
-      get_current_school_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_school_id: { Args: never; Returns: string }
       get_current_student_grades: {
         Args: { p_student_id: string }
         Returns: {
@@ -2266,7 +2314,7 @@ export type Database = {
         Returns: boolean
       }
       list_public_tables: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           comment: string
           name: string
