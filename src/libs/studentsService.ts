@@ -531,7 +531,7 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
     }
 
     if (!data || (Array.isArray(data) && data.length === 0)) {
-      return { currentTerm: null, courses: [] };
+      return { termAbbreviations: [], courses: [] };
     }
 
     type RpcRow = {
@@ -546,8 +546,9 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
 
     const rows = data as RpcRow[];
 
-    // Assuming all rows belong to the same current term
-    const currentTerm = rows.length > 0 ? rows[0].term_abbreviation : null;
+    const termAbbreviations = Array.from(
+      new Set(rows.map(row => row.term_abbreviation).filter((abbreviation): abbreviation is string => !!abbreviation))
+    );
 
     const courses = rows.map((row) => ({
       courseId: row.course_id,
@@ -559,7 +560,7 @@ export async function fetchStudentCurrentGrades(studentId: string): Promise<Stud
     }));
 
     return {
-      currentTerm,
+      termAbbreviations,
       courses,
     };
   } catch (err) {

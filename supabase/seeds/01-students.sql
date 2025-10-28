@@ -31,7 +31,7 @@ INSERT INTO students (
     encode(digest('STUDENT_001', 'sha256'), 'hex'),
     'Emma J',
     2026,
-    'active',
+    'Active',
     'Room 101',
     'Emma Johnson'
   ),
@@ -49,7 +49,7 @@ INSERT INTO students (
     encode(digest('STUDENT_002', 'sha256'), 'hex'),
     'Michael C',
     2026,
-    'active',
+    'Active',
     'Room 102',
     'Michael Chen'
   ),
@@ -67,7 +67,7 @@ INSERT INTO students (
     encode(digest('STUDENT_003', 'sha256'), 'hex'),
     'Sophia R',
     2024,
-    'active',
+    'Active',
     'Room 103',
     'Sophia Rodriguez'
   );
@@ -128,7 +128,7 @@ INSERT INTO students (
     encode(digest('STUDENT_007', 'sha256'), 'hex'),
     'Noah M',
     2024,
-    'active',
+    'Active',
     'Room 104',
     'Noah Miller'
   ),
@@ -146,7 +146,7 @@ INSERT INTO students (
     encode(digest('STUDENT_008', 'sha256'), 'hex'),
     'Isabella G',
     2024,
-    'active',
+    'Active',
     'Room 105',
     'Isabella Garcia'
   ),
@@ -164,7 +164,7 @@ INSERT INTO students (
     encode(digest('STUDENT_009', 'sha256'), 'hex'),
     'Lucas M',
     2025,
-    'active',
+    'Active',
     'Room 106',
     'Lucas Martinez'
   ),
@@ -182,7 +182,7 @@ INSERT INTO students (
     encode(digest('STUDENT_010', 'sha256'), 'hex'),
     'Charlotte D',
     2025,
-    'active',
+    'Active',
     'Room 107',
     'Charlotte Davis'
   ),
@@ -200,7 +200,7 @@ INSERT INTO students (
     encode(digest('STUDENT_011', 'sha256'), 'hex'),
     'Benjamin W',
     2026,
-    'active',
+    'Active',
     'Room 108',
     'Benjamin Wilson'
   ),
@@ -218,7 +218,7 @@ INSERT INTO students (
     encode(digest('STUDENT_012', 'sha256'), 'hex'),
     'Amelia T',
     2026,
-    'active',
+    'Active',
     'Room 109',
     'Amelia Taylor'
   ),
@@ -236,7 +236,7 @@ INSERT INTO students (
     encode(digest('STUDENT_013', 'sha256'), 'hex'),
     'Ethan A',
     2027,
-    'active',
+    'Active',
     'Room 110',
     'Ethan Anderson'
   );
@@ -301,7 +301,7 @@ INSERT INTO students (
     encode(digest('STUDENT_004', 'sha256'), 'hex'),
     'James W',
     2027,
-    'active',
+    'Active',
     'Room 201',
     'James Williams'
   ),
@@ -319,7 +319,7 @@ INSERT INTO students (
     encode(digest('STUDENT_005', 'sha256'), 'hex'),
     'Olivia B',
     2026,
-    'active',
+    'Active',
     'Room 202',
     'Olivia Brown'
   ),
@@ -337,7 +337,7 @@ INSERT INTO students (
     encode(digest('STUDENT_006', 'sha256'), 'hex'),
     'Liam J',
     2025,
-    'active',
+    'Active',
     'Room 203',
     'Liam Jones'
   );

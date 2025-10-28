@@ -179,7 +179,7 @@ const StudentProfilePage = () => {
           
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                {`Current Grades${studentData.currentGrades?.currentTerm ? ` (${studentData.currentGrades.currentTerm})` : ''}`}
+                {`Current Grades${studentData.currentGrades?.termAbbreviations?.length && studentData.currentGrades.termAbbreviations.length > 0 ? ` (${studentData.currentGrades.termAbbreviations.join(', ')})` : ''}`}
               </h3>
               {studentData.gpaInfo === null ? (
                 <div className="text-right">

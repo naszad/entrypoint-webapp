@@ -8,6 +8,6 @@ export type StudentCurrentCourseGrade = {
 };
 
 export type StudentCurrentGrades = {
-  currentTerm: string | null; // e.g. "Q3"
+  termAbbreviations: string[]; // e.g. ["Q3", "Q4"]
   courses: StudentCurrentCourseGrade[];
 }; 
