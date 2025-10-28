@@ -54,1014 +54,1014 @@ create extension if not exists "hypopg" with schema "extensions";
 
 create extension if not exists "index_advisor" with schema "extensions";
 
+-- Commenting these out because they shouldn't have been here. SEe https://github.com/supabase/cli/issues/4068
+-- revoke delete on table "public"."chat_message_feedback" from "anon";
 
-revoke delete on table "public"."chat_message_feedback" from "anon";
+-- revoke insert on table "public"."chat_message_feedback" from "anon";
 
-revoke insert on table "public"."chat_message_feedback" from "anon";
+-- revoke references on table "public"."chat_message_feedback" from "anon";
 
-revoke references on table "public"."chat_message_feedback" from "anon";
+-- revoke select on table "public"."chat_message_feedback" from "anon";
 
-revoke select on table "public"."chat_message_feedback" from "anon";
+-- revoke trigger on table "public"."chat_message_feedback" from "anon";
 
-revoke trigger on table "public"."chat_message_feedback" from "anon";
+-- revoke truncate on table "public"."chat_message_feedback" from "anon";
 
-revoke truncate on table "public"."chat_message_feedback" from "anon";
+-- revoke update on table "public"."chat_message_feedback" from "anon";
 
-revoke update on table "public"."chat_message_feedback" from "anon";
+-- revoke delete on table "public"."chat_message_feedback" from "authenticated";
 
-revoke delete on table "public"."chat_message_feedback" from "authenticated";
+-- revoke insert on table "public"."chat_message_feedback" from "authenticated";
 
-revoke insert on table "public"."chat_message_feedback" from "authenticated";
+-- revoke references on table "public"."chat_message_feedback" from "authenticated";
 
-revoke references on table "public"."chat_message_feedback" from "authenticated";
+-- revoke select on table "public"."chat_message_feedback" from "authenticated";
 
-revoke select on table "public"."chat_message_feedback" from "authenticated";
+-- revoke trigger on table "public"."chat_message_feedback" from "authenticated";
 
-revoke trigger on table "public"."chat_message_feedback" from "authenticated";
+-- revoke truncate on table "public"."chat_message_feedback" from "authenticated";
 
-revoke truncate on table "public"."chat_message_feedback" from "authenticated";
+-- revoke update on table "public"."chat_message_feedback" from "authenticated";
 
-revoke update on table "public"."chat_message_feedback" from "authenticated";
+-- revoke delete on table "public"."chat_message_feedback" from "service_role";
 
-revoke delete on table "public"."chat_message_feedback" from "service_role";
+-- revoke insert on table "public"."chat_message_feedback" from "service_role";
 
-revoke insert on table "public"."chat_message_feedback" from "service_role";
+-- revoke references on table "public"."chat_message_feedback" from "service_role";
 
-revoke references on table "public"."chat_message_feedback" from "service_role";
+-- revoke select on table "public"."chat_message_feedback" from "service_role";
 
-revoke select on table "public"."chat_message_feedback" from "service_role";
+-- revoke trigger on table "public"."chat_message_feedback" from "service_role";
 
-revoke trigger on table "public"."chat_message_feedback" from "service_role";
+-- revoke truncate on table "public"."chat_message_feedback" from "service_role";
 
-revoke truncate on table "public"."chat_message_feedback" from "service_role";
+-- revoke update on table "public"."chat_message_feedback" from "service_role";
 
-revoke update on table "public"."chat_message_feedback" from "service_role";
+-- revoke delete on table "public"."chat_messages" from "anon";
 
-revoke delete on table "public"."chat_messages" from "anon";
+-- revoke insert on table "public"."chat_messages" from "anon";
 
-revoke insert on table "public"."chat_messages" from "anon";
+-- revoke references on table "public"."chat_messages" from "anon";
 
-revoke references on table "public"."chat_messages" from "anon";
+-- revoke select on table "public"."chat_messages" from "anon";
 
-revoke select on table "public"."chat_messages" from "anon";
+-- revoke trigger on table "public"."chat_messages" from "anon";
 
-revoke trigger on table "public"."chat_messages" from "anon";
+-- revoke truncate on table "public"."chat_messages" from "anon";
 
-revoke truncate on table "public"."chat_messages" from "anon";
+-- revoke update on table "public"."chat_messages" from "anon";
 
-revoke update on table "public"."chat_messages" from "anon";
+-- revoke delete on table "public"."chat_messages" from "authenticated";
 
-revoke delete on table "public"."chat_messages" from "authenticated";
+-- revoke insert on table "public"."chat_messages" from "authenticated";
 
-revoke insert on table "public"."chat_messages" from "authenticated";
+-- revoke references on table "public"."chat_messages" from "authenticated";
 
-revoke references on table "public"."chat_messages" from "authenticated";
+-- revoke select on table "public"."chat_messages" from "authenticated";
 
-revoke select on table "public"."chat_messages" from "authenticated";
+-- revoke trigger on table "public"."chat_messages" from "authenticated";
 
-revoke trigger on table "public"."chat_messages" from "authenticated";
+-- revoke truncate on table "public"."chat_messages" from "authenticated";
 
-revoke truncate on table "public"."chat_messages" from "authenticated";
+-- revoke update on table "public"."chat_messages" from "authenticated";
 
-revoke update on table "public"."chat_messages" from "authenticated";
+-- revoke delete on table "public"."chat_messages" from "service_role";
 
-revoke delete on table "public"."chat_messages" from "service_role";
+-- revoke insert on table "public"."chat_messages" from "service_role";
 
-revoke insert on table "public"."chat_messages" from "service_role";
+-- revoke references on table "public"."chat_messages" from "service_role";
 
-revoke references on table "public"."chat_messages" from "service_role";
+-- revoke select on table "public"."chat_messages" from "service_role";
 
-revoke select on table "public"."chat_messages" from "service_role";
+-- revoke trigger on table "public"."chat_messages" from "service_role";
 
-revoke trigger on table "public"."chat_messages" from "service_role";
+-- revoke truncate on table "public"."chat_messages" from "service_role";
 
-revoke truncate on table "public"."chat_messages" from "service_role";
+-- revoke update on table "public"."chat_messages" from "service_role";
 
-revoke update on table "public"."chat_messages" from "service_role";
+-- revoke delete on table "public"."chats" from "anon";
 
-revoke delete on table "public"."chats" from "anon";
+-- revoke insert on table "public"."chats" from "anon";
 
-revoke insert on table "public"."chats" from "anon";
+-- revoke references on table "public"."chats" from "anon";
 
-revoke references on table "public"."chats" from "anon";
+-- revoke select on table "public"."chats" from "anon";
 
-revoke select on table "public"."chats" from "anon";
+-- revoke trigger on table "public"."chats" from "anon";
 
-revoke trigger on table "public"."chats" from "anon";
+-- revoke truncate on table "public"."chats" from "anon";
 
-revoke truncate on table "public"."chats" from "anon";
+-- revoke update on table "public"."chats" from "anon";
 
-revoke update on table "public"."chats" from "anon";
+-- revoke delete on table "public"."chats" from "authenticated";
 
-revoke delete on table "public"."chats" from "authenticated";
+-- revoke insert on table "public"."chats" from "authenticated";
 
-revoke insert on table "public"."chats" from "authenticated";
+-- revoke references on table "public"."chats" from "authenticated";
 
-revoke references on table "public"."chats" from "authenticated";
+-- revoke select on table "public"."chats" from "authenticated";
 
-revoke select on table "public"."chats" from "authenticated";
+-- revoke trigger on table "public"."chats" from "authenticated";
 
-revoke trigger on table "public"."chats" from "authenticated";
+-- revoke truncate on table "public"."chats" from "authenticated";
 
-revoke truncate on table "public"."chats" from "authenticated";
+-- revoke update on table "public"."chats" from "authenticated";
 
-revoke update on table "public"."chats" from "authenticated";
+-- revoke delete on table "public"."chats" from "service_role";
 
-revoke delete on table "public"."chats" from "service_role";
+-- revoke insert on table "public"."chats" from "service_role";
 
-revoke insert on table "public"."chats" from "service_role";
+-- revoke references on table "public"."chats" from "service_role";
 
-revoke references on table "public"."chats" from "service_role";
+-- revoke select on table "public"."chats" from "service_role";
 
-revoke select on table "public"."chats" from "service_role";
+-- revoke trigger on table "public"."chats" from "service_role";
 
-revoke trigger on table "public"."chats" from "service_role";
+-- revoke truncate on table "public"."chats" from "service_role";
 
-revoke truncate on table "public"."chats" from "service_role";
+-- revoke update on table "public"."chats" from "service_role";
 
-revoke update on table "public"."chats" from "service_role";
+-- revoke delete on table "public"."contacts" from "anon";
 
-revoke delete on table "public"."contacts" from "anon";
+-- revoke insert on table "public"."contacts" from "anon";
 
-revoke insert on table "public"."contacts" from "anon";
+-- revoke references on table "public"."contacts" from "anon";
 
-revoke references on table "public"."contacts" from "anon";
+-- revoke select on table "public"."contacts" from "anon";
 
-revoke select on table "public"."contacts" from "anon";
+-- revoke trigger on table "public"."contacts" from "anon";
 
-revoke trigger on table "public"."contacts" from "anon";
+-- revoke truncate on table "public"."contacts" from "anon";
 
-revoke truncate on table "public"."contacts" from "anon";
+-- revoke update on table "public"."contacts" from "anon";
 
-revoke update on table "public"."contacts" from "anon";
+-- revoke delete on table "public"."contacts" from "authenticated";
 
-revoke delete on table "public"."contacts" from "authenticated";
+-- revoke insert on table "public"."contacts" from "authenticated";
 
-revoke insert on table "public"."contacts" from "authenticated";
+-- revoke references on table "public"."contacts" from "authenticated";
 
-revoke references on table "public"."contacts" from "authenticated";
+-- revoke select on table "public"."contacts" from "authenticated";
 
-revoke select on table "public"."contacts" from "authenticated";
+-- revoke trigger on table "public"."contacts" from "authenticated";
 
-revoke trigger on table "public"."contacts" from "authenticated";
+-- revoke truncate on table "public"."contacts" from "authenticated";
 
-revoke truncate on table "public"."contacts" from "authenticated";
+-- revoke update on table "public"."contacts" from "authenticated";
 
-revoke update on table "public"."contacts" from "authenticated";
+-- revoke delete on table "public"."contacts" from "service_role";
 
-revoke delete on table "public"."contacts" from "service_role";
+-- revoke insert on table "public"."contacts" from "service_role";
 
-revoke insert on table "public"."contacts" from "service_role";
+-- revoke references on table "public"."contacts" from "service_role";
 
-revoke references on table "public"."contacts" from "service_role";
+-- revoke select on table "public"."contacts" from "service_role";
 
-revoke select on table "public"."contacts" from "service_role";
+-- revoke trigger on table "public"."contacts" from "service_role";
 
-revoke trigger on table "public"."contacts" from "service_role";
+-- revoke truncate on table "public"."contacts" from "service_role";
 
-revoke truncate on table "public"."contacts" from "service_role";
+-- revoke update on table "public"."contacts" from "service_role";
 
-revoke update on table "public"."contacts" from "service_role";
+-- revoke delete on table "public"."courses" from "anon";
 
-revoke delete on table "public"."courses" from "anon";
+-- revoke insert on table "public"."courses" from "anon";
 
-revoke insert on table "public"."courses" from "anon";
+-- revoke references on table "public"."courses" from "anon";
 
-revoke references on table "public"."courses" from "anon";
+-- revoke select on table "public"."courses" from "anon";
 
-revoke select on table "public"."courses" from "anon";
+-- revoke trigger on table "public"."courses" from "anon";
 
-revoke trigger on table "public"."courses" from "anon";
+-- revoke truncate on table "public"."courses" from "anon";
 
-revoke truncate on table "public"."courses" from "anon";
+-- revoke update on table "public"."courses" from "anon";
 
-revoke update on table "public"."courses" from "anon";
+-- revoke delete on table "public"."courses" from "authenticated";
 
-revoke delete on table "public"."courses" from "authenticated";
+-- revoke insert on table "public"."courses" from "authenticated";
 
-revoke insert on table "public"."courses" from "authenticated";
+-- revoke references on table "public"."courses" from "authenticated";
 
-revoke references on table "public"."courses" from "authenticated";
+-- revoke select on table "public"."courses" from "authenticated";
 
-revoke select on table "public"."courses" from "authenticated";
+-- revoke trigger on table "public"."courses" from "authenticated";
 
-revoke trigger on table "public"."courses" from "authenticated";
+-- revoke truncate on table "public"."courses" from "authenticated";
 
-revoke truncate on table "public"."courses" from "authenticated";
+-- revoke update on table "public"."courses" from "authenticated";
 
-revoke update on table "public"."courses" from "authenticated";
+-- revoke delete on table "public"."courses" from "service_role";
 
-revoke delete on table "public"."courses" from "service_role";
+-- revoke insert on table "public"."courses" from "service_role";
 
-revoke insert on table "public"."courses" from "service_role";
+-- revoke references on table "public"."courses" from "service_role";
 
-revoke references on table "public"."courses" from "service_role";
+-- revoke select on table "public"."courses" from "service_role";
 
-revoke select on table "public"."courses" from "service_role";
+-- revoke trigger on table "public"."courses" from "service_role";
 
-revoke trigger on table "public"."courses" from "service_role";
+-- revoke truncate on table "public"."courses" from "service_role";
 
-revoke truncate on table "public"."courses" from "service_role";
+-- revoke update on table "public"."courses" from "service_role";
 
-revoke update on table "public"."courses" from "service_role";
+-- revoke delete on table "public"."customers" from "anon";
 
-revoke delete on table "public"."customers" from "anon";
+-- revoke insert on table "public"."customers" from "anon";
 
-revoke insert on table "public"."customers" from "anon";
+-- revoke references on table "public"."customers" from "anon";
 
-revoke references on table "public"."customers" from "anon";
+-- revoke select on table "public"."customers" from "anon";
 
-revoke select on table "public"."customers" from "anon";
+-- revoke trigger on table "public"."customers" from "anon";
 
-revoke trigger on table "public"."customers" from "anon";
+-- revoke truncate on table "public"."customers" from "anon";
 
-revoke truncate on table "public"."customers" from "anon";
+-- revoke update on table "public"."customers" from "anon";
 
-revoke update on table "public"."customers" from "anon";
+-- revoke delete on table "public"."customers" from "authenticated";
 
-revoke delete on table "public"."customers" from "authenticated";
+-- revoke insert on table "public"."customers" from "authenticated";
 
-revoke insert on table "public"."customers" from "authenticated";
+-- revoke references on table "public"."customers" from "authenticated";
 
-revoke references on table "public"."customers" from "authenticated";
+-- revoke select on table "public"."customers" from "authenticated";
 
-revoke select on table "public"."customers" from "authenticated";
+-- revoke trigger on table "public"."customers" from "authenticated";
 
-revoke trigger on table "public"."customers" from "authenticated";
+-- revoke truncate on table "public"."customers" from "authenticated";
 
-revoke truncate on table "public"."customers" from "authenticated";
+-- revoke update on table "public"."customers" from "authenticated";
 
-revoke update on table "public"."customers" from "authenticated";
+-- revoke delete on table "public"."customers" from "service_role";
 
-revoke delete on table "public"."customers" from "service_role";
+-- revoke insert on table "public"."customers" from "service_role";
 
-revoke insert on table "public"."customers" from "service_role";
+-- revoke references on table "public"."customers" from "service_role";
 
-revoke references on table "public"."customers" from "service_role";
+-- revoke select on table "public"."customers" from "service_role";
 
-revoke select on table "public"."customers" from "service_role";
+-- revoke trigger on table "public"."customers" from "service_role";
 
-revoke trigger on table "public"."customers" from "service_role";
+-- revoke truncate on table "public"."customers" from "service_role";
 
-revoke truncate on table "public"."customers" from "service_role";
+-- revoke update on table "public"."customers" from "service_role";
 
-revoke update on table "public"."customers" from "service_role";
+-- revoke delete on table "public"."meeting_notes" from "anon";
 
-revoke delete on table "public"."meeting_notes" from "anon";
+-- revoke insert on table "public"."meeting_notes" from "anon";
 
-revoke insert on table "public"."meeting_notes" from "anon";
+-- revoke references on table "public"."meeting_notes" from "anon";
 
-revoke references on table "public"."meeting_notes" from "anon";
+-- revoke select on table "public"."meeting_notes" from "anon";
 
-revoke select on table "public"."meeting_notes" from "anon";
+-- revoke trigger on table "public"."meeting_notes" from "anon";
 
-revoke trigger on table "public"."meeting_notes" from "anon";
+-- revoke truncate on table "public"."meeting_notes" from "anon";
 
-revoke truncate on table "public"."meeting_notes" from "anon";
+-- revoke update on table "public"."meeting_notes" from "anon";
 
-revoke update on table "public"."meeting_notes" from "anon";
+-- revoke delete on table "public"."meeting_notes" from "authenticated";
 
-revoke delete on table "public"."meeting_notes" from "authenticated";
+-- revoke insert on table "public"."meeting_notes" from "authenticated";
 
-revoke insert on table "public"."meeting_notes" from "authenticated";
+-- revoke references on table "public"."meeting_notes" from "authenticated";
 
-revoke references on table "public"."meeting_notes" from "authenticated";
+-- revoke select on table "public"."meeting_notes" from "authenticated";
 
-revoke select on table "public"."meeting_notes" from "authenticated";
+-- revoke trigger on table "public"."meeting_notes" from "authenticated";
 
-revoke trigger on table "public"."meeting_notes" from "authenticated";
+-- revoke truncate on table "public"."meeting_notes" from "authenticated";
 
-revoke truncate on table "public"."meeting_notes" from "authenticated";
+-- revoke update on table "public"."meeting_notes" from "authenticated";
 
-revoke update on table "public"."meeting_notes" from "authenticated";
+-- revoke delete on table "public"."meeting_notes" from "service_role";
 
-revoke delete on table "public"."meeting_notes" from "service_role";
+-- revoke insert on table "public"."meeting_notes" from "service_role";
 
-revoke insert on table "public"."meeting_notes" from "service_role";
+-- revoke references on table "public"."meeting_notes" from "service_role";
 
-revoke references on table "public"."meeting_notes" from "service_role";
+-- revoke select on table "public"."meeting_notes" from "service_role";
 
-revoke select on table "public"."meeting_notes" from "service_role";
+-- revoke trigger on table "public"."meeting_notes" from "service_role";
 
-revoke trigger on table "public"."meeting_notes" from "service_role";
+-- revoke truncate on table "public"."meeting_notes" from "service_role";
 
-revoke truncate on table "public"."meeting_notes" from "service_role";
+-- revoke update on table "public"."meeting_notes" from "service_role";
 
-revoke update on table "public"."meeting_notes" from "service_role";
+-- revoke delete on table "public"."reports" from "anon";
 
-revoke delete on table "public"."reports" from "anon";
+-- revoke insert on table "public"."reports" from "anon";
 
-revoke insert on table "public"."reports" from "anon";
+-- revoke references on table "public"."reports" from "anon";
 
-revoke references on table "public"."reports" from "anon";
+-- revoke select on table "public"."reports" from "anon";
 
-revoke select on table "public"."reports" from "anon";
+-- revoke trigger on table "public"."reports" from "anon";
 
-revoke trigger on table "public"."reports" from "anon";
+-- revoke truncate on table "public"."reports" from "anon";
 
-revoke truncate on table "public"."reports" from "anon";
+-- revoke update on table "public"."reports" from "anon";
 
-revoke update on table "public"."reports" from "anon";
+-- revoke delete on table "public"."reports" from "authenticated";
 
-revoke delete on table "public"."reports" from "authenticated";
+-- revoke insert on table "public"."reports" from "authenticated";
 
-revoke insert on table "public"."reports" from "authenticated";
+-- revoke references on table "public"."reports" from "authenticated";
 
-revoke references on table "public"."reports" from "authenticated";
+-- revoke select on table "public"."reports" from "authenticated";
 
-revoke select on table "public"."reports" from "authenticated";
+-- revoke trigger on table "public"."reports" from "authenticated";
 
-revoke trigger on table "public"."reports" from "authenticated";
+-- revoke truncate on table "public"."reports" from "authenticated";
 
-revoke truncate on table "public"."reports" from "authenticated";
+-- revoke update on table "public"."reports" from "authenticated";
 
-revoke update on table "public"."reports" from "authenticated";
+-- revoke delete on table "public"."reports" from "service_role";
 
-revoke delete on table "public"."reports" from "service_role";
+-- revoke insert on table "public"."reports" from "service_role";
 
-revoke insert on table "public"."reports" from "service_role";
+-- revoke references on table "public"."reports" from "service_role";
 
-revoke references on table "public"."reports" from "service_role";
+-- revoke select on table "public"."reports" from "service_role";
 
-revoke select on table "public"."reports" from "service_role";
+-- revoke trigger on table "public"."reports" from "service_role";
 
-revoke trigger on table "public"."reports" from "service_role";
+-- revoke truncate on table "public"."reports" from "service_role";
 
-revoke truncate on table "public"."reports" from "service_role";
+-- revoke update on table "public"."reports" from "service_role";
 
-revoke update on table "public"."reports" from "service_role";
+-- revoke delete on table "public"."school_student_link" from "anon";
 
-revoke delete on table "public"."school_student_link" from "anon";
+-- revoke insert on table "public"."school_student_link" from "anon";
 
-revoke insert on table "public"."school_student_link" from "anon";
+-- revoke references on table "public"."school_student_link" from "anon";
 
-revoke references on table "public"."school_student_link" from "anon";
+-- revoke select on table "public"."school_student_link" from "anon";
 
-revoke select on table "public"."school_student_link" from "anon";
+-- revoke trigger on table "public"."school_student_link" from "anon";
 
-revoke trigger on table "public"."school_student_link" from "anon";
+-- revoke truncate on table "public"."school_student_link" from "anon";
 
-revoke truncate on table "public"."school_student_link" from "anon";
+-- revoke update on table "public"."school_student_link" from "anon";
 
-revoke update on table "public"."school_student_link" from "anon";
+-- revoke delete on table "public"."school_student_link" from "authenticated";
 
-revoke delete on table "public"."school_student_link" from "authenticated";
+-- revoke insert on table "public"."school_student_link" from "authenticated";
 
-revoke insert on table "public"."school_student_link" from "authenticated";
+-- revoke references on table "public"."school_student_link" from "authenticated";
 
-revoke references on table "public"."school_student_link" from "authenticated";
+-- revoke select on table "public"."school_student_link" from "authenticated";
 
-revoke select on table "public"."school_student_link" from "authenticated";
+-- revoke trigger on table "public"."school_student_link" from "authenticated";
 
-revoke trigger on table "public"."school_student_link" from "authenticated";
+-- revoke truncate on table "public"."school_student_link" from "authenticated";
 
-revoke truncate on table "public"."school_student_link" from "authenticated";
+-- revoke update on table "public"."school_student_link" from "authenticated";
 
-revoke update on table "public"."school_student_link" from "authenticated";
+-- revoke delete on table "public"."school_student_link" from "service_role";
 
-revoke delete on table "public"."school_student_link" from "service_role";
+-- revoke insert on table "public"."school_student_link" from "service_role";
 
-revoke insert on table "public"."school_student_link" from "service_role";
+-- revoke references on table "public"."school_student_link" from "service_role";
 
-revoke references on table "public"."school_student_link" from "service_role";
+-- revoke select on table "public"."school_student_link" from "service_role";
 
-revoke select on table "public"."school_student_link" from "service_role";
+-- revoke trigger on table "public"."school_student_link" from "service_role";
 
-revoke trigger on table "public"."school_student_link" from "service_role";
+-- revoke truncate on table "public"."school_student_link" from "service_role";
 
-revoke truncate on table "public"."school_student_link" from "service_role";
+-- revoke update on table "public"."school_student_link" from "service_role";
 
-revoke update on table "public"."school_student_link" from "service_role";
+-- revoke delete on table "public"."schools" from "anon";
 
-revoke delete on table "public"."schools" from "anon";
+-- revoke insert on table "public"."schools" from "anon";
 
-revoke insert on table "public"."schools" from "anon";
+-- revoke references on table "public"."schools" from "anon";
 
-revoke references on table "public"."schools" from "anon";
+-- revoke select on table "public"."schools" from "anon";
 
-revoke select on table "public"."schools" from "anon";
+-- revoke trigger on table "public"."schools" from "anon";
 
-revoke trigger on table "public"."schools" from "anon";
+-- revoke truncate on table "public"."schools" from "anon";
 
-revoke truncate on table "public"."schools" from "anon";
+-- revoke update on table "public"."schools" from "anon";
 
-revoke update on table "public"."schools" from "anon";
+-- revoke delete on table "public"."schools" from "authenticated";
 
-revoke delete on table "public"."schools" from "authenticated";
+-- revoke insert on table "public"."schools" from "authenticated";
 
-revoke insert on table "public"."schools" from "authenticated";
+-- revoke references on table "public"."schools" from "authenticated";
 
-revoke references on table "public"."schools" from "authenticated";
+-- revoke select on table "public"."schools" from "authenticated";
 
-revoke select on table "public"."schools" from "authenticated";
+-- revoke trigger on table "public"."schools" from "authenticated";
 
-revoke trigger on table "public"."schools" from "authenticated";
+-- revoke truncate on table "public"."schools" from "authenticated";
 
-revoke truncate on table "public"."schools" from "authenticated";
+-- revoke update on table "public"."schools" from "authenticated";
 
-revoke update on table "public"."schools" from "authenticated";
+-- revoke delete on table "public"."schools" from "service_role";
 
-revoke delete on table "public"."schools" from "service_role";
+-- revoke insert on table "public"."schools" from "service_role";
 
-revoke insert on table "public"."schools" from "service_role";
+-- revoke references on table "public"."schools" from "service_role";
 
-revoke references on table "public"."schools" from "service_role";
+-- revoke select on table "public"."schools" from "service_role";
 
-revoke select on table "public"."schools" from "service_role";
+-- revoke trigger on table "public"."schools" from "service_role";
 
-revoke trigger on table "public"."schools" from "service_role";
+-- revoke truncate on table "public"."schools" from "service_role";
 
-revoke truncate on table "public"."schools" from "service_role";
+-- revoke update on table "public"."schools" from "service_role";
 
-revoke update on table "public"."schools" from "service_role";
+-- revoke delete on table "public"."section_enrollments" from "anon";
 
-revoke delete on table "public"."section_enrollments" from "anon";
+-- revoke insert on table "public"."section_enrollments" from "anon";
 
-revoke insert on table "public"."section_enrollments" from "anon";
+-- revoke references on table "public"."section_enrollments" from "anon";
 
-revoke references on table "public"."section_enrollments" from "anon";
+-- revoke select on table "public"."section_enrollments" from "anon";
 
-revoke select on table "public"."section_enrollments" from "anon";
+-- revoke trigger on table "public"."section_enrollments" from "anon";
 
-revoke trigger on table "public"."section_enrollments" from "anon";
+-- revoke truncate on table "public"."section_enrollments" from "anon";
 
-revoke truncate on table "public"."section_enrollments" from "anon";
+-- revoke update on table "public"."section_enrollments" from "anon";
 
-revoke update on table "public"."section_enrollments" from "anon";
+-- revoke delete on table "public"."section_enrollments" from "authenticated";
 
-revoke delete on table "public"."section_enrollments" from "authenticated";
+-- revoke insert on table "public"."section_enrollments" from "authenticated";
 
-revoke insert on table "public"."section_enrollments" from "authenticated";
+-- revoke references on table "public"."section_enrollments" from "authenticated";
 
-revoke references on table "public"."section_enrollments" from "authenticated";
+-- revoke select on table "public"."section_enrollments" from "authenticated";
 
-revoke select on table "public"."section_enrollments" from "authenticated";
+-- revoke trigger on table "public"."section_enrollments" from "authenticated";
 
-revoke trigger on table "public"."section_enrollments" from "authenticated";
+-- revoke truncate on table "public"."section_enrollments" from "authenticated";
 
-revoke truncate on table "public"."section_enrollments" from "authenticated";
+-- revoke update on table "public"."section_enrollments" from "authenticated";
 
-revoke update on table "public"."section_enrollments" from "authenticated";
+-- revoke delete on table "public"."section_enrollments" from "service_role";
 
-revoke delete on table "public"."section_enrollments" from "service_role";
+-- revoke insert on table "public"."section_enrollments" from "service_role";
 
-revoke insert on table "public"."section_enrollments" from "service_role";
+-- revoke references on table "public"."section_enrollments" from "service_role";
 
-revoke references on table "public"."section_enrollments" from "service_role";
+-- revoke select on table "public"."section_enrollments" from "service_role";
 
-revoke select on table "public"."section_enrollments" from "service_role";
+-- revoke trigger on table "public"."section_enrollments" from "service_role";
 
-revoke trigger on table "public"."section_enrollments" from "service_role";
+-- revoke truncate on table "public"."section_enrollments" from "service_role";
 
-revoke truncate on table "public"."section_enrollments" from "service_role";
+-- revoke update on table "public"."section_enrollments" from "service_role";
 
-revoke update on table "public"."section_enrollments" from "service_role";
+-- revoke delete on table "public"."sections" from "anon";
 
-revoke delete on table "public"."sections" from "anon";
+-- revoke insert on table "public"."sections" from "anon";
 
-revoke insert on table "public"."sections" from "anon";
+-- revoke references on table "public"."sections" from "anon";
 
-revoke references on table "public"."sections" from "anon";
+-- revoke select on table "public"."sections" from "anon";
 
-revoke select on table "public"."sections" from "anon";
+-- revoke trigger on table "public"."sections" from "anon";
 
-revoke trigger on table "public"."sections" from "anon";
+-- revoke truncate on table "public"."sections" from "anon";
 
-revoke truncate on table "public"."sections" from "anon";
+-- revoke update on table "public"."sections" from "anon";
 
-revoke update on table "public"."sections" from "anon";
+-- revoke delete on table "public"."sections" from "authenticated";
 
-revoke delete on table "public"."sections" from "authenticated";
+-- revoke insert on table "public"."sections" from "authenticated";
 
-revoke insert on table "public"."sections" from "authenticated";
+-- revoke references on table "public"."sections" from "authenticated";
 
-revoke references on table "public"."sections" from "authenticated";
+-- revoke select on table "public"."sections" from "authenticated";
 
-revoke select on table "public"."sections" from "authenticated";
+-- revoke trigger on table "public"."sections" from "authenticated";
 
-revoke trigger on table "public"."sections" from "authenticated";
+-- revoke truncate on table "public"."sections" from "authenticated";
 
-revoke truncate on table "public"."sections" from "authenticated";
+-- revoke update on table "public"."sections" from "authenticated";
 
-revoke update on table "public"."sections" from "authenticated";
+-- revoke delete on table "public"."sections" from "service_role";
 
-revoke delete on table "public"."sections" from "service_role";
+-- revoke insert on table "public"."sections" from "service_role";
 
-revoke insert on table "public"."sections" from "service_role";
+-- revoke references on table "public"."sections" from "service_role";
 
-revoke references on table "public"."sections" from "service_role";
+-- revoke select on table "public"."sections" from "service_role";
 
-revoke select on table "public"."sections" from "service_role";
+-- revoke trigger on table "public"."sections" from "service_role";
 
-revoke trigger on table "public"."sections" from "service_role";
+-- revoke truncate on table "public"."sections" from "service_role";
 
-revoke truncate on table "public"."sections" from "service_role";
+-- revoke update on table "public"."sections" from "service_role";
 
-revoke update on table "public"."sections" from "service_role";
+-- revoke delete on table "public"."student_contact_relationships" from "anon";
 
-revoke delete on table "public"."student_contact_relationships" from "anon";
+-- revoke insert on table "public"."student_contact_relationships" from "anon";
 
-revoke insert on table "public"."student_contact_relationships" from "anon";
+-- revoke references on table "public"."student_contact_relationships" from "anon";
 
-revoke references on table "public"."student_contact_relationships" from "anon";
+-- revoke select on table "public"."student_contact_relationships" from "anon";
 
-revoke select on table "public"."student_contact_relationships" from "anon";
+-- revoke trigger on table "public"."student_contact_relationships" from "anon";
 
-revoke trigger on table "public"."student_contact_relationships" from "anon";
+-- revoke truncate on table "public"."student_contact_relationships" from "anon";
 
-revoke truncate on table "public"."student_contact_relationships" from "anon";
+-- revoke update on table "public"."student_contact_relationships" from "anon";
 
-revoke update on table "public"."student_contact_relationships" from "anon";
+-- revoke delete on table "public"."student_contact_relationships" from "authenticated";
 
-revoke delete on table "public"."student_contact_relationships" from "authenticated";
+-- revoke insert on table "public"."student_contact_relationships" from "authenticated";
 
-revoke insert on table "public"."student_contact_relationships" from "authenticated";
+-- revoke references on table "public"."student_contact_relationships" from "authenticated";
 
-revoke references on table "public"."student_contact_relationships" from "authenticated";
+-- revoke select on table "public"."student_contact_relationships" from "authenticated";
 
-revoke select on table "public"."student_contact_relationships" from "authenticated";
+-- revoke trigger on table "public"."student_contact_relationships" from "authenticated";
 
-revoke trigger on table "public"."student_contact_relationships" from "authenticated";
+-- revoke truncate on table "public"."student_contact_relationships" from "authenticated";
 
-revoke truncate on table "public"."student_contact_relationships" from "authenticated";
+-- revoke update on table "public"."student_contact_relationships" from "authenticated";
 
-revoke update on table "public"."student_contact_relationships" from "authenticated";
+-- revoke delete on table "public"."student_contact_relationships" from "service_role";
 
-revoke delete on table "public"."student_contact_relationships" from "service_role";
+-- revoke insert on table "public"."student_contact_relationships" from "service_role";
 
-revoke insert on table "public"."student_contact_relationships" from "service_role";
+-- revoke references on table "public"."student_contact_relationships" from "service_role";
 
-revoke references on table "public"."student_contact_relationships" from "service_role";
+-- revoke select on table "public"."student_contact_relationships" from "service_role";
 
-revoke select on table "public"."student_contact_relationships" from "service_role";
+-- revoke trigger on table "public"."student_contact_relationships" from "service_role";
 
-revoke trigger on table "public"."student_contact_relationships" from "service_role";
+-- revoke truncate on table "public"."student_contact_relationships" from "service_role";
 
-revoke truncate on table "public"."student_contact_relationships" from "service_role";
+-- revoke update on table "public"."student_contact_relationships" from "service_role";
 
-revoke update on table "public"."student_contact_relationships" from "service_role";
+-- revoke delete on table "public"."student_daily_absences" from "anon";
 
-revoke delete on table "public"."student_daily_absences" from "anon";
+-- revoke insert on table "public"."student_daily_absences" from "anon";
 
-revoke insert on table "public"."student_daily_absences" from "anon";
+-- revoke references on table "public"."student_daily_absences" from "anon";
 
-revoke references on table "public"."student_daily_absences" from "anon";
+-- revoke select on table "public"."student_daily_absences" from "anon";
 
-revoke select on table "public"."student_daily_absences" from "anon";
+-- revoke trigger on table "public"."student_daily_absences" from "anon";
 
-revoke trigger on table "public"."student_daily_absences" from "anon";
+-- revoke truncate on table "public"."student_daily_absences" from "anon";
 
-revoke truncate on table "public"."student_daily_absences" from "anon";
+-- revoke update on table "public"."student_daily_absences" from "anon";
 
-revoke update on table "public"."student_daily_absences" from "anon";
+-- revoke delete on table "public"."student_daily_absences" from "authenticated";
 
-revoke delete on table "public"."student_daily_absences" from "authenticated";
+-- revoke insert on table "public"."student_daily_absences" from "authenticated";
 
-revoke insert on table "public"."student_daily_absences" from "authenticated";
+-- revoke references on table "public"."student_daily_absences" from "authenticated";
 
-revoke references on table "public"."student_daily_absences" from "authenticated";
+-- revoke select on table "public"."student_daily_absences" from "authenticated";
 
-revoke select on table "public"."student_daily_absences" from "authenticated";
+-- revoke trigger on table "public"."student_daily_absences" from "authenticated";
 
-revoke trigger on table "public"."student_daily_absences" from "authenticated";
+-- revoke truncate on table "public"."student_daily_absences" from "authenticated";
 
-revoke truncate on table "public"."student_daily_absences" from "authenticated";
+-- revoke update on table "public"."student_daily_absences" from "authenticated";
 
-revoke update on table "public"."student_daily_absences" from "authenticated";
+-- revoke delete on table "public"."student_daily_absences" from "service_role";
 
-revoke delete on table "public"."student_daily_absences" from "service_role";
+-- revoke insert on table "public"."student_daily_absences" from "service_role";
 
-revoke insert on table "public"."student_daily_absences" from "service_role";
+-- revoke references on table "public"."student_daily_absences" from "service_role";
 
-revoke references on table "public"."student_daily_absences" from "service_role";
+-- revoke select on table "public"."student_daily_absences" from "service_role";
 
-revoke select on table "public"."student_daily_absences" from "service_role";
+-- revoke trigger on table "public"."student_daily_absences" from "service_role";
 
-revoke trigger on table "public"."student_daily_absences" from "service_role";
+-- revoke truncate on table "public"."student_daily_absences" from "service_role";
 
-revoke truncate on table "public"."student_daily_absences" from "service_role";
+-- revoke update on table "public"."student_daily_absences" from "service_role";
 
-revoke update on table "public"."student_daily_absences" from "service_role";
+-- revoke delete on table "public"."student_grades" from "anon";
 
-revoke delete on table "public"."student_grades" from "anon";
+-- revoke insert on table "public"."student_grades" from "anon";
 
-revoke insert on table "public"."student_grades" from "anon";
+-- revoke references on table "public"."student_grades" from "anon";
 
-revoke references on table "public"."student_grades" from "anon";
+-- revoke select on table "public"."student_grades" from "anon";
 
-revoke select on table "public"."student_grades" from "anon";
+-- revoke trigger on table "public"."student_grades" from "anon";
 
-revoke trigger on table "public"."student_grades" from "anon";
+-- revoke truncate on table "public"."student_grades" from "anon";
 
-revoke truncate on table "public"."student_grades" from "anon";
+-- revoke update on table "public"."student_grades" from "anon";
 
-revoke update on table "public"."student_grades" from "anon";
+-- revoke delete on table "public"."student_grades" from "authenticated";
 
-revoke delete on table "public"."student_grades" from "authenticated";
+-- revoke insert on table "public"."student_grades" from "authenticated";
 
-revoke insert on table "public"."student_grades" from "authenticated";
+-- revoke references on table "public"."student_grades" from "authenticated";
 
-revoke references on table "public"."student_grades" from "authenticated";
+-- revoke select on table "public"."student_grades" from "authenticated";
 
-revoke select on table "public"."student_grades" from "authenticated";
+-- revoke trigger on table "public"."student_grades" from "authenticated";
 
-revoke trigger on table "public"."student_grades" from "authenticated";
+-- revoke truncate on table "public"."student_grades" from "authenticated";
 
-revoke truncate on table "public"."student_grades" from "authenticated";
+-- revoke update on table "public"."student_grades" from "authenticated";
 
-revoke update on table "public"."student_grades" from "authenticated";
+-- revoke delete on table "public"."student_grades" from "service_role";
 
-revoke delete on table "public"."student_grades" from "service_role";
+-- revoke insert on table "public"."student_grades" from "service_role";
 
-revoke insert on table "public"."student_grades" from "service_role";
+-- revoke references on table "public"."student_grades" from "service_role";
 
-revoke references on table "public"."student_grades" from "service_role";
+-- revoke select on table "public"."student_grades" from "service_role";
 
-revoke select on table "public"."student_grades" from "service_role";
+-- revoke trigger on table "public"."student_grades" from "service_role";
 
-revoke trigger on table "public"."student_grades" from "service_role";
+-- revoke truncate on table "public"."student_grades" from "service_role";
 
-revoke truncate on table "public"."student_grades" from "service_role";
+-- revoke update on table "public"."student_grades" from "service_role";
 
-revoke update on table "public"."student_grades" from "service_role";
+-- revoke delete on table "public"."student_tags" from "anon";
 
-revoke delete on table "public"."student_tags" from "anon";
+-- revoke insert on table "public"."student_tags" from "anon";
 
-revoke insert on table "public"."student_tags" from "anon";
+-- revoke references on table "public"."student_tags" from "anon";
 
-revoke references on table "public"."student_tags" from "anon";
+-- revoke select on table "public"."student_tags" from "anon";
 
-revoke select on table "public"."student_tags" from "anon";
+-- revoke trigger on table "public"."student_tags" from "anon";
 
-revoke trigger on table "public"."student_tags" from "anon";
+-- revoke truncate on table "public"."student_tags" from "anon";
 
-revoke truncate on table "public"."student_tags" from "anon";
+-- revoke update on table "public"."student_tags" from "anon";
 
-revoke update on table "public"."student_tags" from "anon";
+-- revoke delete on table "public"."student_tags" from "authenticated";
 
-revoke delete on table "public"."student_tags" from "authenticated";
+-- revoke insert on table "public"."student_tags" from "authenticated";
 
-revoke insert on table "public"."student_tags" from "authenticated";
+-- revoke references on table "public"."student_tags" from "authenticated";
 
-revoke references on table "public"."student_tags" from "authenticated";
+-- revoke select on table "public"."student_tags" from "authenticated";
 
-revoke select on table "public"."student_tags" from "authenticated";
+-- revoke trigger on table "public"."student_tags" from "authenticated";
 
-revoke trigger on table "public"."student_tags" from "authenticated";
+-- revoke truncate on table "public"."student_tags" from "authenticated";
 
-revoke truncate on table "public"."student_tags" from "authenticated";
+-- revoke update on table "public"."student_tags" from "authenticated";
 
-revoke update on table "public"."student_tags" from "authenticated";
+-- revoke delete on table "public"."student_tags" from "service_role";
 
-revoke delete on table "public"."student_tags" from "service_role";
+-- revoke insert on table "public"."student_tags" from "service_role";
 
-revoke insert on table "public"."student_tags" from "service_role";
+-- revoke references on table "public"."student_tags" from "service_role";
 
-revoke references on table "public"."student_tags" from "service_role";
+-- revoke select on table "public"."student_tags" from "service_role";
 
-revoke select on table "public"."student_tags" from "service_role";
+-- revoke trigger on table "public"."student_tags" from "service_role";
 
-revoke trigger on table "public"."student_tags" from "service_role";
+-- revoke truncate on table "public"."student_tags" from "service_role";
 
-revoke truncate on table "public"."student_tags" from "service_role";
+-- revoke update on table "public"."student_tags" from "service_role";
 
-revoke update on table "public"."student_tags" from "service_role";
+-- revoke delete on table "public"."students" from "anon";
 
-revoke delete on table "public"."students" from "anon";
+-- revoke insert on table "public"."students" from "anon";
 
-revoke insert on table "public"."students" from "anon";
+-- revoke references on table "public"."students" from "anon";
 
-revoke references on table "public"."students" from "anon";
+-- revoke select on table "public"."students" from "anon";
 
-revoke select on table "public"."students" from "anon";
+-- revoke trigger on table "public"."students" from "anon";
 
-revoke trigger on table "public"."students" from "anon";
+-- revoke truncate on table "public"."students" from "anon";
 
-revoke truncate on table "public"."students" from "anon";
+-- revoke update on table "public"."students" from "anon";
 
-revoke update on table "public"."students" from "anon";
+-- revoke delete on table "public"."students" from "authenticated";
 
-revoke delete on table "public"."students" from "authenticated";
+-- revoke insert on table "public"."students" from "authenticated";
 
-revoke insert on table "public"."students" from "authenticated";
+-- revoke references on table "public"."students" from "authenticated";
 
-revoke references on table "public"."students" from "authenticated";
+-- revoke select on table "public"."students" from "authenticated";
 
-revoke select on table "public"."students" from "authenticated";
+-- revoke trigger on table "public"."students" from "authenticated";
 
-revoke trigger on table "public"."students" from "authenticated";
+-- revoke truncate on table "public"."students" from "authenticated";
 
-revoke truncate on table "public"."students" from "authenticated";
+-- revoke update on table "public"."students" from "authenticated";
 
-revoke update on table "public"."students" from "authenticated";
+-- revoke delete on table "public"."students" from "service_role";
 
-revoke delete on table "public"."students" from "service_role";
+-- revoke insert on table "public"."students" from "service_role";
 
-revoke insert on table "public"."students" from "service_role";
+-- revoke references on table "public"."students" from "service_role";
 
-revoke references on table "public"."students" from "service_role";
+-- revoke select on table "public"."students" from "service_role";
 
-revoke select on table "public"."students" from "service_role";
+-- revoke trigger on table "public"."students" from "service_role";
 
-revoke trigger on table "public"."students" from "service_role";
+-- revoke truncate on table "public"."students" from "service_role";
 
-revoke truncate on table "public"."students" from "service_role";
+-- revoke update on table "public"."students" from "service_role";
 
-revoke update on table "public"."students" from "service_role";
+-- revoke delete on table "public"."tag_canonical_values" from "anon";
 
-revoke delete on table "public"."tag_canonical_values" from "anon";
+-- revoke insert on table "public"."tag_canonical_values" from "anon";
 
-revoke insert on table "public"."tag_canonical_values" from "anon";
+-- revoke references on table "public"."tag_canonical_values" from "anon";
 
-revoke references on table "public"."tag_canonical_values" from "anon";
+-- revoke select on table "public"."tag_canonical_values" from "anon";
 
-revoke select on table "public"."tag_canonical_values" from "anon";
+-- revoke trigger on table "public"."tag_canonical_values" from "anon";
 
-revoke trigger on table "public"."tag_canonical_values" from "anon";
+-- revoke truncate on table "public"."tag_canonical_values" from "anon";
 
-revoke truncate on table "public"."tag_canonical_values" from "anon";
+-- revoke update on table "public"."tag_canonical_values" from "anon";
 
-revoke update on table "public"."tag_canonical_values" from "anon";
+-- revoke delete on table "public"."tag_canonical_values" from "authenticated";
 
-revoke delete on table "public"."tag_canonical_values" from "authenticated";
+-- revoke insert on table "public"."tag_canonical_values" from "authenticated";
 
-revoke insert on table "public"."tag_canonical_values" from "authenticated";
+-- revoke references on table "public"."tag_canonical_values" from "authenticated";
 
-revoke references on table "public"."tag_canonical_values" from "authenticated";
+-- revoke select on table "public"."tag_canonical_values" from "authenticated";
 
-revoke select on table "public"."tag_canonical_values" from "authenticated";
+-- revoke trigger on table "public"."tag_canonical_values" from "authenticated";
 
-revoke trigger on table "public"."tag_canonical_values" from "authenticated";
+-- revoke truncate on table "public"."tag_canonical_values" from "authenticated";
 
-revoke truncate on table "public"."tag_canonical_values" from "authenticated";
+-- revoke update on table "public"."tag_canonical_values" from "authenticated";
 
-revoke update on table "public"."tag_canonical_values" from "authenticated";
+-- revoke delete on table "public"."tag_canonical_values" from "service_role";
 
-revoke delete on table "public"."tag_canonical_values" from "service_role";
+-- revoke insert on table "public"."tag_canonical_values" from "service_role";
 
-revoke insert on table "public"."tag_canonical_values" from "service_role";
+-- revoke references on table "public"."tag_canonical_values" from "service_role";
 
-revoke references on table "public"."tag_canonical_values" from "service_role";
+-- revoke select on table "public"."tag_canonical_values" from "service_role";
 
-revoke select on table "public"."tag_canonical_values" from "service_role";
+-- revoke trigger on table "public"."tag_canonical_values" from "service_role";
 
-revoke trigger on table "public"."tag_canonical_values" from "service_role";
+-- revoke truncate on table "public"."tag_canonical_values" from "service_role";
 
-revoke truncate on table "public"."tag_canonical_values" from "service_role";
+-- revoke update on table "public"."tag_canonical_values" from "service_role";
 
-revoke update on table "public"."tag_canonical_values" from "service_role";
+-- revoke delete on table "public"."tag_categories" from "anon";
 
-revoke delete on table "public"."tag_categories" from "anon";
+-- revoke insert on table "public"."tag_categories" from "anon";
 
-revoke insert on table "public"."tag_categories" from "anon";
+-- revoke references on table "public"."tag_categories" from "anon";
 
-revoke references on table "public"."tag_categories" from "anon";
+-- revoke select on table "public"."tag_categories" from "anon";
 
-revoke select on table "public"."tag_categories" from "anon";
+-- revoke trigger on table "public"."tag_categories" from "anon";
 
-revoke trigger on table "public"."tag_categories" from "anon";
+-- revoke truncate on table "public"."tag_categories" from "anon";
 
-revoke truncate on table "public"."tag_categories" from "anon";
+-- revoke update on table "public"."tag_categories" from "anon";
 
-revoke update on table "public"."tag_categories" from "anon";
+-- revoke delete on table "public"."tag_categories" from "authenticated";
 
-revoke delete on table "public"."tag_categories" from "authenticated";
+-- revoke insert on table "public"."tag_categories" from "authenticated";
 
-revoke insert on table "public"."tag_categories" from "authenticated";
+-- revoke references on table "public"."tag_categories" from "authenticated";
 
-revoke references on table "public"."tag_categories" from "authenticated";
+-- revoke select on table "public"."tag_categories" from "authenticated";
 
-revoke select on table "public"."tag_categories" from "authenticated";
+-- revoke trigger on table "public"."tag_categories" from "authenticated";
 
-revoke trigger on table "public"."tag_categories" from "authenticated";
+-- revoke truncate on table "public"."tag_categories" from "authenticated";
 
-revoke truncate on table "public"."tag_categories" from "authenticated";
+-- revoke update on table "public"."tag_categories" from "authenticated";
 
-revoke update on table "public"."tag_categories" from "authenticated";
+-- revoke delete on table "public"."tag_categories" from "service_role";
 
-revoke delete on table "public"."tag_categories" from "service_role";
+-- revoke insert on table "public"."tag_categories" from "service_role";
 
-revoke insert on table "public"."tag_categories" from "service_role";
+-- revoke references on table "public"."tag_categories" from "service_role";
 
-revoke references on table "public"."tag_categories" from "service_role";
+-- revoke select on table "public"."tag_categories" from "service_role";
 
-revoke select on table "public"."tag_categories" from "service_role";
+-- revoke trigger on table "public"."tag_categories" from "service_role";
 
-revoke trigger on table "public"."tag_categories" from "service_role";
+-- revoke truncate on table "public"."tag_categories" from "service_role";
 
-revoke truncate on table "public"."tag_categories" from "service_role";
+-- revoke update on table "public"."tag_categories" from "service_role";
 
-revoke update on table "public"."tag_categories" from "service_role";
+-- revoke delete on table "public"."tags" from "anon";
 
-revoke delete on table "public"."tags" from "anon";
+-- revoke insert on table "public"."tags" from "anon";
 
-revoke insert on table "public"."tags" from "anon";
+-- revoke references on table "public"."tags" from "anon";
 
-revoke references on table "public"."tags" from "anon";
+-- revoke select on table "public"."tags" from "anon";
 
-revoke select on table "public"."tags" from "anon";
+-- revoke trigger on table "public"."tags" from "anon";
 
-revoke trigger on table "public"."tags" from "anon";
+-- revoke truncate on table "public"."tags" from "anon";
 
-revoke truncate on table "public"."tags" from "anon";
+-- revoke update on table "public"."tags" from "anon";
 
-revoke update on table "public"."tags" from "anon";
+-- revoke delete on table "public"."tags" from "authenticated";
 
-revoke delete on table "public"."tags" from "authenticated";
+-- revoke insert on table "public"."tags" from "authenticated";
 
-revoke insert on table "public"."tags" from "authenticated";
+-- revoke references on table "public"."tags" from "authenticated";
 
-revoke references on table "public"."tags" from "authenticated";
+-- revoke select on table "public"."tags" from "authenticated";
 
-revoke select on table "public"."tags" from "authenticated";
+-- revoke trigger on table "public"."tags" from "authenticated";
 
-revoke trigger on table "public"."tags" from "authenticated";
+-- revoke truncate on table "public"."tags" from "authenticated";
 
-revoke truncate on table "public"."tags" from "authenticated";
+-- revoke update on table "public"."tags" from "authenticated";
 
-revoke update on table "public"."tags" from "authenticated";
+-- revoke delete on table "public"."tags" from "service_role";
 
-revoke delete on table "public"."tags" from "service_role";
+-- revoke insert on table "public"."tags" from "service_role";
 
-revoke insert on table "public"."tags" from "service_role";
+-- revoke references on table "public"."tags" from "service_role";
 
-revoke references on table "public"."tags" from "service_role";
+-- revoke select on table "public"."tags" from "service_role";
 
-revoke select on table "public"."tags" from "service_role";
+-- revoke trigger on table "public"."tags" from "service_role";
 
-revoke trigger on table "public"."tags" from "service_role";
+-- revoke truncate on table "public"."tags" from "service_role";
 
-revoke truncate on table "public"."tags" from "service_role";
+-- revoke update on table "public"."tags" from "service_role";
 
-revoke update on table "public"."tags" from "service_role";
+-- revoke delete on table "public"."terms" from "anon";
 
-revoke delete on table "public"."terms" from "anon";
+-- revoke insert on table "public"."terms" from "anon";
 
-revoke insert on table "public"."terms" from "anon";
+-- revoke references on table "public"."terms" from "anon";
 
-revoke references on table "public"."terms" from "anon";
+-- revoke select on table "public"."terms" from "anon";
 
-revoke select on table "public"."terms" from "anon";
+-- revoke trigger on table "public"."terms" from "anon";
 
-revoke trigger on table "public"."terms" from "anon";
+-- revoke truncate on table "public"."terms" from "anon";
 
-revoke truncate on table "public"."terms" from "anon";
+-- revoke update on table "public"."terms" from "anon";
 
-revoke update on table "public"."terms" from "anon";
+-- revoke delete on table "public"."terms" from "authenticated";
 
-revoke delete on table "public"."terms" from "authenticated";
+-- revoke insert on table "public"."terms" from "authenticated";
 
-revoke insert on table "public"."terms" from "authenticated";
+-- revoke references on table "public"."terms" from "authenticated";
 
-revoke references on table "public"."terms" from "authenticated";
+-- revoke select on table "public"."terms" from "authenticated";
 
-revoke select on table "public"."terms" from "authenticated";
+-- revoke trigger on table "public"."terms" from "authenticated";
 
-revoke trigger on table "public"."terms" from "authenticated";
+-- revoke truncate on table "public"."terms" from "authenticated";
 
-revoke truncate on table "public"."terms" from "authenticated";
+-- revoke update on table "public"."terms" from "authenticated";
 
-revoke update on table "public"."terms" from "authenticated";
+-- revoke delete on table "public"."terms" from "service_role";
 
-revoke delete on table "public"."terms" from "service_role";
+-- revoke insert on table "public"."terms" from "service_role";
 
-revoke insert on table "public"."terms" from "service_role";
+-- revoke references on table "public"."terms" from "service_role";
 
-revoke references on table "public"."terms" from "service_role";
+-- revoke select on table "public"."terms" from "service_role";
 
-revoke select on table "public"."terms" from "service_role";
+-- revoke trigger on table "public"."terms" from "service_role";
 
-revoke trigger on table "public"."terms" from "service_role";
+-- revoke truncate on table "public"."terms" from "service_role";
 
-revoke truncate on table "public"."terms" from "service_role";
+-- revoke update on table "public"."terms" from "service_role";
 
-revoke update on table "public"."terms" from "service_role";
+-- revoke delete on table "public"."user_school_memberships" from "anon";
 
-revoke delete on table "public"."user_school_memberships" from "anon";
+-- revoke insert on table "public"."user_school_memberships" from "anon";
 
-revoke insert on table "public"."user_school_memberships" from "anon";
+-- revoke references on table "public"."user_school_memberships" from "anon";
 
-revoke references on table "public"."user_school_memberships" from "anon";
+-- revoke select on table "public"."user_school_memberships" from "anon";
 
-revoke select on table "public"."user_school_memberships" from "anon";
+-- revoke trigger on table "public"."user_school_memberships" from "anon";
 
-revoke trigger on table "public"."user_school_memberships" from "anon";
+-- revoke truncate on table "public"."user_school_memberships" from "anon";
 
-revoke truncate on table "public"."user_school_memberships" from "anon";
+-- revoke update on table "public"."user_school_memberships" from "anon";
 
-revoke update on table "public"."user_school_memberships" from "anon";
+-- revoke delete on table "public"."user_school_memberships" from "authenticated";
 
-revoke delete on table "public"."user_school_memberships" from "authenticated";
+-- revoke insert on table "public"."user_school_memberships" from "authenticated";
 
-revoke insert on table "public"."user_school_memberships" from "authenticated";
+-- revoke references on table "public"."user_school_memberships" from "authenticated";
 
-revoke references on table "public"."user_school_memberships" from "authenticated";
+-- revoke select on table "public"."user_school_memberships" from "authenticated";
 
-revoke select on table "public"."user_school_memberships" from "authenticated";
+-- revoke trigger on table "public"."user_school_memberships" from "authenticated";
 
-revoke trigger on table "public"."user_school_memberships" from "authenticated";
+-- revoke truncate on table "public"."user_school_memberships" from "authenticated";
 
-revoke truncate on table "public"."user_school_memberships" from "authenticated";
+-- revoke update on table "public"."user_school_memberships" from "authenticated";
 
-revoke update on table "public"."user_school_memberships" from "authenticated";
+-- revoke delete on table "public"."user_school_memberships" from "service_role";
 
-revoke delete on table "public"."user_school_memberships" from "service_role";
+-- revoke insert on table "public"."user_school_memberships" from "service_role";
 
-revoke insert on table "public"."user_school_memberships" from "service_role";
+-- revoke references on table "public"."user_school_memberships" from "service_role";
 
-revoke references on table "public"."user_school_memberships" from "service_role";
+-- revoke select on table "public"."user_school_memberships" from "service_role";
 
-revoke select on table "public"."user_school_memberships" from "service_role";
+-- revoke trigger on table "public"."user_school_memberships" from "service_role";
 
-revoke trigger on table "public"."user_school_memberships" from "service_role";
+-- revoke truncate on table "public"."user_school_memberships" from "service_role";
 
-revoke truncate on table "public"."user_school_memberships" from "service_role";
+-- revoke update on table "public"."user_school_memberships" from "service_role";
 
-revoke update on table "public"."user_school_memberships" from "service_role";
+-- revoke delete on table "public"."users" from "anon";
 
-revoke delete on table "public"."users" from "anon";
+-- revoke insert on table "public"."users" from "anon";
 
-revoke insert on table "public"."users" from "anon";
+-- revoke references on table "public"."users" from "anon";
 
-revoke references on table "public"."users" from "anon";
+-- revoke select on table "public"."users" from "anon";
 
-revoke select on table "public"."users" from "anon";
+-- revoke trigger on table "public"."users" from "anon";
 
-revoke trigger on table "public"."users" from "anon";
+-- revoke truncate on table "public"."users" from "anon";
 
-revoke truncate on table "public"."users" from "anon";
+-- revoke update on table "public"."users" from "anon";
 
-revoke update on table "public"."users" from "anon";
+-- revoke delete on table "public"."users" from "authenticated";
 
-revoke delete on table "public"."users" from "authenticated";
+-- revoke insert on table "public"."users" from "authenticated";
 
-revoke insert on table "public"."users" from "authenticated";
+-- revoke references on table "public"."users" from "authenticated";
 
-revoke references on table "public"."users" from "authenticated";
+-- revoke select on table "public"."users" from "authenticated";
 
-revoke select on table "public"."users" from "authenticated";
+-- revoke trigger on table "public"."users" from "authenticated";
 
-revoke trigger on table "public"."users" from "authenticated";
+-- revoke truncate on table "public"."users" from "authenticated";
 
-revoke truncate on table "public"."users" from "authenticated";
+-- revoke update on table "public"."users" from "authenticated";
 
-revoke update on table "public"."users" from "authenticated";
+-- revoke delete on table "public"."users" from "service_role";
 
-revoke delete on table "public"."users" from "service_role";
+-- revoke insert on table "public"."users" from "service_role";
 
-revoke insert on table "public"."users" from "service_role";
+-- revoke references on table "public"."users" from "service_role";
 
-revoke references on table "public"."users" from "service_role";
+-- revoke select on table "public"."users" from "service_role";
 
-revoke select on table "public"."users" from "service_role";
+-- revoke trigger on table "public"."users" from "service_role";
 
-revoke trigger on table "public"."users" from "service_role";
+-- revoke truncate on table "public"."users" from "service_role";
 
-revoke truncate on table "public"."users" from "service_role";
+-- revoke update on table "public"."users" from "service_role";
 
-revoke update on table "public"."users" from "service_role";
+-- revoke delete on table "public"."years" from "anon";
 
-revoke delete on table "public"."years" from "anon";
+-- revoke insert on table "public"."years" from "anon";
 
-revoke insert on table "public"."years" from "anon";
+-- revoke references on table "public"."years" from "anon";
 
-revoke references on table "public"."years" from "anon";
+-- revoke select on table "public"."years" from "anon";
 
-revoke select on table "public"."years" from "anon";
+-- revoke trigger on table "public"."years" from "anon";
 
-revoke trigger on table "public"."years" from "anon";
+-- revoke truncate on table "public"."years" from "anon";
 
-revoke truncate on table "public"."years" from "anon";
+-- revoke update on table "public"."years" from "anon";
 
-revoke update on table "public"."years" from "anon";
+-- revoke delete on table "public"."years" from "authenticated";
 
-revoke delete on table "public"."years" from "authenticated";
+-- revoke insert on table "public"."years" from "authenticated";
 
-revoke insert on table "public"."years" from "authenticated";
+-- revoke references on table "public"."years" from "authenticated";
 
-revoke references on table "public"."years" from "authenticated";
+-- revoke select on table "public"."years" from "authenticated";
 
-revoke select on table "public"."years" from "authenticated";
+-- revoke trigger on table "public"."years" from "authenticated";
 
-revoke trigger on table "public"."years" from "authenticated";
+-- revoke truncate on table "public"."years" from "authenticated";
 
-revoke truncate on table "public"."years" from "authenticated";
+-- revoke update on table "public"."years" from "authenticated";
 
-revoke update on table "public"."years" from "authenticated";
+-- revoke delete on table "public"."years" from "service_role";
 
-revoke delete on table "public"."years" from "service_role";
+-- revoke insert on table "public"."years" from "service_role";
 
-revoke insert on table "public"."years" from "service_role";
+-- revoke references on table "public"."years" from "service_role";
 
-revoke references on table "public"."years" from "service_role";
+-- revoke select on table "public"."years" from "service_role";
 
-revoke select on table "public"."years" from "service_role";
+-- revoke trigger on table "public"."years" from "service_role";
 
-revoke trigger on table "public"."years" from "service_role";
+-- revoke truncate on table "public"."years" from "service_role";
 
-revoke truncate on table "public"."years" from "service_role";
-
-revoke update on table "public"."years" from "service_role";
+-- revoke update on table "public"."years" from "service_role";
 
 alter table "public"."user_school_memberships" drop constraint "user_school_memberships_user_id_users_user_id_fk";
 
