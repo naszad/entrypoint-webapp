@@ -74,6 +74,7 @@ jobs:
       id-token: "write"
       deployments: "write"
       pull-requests: "read"
+      actions: "read"
     uses: ./.github/workflows/deploy-to-cloud-run.yml
     with:
       image: ${{ needs.build-and-push.outputs.image_path }}

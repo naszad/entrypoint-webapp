@@ -19,6 +19,7 @@ jobs:
       id-token: write
       deployments: write
       pull-requests: read
+      actions: read
     uses: ./.github/workflows/deploy-to-cloud-run.yml
     with:
       image: ${{ inputs.image }}
