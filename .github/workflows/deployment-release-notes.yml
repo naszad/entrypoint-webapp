@@ -34,6 +34,16 @@ on:
         required: false
       JIRA_API_TOKEN:
         required: false
+    outputs:
+      issue_keys:
+        description: "JSON array of JIRA issue keys discovered in this deployment"
+        value: ${{ jobs.build-release-notes.outputs.issue_keys }}
+      issue_keys_artifact:
+        description: "Name of the artifact that stores deployment notes and issue keys"
+        value: ${{ jobs.build-release-notes.outputs.issue_keys_artifact }}
+      workflow_run_id:
+        description: "Run ID of the deployment release notes workflow invocation"
+        value: ${{ jobs.build-release-notes.outputs.workflow_run_id }}
 
 permissions:
   contents: read
@@ -52,6 +62,11 @@ jobs:
       status_summary: ${{ steps.generate_notes.outputs.status_summary }}
       deployed_by: ${{ steps.generate_notes.outputs.deployed_by }}
       highlights_json: ${{ steps.generate_notes.outputs.highlights_json }}
+      issue_keys: ${{ steps.generate_notes.outputs.issue_keys }}
+      issue_keys_artifact: ${{ steps.generate_notes.outputs.issue_keys_artifact }}
+      workflow_run_id: ${{ steps.generate_notes.outputs.workflow_run_id }}
+    env:
+      NOTES_ARTIFACT_NAME: deployment-notes-${{ github.run_id }}
     steps:
       - name: Generate release notes
         id: generate_notes
@@ -105,6 +120,10 @@ jobs:
               core.setOutput('deployment_id', '');
               core.setOutput('run_url', '');
               core.setOutput('status_summary', '');
+              core.setOutput('issue_keys', '[]');
+              const artifactName = process.env.NOTES_ARTIFACT_NAME || `deployment-notes-${process.env.GITHUB_RUN_ID || ''}`;
+              core.setOutput('issue_keys_artifact', artifactName);
+              core.setOutput('workflow_run_id', process.env.GITHUB_RUN_ID || '');
               return;
             }
 
@@ -459,6 +478,11 @@ jobs:
             core.setOutput('run_url', runUrl);
             core.setOutput('status_summary', statusSummary);
             core.setOutput('deployed_by', deployer);
+            const issueKeys = Array.from(issueMap.keys()).sort();
+            core.setOutput('issue_keys', JSON.stringify(issueKeys));
+            const artifactName = process.env.NOTES_ARTIFACT_NAME || `deployment-notes-${process.env.GITHUB_RUN_ID || ''}`;
+            core.setOutput('issue_keys_artifact', artifactName);
+            core.setOutput('workflow_run_id', process.env.GITHUB_RUN_ID || '');
 
             const fs = require('fs');
             fs.writeFileSync('release_notes.md', noteBody, { encoding: 'utf8' });
@@ -474,6 +498,11 @@ jobs:
               ),
               { encoding: 'utf8' }
             );
+            fs.writeFileSync(
+              'jira-issue-keys.json',
+              JSON.stringify(issueKeys, null, 2),
+              { encoding: 'utf8' }
+            );
 
             if (noteBody) {
               core.summary.addHeading('Deployment Notes');
@@ -484,10 +513,11 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: deployment-notes-${{ github.run_id }}
+          name: ${{ env.NOTES_ARTIFACT_NAME }}
           path: |
             release_notes.md
             highlights.json
+            jira-issue-keys.json
           retention-days: 14
 
   update-deployment-status:

@@ -76,3 +76,21 @@ jobs:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
       JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+  jira-release-management:
+    name: Update JIRA releases
+    needs: release-notes
+    if: ${{ needs.release-notes.result == 'success' }}
+    uses: ./.github/workflows/jira-release-management.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      environment: ${{ inputs.environment || github.event.inputs.environment || 'Dev' }}
+      issue_keys: ${{ needs.release-notes.outputs.issue_keys }}
+      artifact_name: ${{ needs.release-notes.outputs.issue_keys_artifact }}
+      artifact_run_id: ${{ needs.release-notes.outputs.workflow_run_id }}
+    secrets:
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}

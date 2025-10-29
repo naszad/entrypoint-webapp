@@ -1,0 +1,397 @@
+name: JIRA Release Management
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target deployment environment (e.g., Dev, Production)"
+        required: true
+        type: string
+      issue_keys:
+        description: "JSON array or comma-separated list of JIRA issue keys"
+        required: false
+        type: string
+      artifact_name:
+        description: "Name of the artifact that includes jira-issue-keys.json"
+        required: false
+        type: string
+      artifact_run_id:
+        description: "Workflow run ID that produced the artifact"
+        required: false
+        type: string
+    secrets:
+      JIRA_BASE_URL:
+        required: true
+      JIRA_EMAIL:
+        required: true
+      JIRA_API_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target deployment environment (e.g., Dev, Production)"
+        required: true
+        default: Dev
+      issue_keys:
+        description: "JSON array or comma-separated list of JIRA issue keys"
+        required: false
+      artifact_name:
+        description: "Name of the artifact that includes jira-issue-keys.json"
+        required: false
+      artifact_run_id:
+        description: "Workflow run ID that produced the artifact"
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  manage-jira-release:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_KEY: DEV
+      PENDING_RELEASE_NAME: Pending Release
+    steps:
+      - name: Download issue key artifact
+        if: ${{ inputs.artifact_name != '' && inputs.artifact_run_id != '' }}
+        id: download_artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: issue-artifacts
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect issue keys
+        id: collect_keys
+        uses: actions/github-script@v7
+        env:
+          ISSUE_KEYS_INPUT: ${{ inputs.issue_keys }}
+          ARTIFACT_DIR: ${{ steps.download_artifact.outputs.download-path }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const keys = new Set();
+
+            const normalize = (value) => {
+              if (typeof value !== 'string') {
+                return;
+              }
+              const trimmed = value.trim().toUpperCase();
+              if (trimmed) {
+                keys.add(trimmed);
+              }
+            };
+
+            const fromInput = process.env.ISSUE_KEYS_INPUT || '';
+            if (fromInput) {
+              let parsed = null;
+              try {
+                parsed = JSON.parse(fromInput);
+              } catch (error) {
+                parsed = null;
+              }
+
+              if (Array.isArray(parsed)) {
+                parsed.forEach(normalize);
+              } else {
+                fromInput.split(/[\s,]+/).forEach(normalize);
+              }
+            }
+
+            const artifactDir = process.env.ARTIFACT_DIR || '';
+            if (artifactDir) {
+              const filePath = path.join(artifactDir, 'jira-issue-keys.json');
+              try {
+                const fileContents = fs.readFileSync(filePath, { encoding: 'utf8' });
+                const parsed = JSON.parse(fileContents);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach(normalize);
+                } else {
+                  core.warning('jira-issue-keys.json does not contain an array; ignoring artifact content.');
+                }
+              } catch (error) {
+                core.warning(`Unable to load issue keys from artifact: ${error.message}`);
+              }
+            }
+
+            const collected = Array.from(keys);
+            core.setOutput('issue_keys_json', JSON.stringify(collected));
+            core.info(`Collected ${collected.length} unique JIRA issue keys.`);
+
+      - name: Manage JIRA releases
+        uses: actions/github-script@v7
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.environment }}
+          ISSUE_KEYS_JSON: ${{ steps.collect_keys.outputs.issue_keys_json }}
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          PROJECT_KEY: ${{ env.PROJECT_KEY }}
+          PENDING_RELEASE_NAME: ${{ env.PENDING_RELEASE_NAME }}
+        with:
+          script: |
+            const envRaw = process.env.TARGET_ENVIRONMENT || '';
+            const environment = envRaw.trim();
+            if (!environment) {
+              core.setFailed('Environment input is required.');
+              return;
+            }
+
+            const issueKeysJson = process.env.ISSUE_KEYS_JSON || '[]';
+            let issueKeys;
+            try {
+              issueKeys = JSON.parse(issueKeysJson);
+            } catch (error) {
+              core.setFailed(`Unable to parse issue keys input: ${error.message}`);
+              return;
+            }
+
+            if (!Array.isArray(issueKeys)) {
+              issueKeys = [];
+            }
+
+            const jiraBaseRaw = process.env.JIRA_BASE_URL || '';
+            const jiraBase = jiraBaseRaw.replace(/\/+$/, '');
+            if (!jiraBase) {
+              core.setFailed('JIRA_BASE_URL secret is required.');
+              return;
+            }
+
+            const jiraEmail = process.env.JIRA_EMAIL || '';
+            const jiraToken = process.env.JIRA_API_TOKEN || '';
+            if (!jiraEmail || !jiraToken) {
+              core.setFailed('JIRA_EMAIL and JIRA_API_TOKEN secrets are required.');
+              return;
+            }
+
+            const projectKey = process.env.PROJECT_KEY || 'DEV';
+            const pendingReleaseName = process.env.PENDING_RELEASE_NAME || 'Pending Release';
+
+            const authHeader = `Basic ${Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64')}`;
+
+            const fetchFn = typeof fetch === 'function'
+              ? fetch
+              : async function fetchPolyfill(urlString, options = {}) {
+                  const { URL } = require('url');
+                  const parsed = new URL(urlString);
+                  const isHttps = parsed.protocol === 'https:';
+                  const httpModule = require(isHttps ? 'https' : 'http');
+                  const requestOptions = {
+                    method: options.method || 'GET',
+                    hostname: parsed.hostname,
+                    port: parsed.port || (isHttps ? 443 : 80),
+                    path: `${parsed.pathname}${parsed.search}`,
+                    headers: options.headers || {},
+                  };
+
+                  const body = options.body;
+
+                  return await new Promise((resolve, reject) => {
+                    const req = httpModule.request(requestOptions, (res) => {
+                      const chunks = [];
+                      res.on('data', (chunk) => chunks.push(chunk));
+                      res.on('end', () => {
+                        const buffer = Buffer.concat(chunks);
+                        const text = buffer.toString('utf-8');
+                        resolve({
+                          ok: res.statusCode >= 200 && res.statusCode < 300,
+                          status: res.statusCode,
+                          json: async () => (text ? JSON.parse(text) : {}),
+                          text: async () => text,
+                        });
+                      });
+                    });
+                    req.on('error', reject);
+                    if (body) {
+                      req.write(typeof body === 'string' ? body : JSON.stringify(body));
+                    }
+                    req.end();
+                  });
+                };
+
+            const jiraRequest = async (path, options = {}) => {
+              const url = `${jiraBase}${path}`;
+              const method = options.method || 'GET';
+              const headers = {
+                Authorization: authHeader,
+                Accept: 'application/json',
+                ...options.headers,
+              };
+
+              if (options.body) {
+                headers['Content-Type'] = 'application/json';
+              }
+
+              const response = await fetchFn(url, {
+                method,
+                headers,
+                body: options.body ? JSON.stringify(options.body) : undefined,
+              });
+
+              if (response.status === 204) {
+                return null;
+              }
+
+              const text = await response.text();
+              if (!response.ok) {
+                throw new Error(`JIRA ${method} ${path} failed with ${response.status}: ${text}`);
+              }
+
+              return text ? JSON.parse(text) : null;
+            };
+
+            const getProject = (() => {
+              let cached = null;
+              return async () => {
+                if (cached) {
+                  return cached;
+                }
+                cached = await jiraRequest(`/rest/api/3/project/${encodeURIComponent(projectKey)}`);
+                return cached;
+              };
+            })();
+
+            const getVersions = async () => {
+              const versions = await jiraRequest(`/rest/api/3/project/${encodeURIComponent(projectKey)}/versions`);
+              return Array.isArray(versions) ? versions : [];
+            };
+
+            const ensurePendingVersion = async () => {
+              const versions = await getVersions();
+              const existing = versions.find((version) => version.name === pendingReleaseName);
+              if (existing) {
+                return existing;
+              }
+
+              const project = await getProject();
+              const createPayload = {
+                name: pendingReleaseName,
+                projectId: project.id,
+                released: false,
+              };
+
+              const created = await jiraRequest('/rest/api/3/version', {
+                method: 'POST',
+                body: createPayload,
+              });
+
+              core.notice(`Created missing JIRA version \'${pendingReleaseName}\' for project ${projectKey}.`);
+              return created;
+            };
+
+            const normalizeEnv = (value) => value.toLowerCase();
+            const envNormalized = normalizeEnv(environment);
+            const isDev = ['dev', 'development'].includes(envNormalized);
+            const isProd = ['prod', 'production'].includes(envNormalized);
+
+            if (!isDev && !isProd) {
+              core.notice(`Environment ${environment} is not managed by this workflow; skipping.`);
+              return;
+            }
+
+            if (isDev) {
+              const version = await ensurePendingVersion();
+              if (!version || !version.id) {
+                core.setFailed(`Unable to ensure the ${pendingReleaseName} version exists in JIRA.`);
+                return;
+              }
+
+              if (!issueKeys.length) {
+                core.notice('No JIRA issue keys supplied; skipping Pending Release association.');
+                return;
+              }
+
+              const failures = [];
+              for (const key of issueKeys) {
+                try {
+                  const issue = await jiraRequest(`/rest/api/3/issue/${encodeURIComponent(key)}?fields=fixVersions`);
+                  const fixVersions = issue?.fields?.fixVersions || [];
+                  const alreadyLinked = fixVersions.some((item) => item.id === version.id || item.name === version.name);
+                  if (alreadyLinked) {
+                    core.info(`Issue ${key} already linked to ${version.name}.`);
+                    continue;
+                  }
+
+                  await jiraRequest(`/rest/api/3/issue/${encodeURIComponent(key)}`, {
+                    method: 'PUT',
+                    body: {
+                      update: {
+                        fixVersions: [
+                          {
+                            add: {
+                              id: version.id,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  });
+
+                  core.info(`Added ${version.name} to ${key}.`);
+                } catch (error) {
+                  core.warning(`Failed to update ${key}: ${error.message}`);
+                  failures.push(key);
+                }
+              }
+
+              if (failures.length) {
+                core.setFailed(`Unable to append ${failures.length} issue(s) to ${pendingReleaseName}: ${failures.join(', ')}.`);
+              } else {
+                core.notice(`Linked ${issueKeys.length} issue(s) to ${pendingReleaseName}.`);
+              }
+
+              return;
+            }
+
+            const versions = await getVersions();
+            const pending = versions.find((version) => version.name === pendingReleaseName);
+            if (!pending) {
+              core.setFailed(`Pending release '${pendingReleaseName}' was not found in project ${projectKey}.`);
+              return;
+            }
+
+            const today = new Date();
+            const datePart = today.toISOString().slice(0, 10);
+            const releasePrefix = `Release ${datePart}`;
+            const releasePattern = new RegExp(`^${releasePrefix}\\.(\\d+)$`);
+            let nextIndex = 1;
+            for (const version of versions) {
+              const match = releasePattern.exec(version.name || '');
+              if (match) {
+                const numeric = Number(match[1]);
+                if (!Number.isNaN(numeric)) {
+                  nextIndex = Math.max(nextIndex, numeric + 1);
+                }
+              }
+            }
+
+            const releaseName = `${releasePrefix}.${nextIndex}`;
+
+            await jiraRequest(`/rest/api/3/version/${encodeURIComponent(pending.id)}`, {
+              method: 'PUT',
+              body: {
+                name: releaseName,
+                released: true,
+                releaseDate: datePart,
+              },
+            });
+            core.notice(`Renamed '${pendingReleaseName}' to '${releaseName}' and marked as released.`);
+
+            const project = await getProject();
+            await jiraRequest('/rest/api/3/version', {
+              method: 'POST',
+              body: {
+                name: pendingReleaseName,
+                projectId: project.id,
+                released: false,
+              },
+            });
+            core.notice(`Created new '${pendingReleaseName}' version for project ${projectKey}.`);
+
+            if (issueKeys.length) {
+              core.notice(`Deployment included ${issueKeys.length} issue(s). They remain associated with released version '${releaseName}'.`);
+            }
