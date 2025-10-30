@@ -117,7 +117,7 @@ npm run reset
 
 This will apply all database migrations and run the seed scripts. The initial seeded user is `test@email.com` with a password of `password`.
 
-### ✅ Your local environment should now be ready!
+Your local environment should now be ready!
 
 
 ## Development Workflow
@@ -133,40 +133,72 @@ There are two primary ways to run commands inside a container. The service name 
     ENV_FILE=.env.local docker compose -f docker-compose.dev.yml exec webapp <your-command>
     ```
 2.  **Using an interactive shell**: With the container running, in aother termianl run the command below to get a shell. You can then run your commands (e.g., `npm run test`). Type `exit` to return to your host machine.
-   ```bash
-   docker compose exec webapp sh
-   ```
+      ```bash
+      docker compose exec webapp sh
+      ```
 
-### Database Changes
-We use [Supabase Migrations](https://supabase.com/docs/guides/deployment/database-migrations#diffing-changes) to manage the database schema. All changes to the database should be made in a local instance of the database.
+## Database Changes
+We use [Supabase Migrations](https://supabase.com/docs/guides/deployment/database-migrations#diffing-changes) to manage the database schema. **All changes to the database should be made in a local instance of the database.** Do _not_ modify a hosted environment database (e.g. `Dev`) without explicit permission to do so from the project lead.
 
 The development process is as follows. The below shell commands should be run from the root of your local project.
 
-1. Before starting new work, run `npm run reset` to ensure your database structure and `db.types.ts` file is clean.
-1. Make changes to the database directly (via direct postgres connection in your favorite db editor or the supabase local admin, usually at http://localhost:54323).
+1. Before starting new work, run `npm run reset` to ensure your database structure and `db.types.ts` file is clean. This will:
+   * Clear your local database
+   * Apply Supabase migration files from `supabase/migrations/*.sql`
+   * Load seed data from `supabase/seeds/*.sql`
+   * Create users using `supabase/seed-user.ts`
+   
+   At this point, your local database should now reflect the scehma of the `Dev` database.
+1. For your feature, make changes to your **local database** directly (via direct postgres connection in your favorite db editor or the supabase local admin web UI, usually at http://localhost:54323).
 1. (Optional) If you need updated TS Type definitions during app development, run:
    ``` bash
    # writes types file to (src/types/db.types.ts)
    npm run supabase:gentypes
    ```
       * Do not edit `db.types.ts` directly. You can modify `src/types/Models.ts` if you require convenience type definitions or need to modify generated types. See [Generating Typscript Types](https://supabase.com/docs/guides/api/rest/generating-types) for more info.
+1. During development of your feature, if `main` is updated with additional migrations and you need to apply those locally, merge `main` into your branch and run `supabase migration up`.
 1. When your feature is complete, generate the migration file:
    ``` bash
    # generate migration sql file in supabase/migrations
    npm run supabase:genmigration -- NAME_OF_MIGRATION
    ```
-   where name `NAME_OF_MIGRATION` includes your ticket name(s) or branch name. If you want to do a "dry run" and see the diff without generating the migration file, run `supabase db diff --debug`.
+   where name `NAME_OF_MIGRATION` includes your ticket name(s) or branch name (e.g. `DEV-247-student-current-grades`). If you want to do a "dry run" and see the diff without generating the migration file, run `supabase db diff --debug`.
+
+   After generating the migration file, **look at it** and make sure it contains what you expect. If it contains changes that you did not make, **stop** and figure that out. 
 1. Commit and push your changes. For database related changes you should keep your eye on updates to:
    * `src/types/db.types.ts`
    * `src/types/Models.ts`
    * `supabase/migrations/*`
 
-If you pull down a migration and want to apply it to your existing local database, run `supabase migration up`.
+### Loading data from a remote database
+It can be helpful to bring in data from a higher environment to troubleshoot/test application behavior. You can use the following `npm` command to help with this:
+
+```bash
+npm run supabase:restorefromremote
+```
+
+This will use the Supabase CLI to:
+1. Link to a remote database (you may be asked to log in) — you will select from a list of DBs you have access to
+1. Dump the data (only) to `supabase/backups/remote-data.sql`
+1. Reset (clear) the local Supabase database, which will apply all migrations in the `supabase/migrations` folder
+1. Load the `remote-data.sql` file into your local database.
+
+
+> NOTES:
+> 1. This command assumes you have a `.env.local` file with your local database connection string in `DATABASE_URL`.
+> 2. This process will only work if the local schema matches the remote schema at the time of import.
+
+
+You can instead _just_ reset/reload your local database from the existing `remote-data.sql` file (without having to wait for the remote dump, which also saves us on egress bandwidth) by running:
+
+```bash
+supabase db reset && npm run supabase:loadtolocal
+```
 
 
 ## Pull requests
 Before opening a pull request, check:
-1. Does the production build execute successfully? (`ENV_FILE=.env.development docker compose up --build`)
+1. Does the production build execute successfully? (`ENV_FILE=.env.development docker compose up --build` or `npm run build`)
 2. Have migrations been generated and have you tested them against a reset copy of your local database?
 
 ## Database Backup and Restore
