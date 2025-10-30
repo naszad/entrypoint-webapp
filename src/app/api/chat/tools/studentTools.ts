@@ -9,8 +9,9 @@ import { ChatTool, ToolContext } from './types';
 import { createClient } from '@/utils/supabase/supabaseServer';
 import { fetchConfig } from '@/libs/configService';
 import { FINALIZED_GRADE_CODES, CURRENT_YEAR_GRADE_CODES, ALL_GRADE_CODES } from '@/utils/gradeCodes';
+import { QueryData } from '@supabase/supabase-js';
 
-export const identifyStudentTool: ChatTool = {
+export const identifyStudentTool = (context: ToolContext): ChatTool => ({
   metadata: {
     name: 'identify_student',
     category: 'student',
@@ -32,11 +33,22 @@ export const identifyStudentTool: ChatTool = {
     execute: async ({ studentName }) => {
       const supabase = await createClient();
 
-      // Query for students
-      const { data: students, error } = await supabase
+      // Query for students scoped to the selected school (when available)
+      const studentQuery = supabase
         .from('students')
-        .select('student_id, full_name, grade_level')
-        .ilike('full_name', `%${studentName}%`);
+        .select(`
+          student_id,
+          full_name,
+          grade_level,
+          schools!school_student_link!inner (school_id)
+        `)
+        .eq('schools.school_id', context.selectedSchoolId)
+        .ilike('full_name', `%${studentName}%`)
+        .order('full_name', { ascending: true});
+
+      type studentQueryType = QueryData<typeof studentQuery>;
+      const { data, error } = await studentQuery;
+      const students = data as studentQueryType;
 
       if (error) {
         console.error('Error identifying student:', error);
@@ -65,7 +77,7 @@ export const identifyStudentTool: ChatTool = {
       };
     },
   })
-};
+});
 
 export const getStudentGpaTool = (context: ToolContext): ChatTool => ({
   metadata: {

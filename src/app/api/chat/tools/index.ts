@@ -36,7 +36,7 @@ export class ToolRegistry {
     this.registerTool(executeSqlTool(this.context));
 
     // Register student-specific tools
-    this.registerTool(identifyStudentTool);
+    this.registerTool(identifyStudentTool(this.context));
     this.registerTool(getStudentGpaTool(this.context));
 
     // Register utility tools
@@ -101,10 +101,12 @@ export class ToolRegistry {
     this.context = { ...this.context, ...newContext, sqlEvaluationCache: this.sqlEvaluationCache };
     
     // Re-register context-dependent tools
+    this.tools.delete('identify_student');
     this.tools.delete('execute_sql');
     this.tools.delete('get_student_gpa');
     this.tools.delete('get_academic_terms');
     
+    this.registerTool(identifyStudentTool(this.context));
     this.registerTool(executeSqlTool(this.context));
     this.registerTool(getStudentGpaTool(this.context));
     this.registerTool(getAcademicTermsTool(this.context));
