@@ -31,6 +31,7 @@ export type ColumnMeta = {
 }
 
 export interface FilterValue {
+  id?: string;
   key: string;
   value: string;
   condition: string;
@@ -168,6 +169,7 @@ export function DataTable<TData, TValue>({
                         header={header}
                         isFilterable={isFilterable}
                         isFilterOpen={isFilterOpen}
+                        activeFilters={filterValues}
                         filterConditions={filterConditions}
                         setFilterConditions={setFilterConditions}
                         onFilterClick={handleFilterClick}

@@ -106,13 +106,36 @@ const getColumnName = (key: string) => {
   }
 }
 
-// Helper function to determine if a column is an integer type
+// Helper function to determine numeric column types
 const isIntegerColumn = (columnName: string): boolean => {
   const integerColumns = [
-    'grade_level'
+    'grade_level',
+    'graduation_year',
   ];
   return integerColumns.includes(columnName);
-}
+};
+
+const isFloatColumn = (columnName: string): boolean => {
+  const floatColumns = [
+    'gpa',
+    'grade_percent',
+  ];
+  return floatColumns.includes(columnName);
+};
+
+const coerceNumericValue = (columnName: string, rawValue: string): number | string => {
+  if (isIntegerColumn(columnName)) {
+    const parsed = parseInt(rawValue, 10);
+    return Number.isNaN(parsed) ? rawValue : parsed;
+  }
+
+  if (isFloatColumn(columnName)) {
+    const parsed = parseFloat(rawValue);
+    return Number.isNaN(parsed) ? rawValue : parsed;
+  }
+
+  return rawValue;
+};
 
 const getGradeColumnName = (key: string) => {
   switch (key) {
@@ -177,18 +200,13 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
         q = q.ilike(columnName, `%${filter.value}`);
         break;
       case 'not':
-        q = q.neq(columnName, filter.value);
+        q = q.neq(columnName, coerceNumericValue(columnName, filter.value));
         break;
       case 'not_contains':
         q = q.not(columnName, 'ilike', `%${filter.value}%`);
         break;
       case 'eq': {
-        if (isIntegerColumn(columnName)) {
-          const numericValue = Number(filter.value);
-          q = Number.isNaN(numericValue) ? q.eq(columnName, filter.value) : q.eq(columnName, numericValue);
-        } else {
-          q = q.eq(columnName, filter.value);
-        }
+        q = q.eq(columnName, coerceNumericValue(columnName, filter.value));
         break;
       }
       case 'is_empty': {
@@ -201,29 +219,32 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
         break;
       }
       case 'gt':
-        q = q.gt(columnName, filter.value);
+        q = q.gt(columnName, coerceNumericValue(columnName, filter.value));
         break;
       case 'lt':
-        q = q.lt(columnName, filter.value);
+        q = q.lt(columnName, coerceNumericValue(columnName, filter.value));
         break;
       case 'gte':
-        q = q.gte(columnName, filter.value);
+        q = q.gte(columnName, coerceNumericValue(columnName, filter.value));
         break;
       case 'lte':
-        q = q.lte(columnName, filter.value);
+        q = q.lte(columnName, coerceNumericValue(columnName, filter.value));
         break;
       case 'in':
         // Handle multi-select values (pipe-separated) or single values
         if (filter.value.includes('|')) {
-          const values = filter.value.split('|').filter(v => v.trim() !== '');
+          const values = filter.value
+            .split('|')
+            .filter(v => v.trim() !== '')
+            .map(value => coerceNumericValue(columnName, value));
           q = q.in(columnName, values);
         } else {
-          q = q.eq(columnName, filter.value);
+          q = q.eq(columnName, coerceNumericValue(columnName, filter.value));
         }
         break;
       default:
-        if (isIntegerColumn(columnName)) {
-          q = q.eq(columnName, filter.value);
+        if (isIntegerColumn(columnName) || isFloatColumn(columnName)) {
+          q = q.eq(columnName, coerceNumericValue(columnName, filter.value));
         } else {
           q = q.ilike(columnName, filter.value);
         }
@@ -276,13 +297,13 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
         q = q.ilike(columnName, `%${filter.value}`);
         break;
       case 'not':
-        q = q.neq(columnName, filter.value);
+        q = q.neq(columnName, coerceNumericValue(columnName, filter.value));
         break;
       case 'not_contains':
         q = q.not(columnName, 'ilike', `%${filter.value}%`);
         break;
       case 'eq':
-        q = q.eq(columnName, filter.value);
+        q = q.eq(columnName, coerceNumericValue(columnName, filter.value));
         break;
       case 'is_empty': {
         q = q.or(`${columnName}.is.null,${columnName}.eq.`);
@@ -294,28 +315,35 @@ const applyGradeFilters = (q: any, filters: FilterValue[]) => {
           break;
         }
         case 'gt':
-          q = q.gt(columnName, filter.value);
+          q = q.gt(columnName, coerceNumericValue(columnName, filter.value));
           break;
         case 'lt':
-          q = q.lt(columnName, filter.value);
+          q = q.lt(columnName, coerceNumericValue(columnName, filter.value));
           break;
         case 'gte':
-          q = q.gte(columnName, filter.value);
+          q = q.gte(columnName, coerceNumericValue(columnName, filter.value));
           break;
         case 'lte':
-          q = q.lte(columnName, filter.value);
+          q = q.lte(columnName, coerceNumericValue(columnName, filter.value));
           break;
         case 'in':
           // Handle multi-select values (pipe-separated) or single values
           if (filter.value.includes('|')) {
-            const values = filter.value.split('|').filter(v => v.trim() !== '');
+            const values = filter.value
+              .split('|')
+              .filter(v => v.trim() !== '')
+              .map(value => coerceNumericValue(columnName, value));
             q = q.in(columnName, values);
           } else {
-            q = q.eq(columnName, filter.value);
+            q = q.eq(columnName, coerceNumericValue(columnName, filter.value));
           }
           break;
         default:
-          q = q.eq(columnName, filter.value);
+          if (isIntegerColumn(columnName) || isFloatColumn(columnName)) {
+            q = q.eq(columnName, coerceNumericValue(columnName, filter.value));
+          } else {
+            q = q.eq(columnName, filter.value);
+          }
       }
     } catch (error) {
       console.error(`Error applying filter for column ${columnName}:`, error);

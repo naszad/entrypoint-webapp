@@ -22,10 +22,10 @@ export interface ActionItem {
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
-  filterValues: FilterValue[]
+  filterValues: FilterValue[];
   actions: ActionItem[];
   onActionItemClicked?: (id: string) => void;
-  onRemoveFilter: (key: string) => void;
+  onRemoveFilter: (filter: FilterValue) => void;
   onClearAllFilters: () => void;
   showColumnSettings: boolean;
   setShowColumnSettings: (show: boolean) => void;
@@ -74,16 +74,26 @@ export function DataTableToolbar<TData>({
     <div className="h-10 min-h-10 border-b px-4 flex items-center justify-between bg-gray-50">
       <ToolbarFilters
         filterValues={filterValues}
-        getColumnHeader={(columnId: string) => {
-          const baseColumnId = getBaseColumnId(columnId);         
-          return table.getAllColumns().find((col) => col.id === baseColumnId)?.columnDef.header as string;
+        getColumnHeader={(filter: FilterValue) => {
+          const baseColumnId = getBaseColumnId(filter.key);
+          const column = table.getAllColumns().find((col) => col.id === baseColumnId);
+          const header = column?.columnDef.header;
+          if (typeof header === 'string') {
+            return header;
+          }
+          return baseColumnId;
         }}
-        getColumnValue={(columnId: string) => {
-          const filter = filterValues.find((filter) => filter.key === columnId);
-          if (filter?.key.endsWith('RecentOnly') && filter.value && parseInt(filter.value) > 0) {
+        getColumnValue={(filter: FilterValue) => {
+          if (filter.key.endsWith('RecentOnly') && filter.value && parseInt(filter.value) > 0) {
             return `Last ${filter.value} days`;
           }
-          return filter?.value ?? '';
+          if (filter.condition === 'is_empty' || filter.condition === 'is_not_empty') {
+            return '—';
+          }
+          if (filter.condition === 'in' && filter.value.includes('|')) {
+            return filter.value.split('|').filter(Boolean).join(', ');
+          }
+          return filter.value;
         }}
         onRemoveFilter={onRemoveFilter}
         onClearAllFilters={onClearAllFilters}

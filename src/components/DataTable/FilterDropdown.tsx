@@ -1,10 +1,10 @@
-import { ColumnMeta } from './DataTable';
+import { useEffect, useMemo, useState } from 'react';
+import { ColumnMeta, FilterValue } from './DataTable';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { getFilterConditionsByType } from '@/utils/filterConditions';
-import { } from 'react';
 import { MultiSelectFilter } from './MultiSelectFilter';
 
 interface FilterDropdownProps {
@@ -13,7 +13,7 @@ interface FilterDropdownProps {
   headerText: string;
   filterConditions: Record<string, string>;
   setFilterConditions: (value: Record<string, string>) => void;
-  onApply: (columnId: string) => void;
+  onApply: (columnId: string, filters?: FilterValue[]) => void;
   onClear: (columnId: string) => void;
   onSort: (columnId: string, direction: 'asc' | 'desc') => void;
   currentSortDirection?: 'asc' | 'desc' | null;
@@ -21,6 +21,7 @@ interface FilterDropdownProps {
   filterInputRef?: (el: HTMLInputElement | HTMLSelectElement | null, key?: string) => void;
   filterConditionRef?: (el: HTMLSelectElement | null) => void;
   multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
+  activeFilters: FilterValue[];
 }
 
 export function FilterDropdown({
@@ -37,10 +38,174 @@ export function FilterDropdown({
   filterInputRef,
   filterConditionRef,
   multiSelectRemoteSource,
+  activeFilters,
 }: FilterDropdownProps) {
+  type NumberFilterDraft = {
+    id: string;
+    condition: string;
+    value: string;
+  };
+
   const getFilterConditionOptions = (filterType: string) => {
     return getFilterConditionsByType(filterType);
   };
+
+  const requiresValue = (condition: string) => {
+    return condition !== 'is_empty' && condition !== 'is_not_empty';
+  };
+
+  const createDraftId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return `filter-${Math.random().toString(36).slice(2, 10)}`;
+  };
+
+  const numberFilterOptions = useMemo(() => getFilterConditionOptions('number'), []);
+
+  const existingNumberFilters = useMemo(() => {
+    if (meta.filterType !== 'number') {
+      return [] as FilterValue[];
+    }
+    return activeFilters.filter((filter) => filter.key === columnId);
+  }, [activeFilters, columnId, meta.filterType]);
+
+  const [numberDrafts, setNumberDrafts] = useState<NumberFilterDraft[]>(() => {
+    if (existingNumberFilters.length === 0) {
+      return [{ id: createDraftId(), condition: 'gte', value: '' }];
+    }
+    return existingNumberFilters.map((filter) => ({
+      id: filter.id ?? createDraftId(),
+      condition: filter.condition,
+      value: filter.value,
+    }));
+  });
+
+  useEffect(() => {
+    if (meta.filterType !== 'number') {
+      return;
+    }
+
+    if (existingNumberFilters.length === 0) {
+      setNumberDrafts([{ id: createDraftId(), condition: 'gte', value: '' }]);
+      return;
+    }
+
+    setNumberDrafts(
+      existingNumberFilters.map((filter) => ({
+        id: filter.id ?? createDraftId(),
+        condition: filter.condition,
+        value: filter.value,
+      }))
+    );
+  }, [existingNumberFilters, meta.filterType]);
+
+  const handleAddNumberDraft = () => {
+    const existingConditions = new Set(numberDrafts.map((draft) => draft.condition));
+    const preferredOrder = ['gte', 'lte', 'gt', 'lt', 'eq', 'not'];
+    const nextCondition = preferredOrder.find((option) => !existingConditions.has(option)) || 'gte';
+    setNumberDrafts((prev) => [...prev, { id: createDraftId(), condition: nextCondition, value: '' }]);
+  };
+
+  const handleUpdateNumberDraft = (draftId: string, updates: Partial<NumberFilterDraft>) => {
+    setNumberDrafts((prev) =>
+      prev.map((draft) =>
+        draft.id === draftId
+          ? {
+              ...draft,
+              ...updates,
+              value: updates.condition && !requiresValue(updates.condition) ? '' : updates.value ?? draft.value,
+            }
+          : draft
+      )
+    );
+  };
+
+  const handleRemoveNumberDraft = (draftId: string) => {
+    setNumberDrafts((prev) => {
+      const updated = prev.filter((draft) => draft.id !== draftId);
+      return updated.length > 0 ? updated : [{ id: createDraftId(), condition: 'gte', value: '' }];
+    });
+  };
+
+  const handleApplyNumberFilters = () => {
+    const normalizedFilters = numberDrafts.reduce<FilterValue[]>((acc, draft) => {
+      if (requiresValue(draft.condition) && draft.value.trim() === '') {
+        return acc;
+      }
+
+      acc.push({
+        id: draft.id,
+        key: columnId,
+        condition: draft.condition,
+        value: requiresValue(draft.condition) ? draft.value.trim() : 'true',
+      });
+
+      return acc;
+    }, []);
+
+    onApply(columnId, normalizedFilters);
+  };
+
+  const renderNumberFilterControls = () => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-gray-500">Conditions</span>
+        <Button
+          type="button"
+          size="xsm"
+          variant="outline"
+          onClick={handleAddNumberDraft}
+          className="flex items-center gap-1 px-2"
+        >
+          <Plus className="h-3 w-3" />
+          Add
+        </Button>
+      </div>
+      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+        {numberDrafts.map((draft) => (
+          <div key={draft.id} className="flex items-center gap-2">
+            <select
+              className="min-w-[200px] flex-none px-3 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draft.condition}
+              onChange={(event) =>
+                handleUpdateNumberDraft(draft.id, { condition: event.target.value })
+              }
+            >
+              {numberFilterOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.displayValue}
+                </option>
+              ))}
+            </select>
+            {requiresValue(draft.condition) && (
+              <Input
+                type="number"
+                step="any"
+                className="w-24 flex-none px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Value"
+                value={draft.value}
+                onChange={(event) =>
+                  handleUpdateNumberDraft(draft.id, { value: event.target.value })
+                }
+              />
+            )}
+            {numberDrafts.length > 1 && (
+              <button
+                type="button"
+                className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                onClick={() => handleRemoveNumberDraft(draft.id)}
+                aria-label="Remove condition"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
 
   const getSortDirectionDESCPlaceHolder = (meta: ColumnMeta) => {
     if (!meta) return '';
@@ -105,7 +270,7 @@ export function FilterDropdown({
           </div>
         )}
         <div className="text-xs font-medium text-gray-800 px-1">Filter by {headerText}</div>
-        {meta.filterType !== 'dropdown' && meta.filterType !== 'date' && meta.filterType !== 'multi-select' && (
+        {meta.filterType !== 'dropdown' && meta.filterType !== 'date' && meta.filterType !== 'multi-select' && meta.filterType !== 'number' && (
           <div className="space-y-1">
             <div className="text-xs font-medium text-gray-500 px-1">Condition</div>
             <select
@@ -123,6 +288,7 @@ export function FilterDropdown({
             </select>
           </div>
         )}
+        {meta.filterType === 'number' && renderNumberFilterControls()}
         {meta.filterType === 'dropdown' && meta.filterOptions ? (
           <select
             className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -234,11 +400,13 @@ export function FilterDropdown({
             setFilterConditions={setFilterConditions}
             multiSelectRemoteSource={multiSelectRemoteSource}
           />
+        ) : meta.filterType === 'number' ? (
+          null
         ) : (
           <>
             <div className="text-xs font-medium text-gray-500 px-1">Value</div>
             <input
-              type={meta.filterType === 'number' ? 'number' : 'text'}
+              type="text"
               className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder={`Filter ${headerText}`}
               ref={filterInputRef}
@@ -258,7 +426,9 @@ export function FilterDropdown({
           <Button
             size='xsm'
             onClick={() => {
-              if (meta.filterType === 'date') {
+              if (meta.filterType === 'number') {
+                handleApplyNumberFilters();
+              } else if (meta.filterType === 'date') {
                 const fromValue = filterConditions[`${columnId}From`];
                 const toValue = filterConditions[`${columnId}To`];
                 const recentOnlyValue = filterConditions[`${columnId}RecentOnly`];

@@ -1,7 +1,8 @@
 import { Header, flexRender } from '@tanstack/react-table';
 import { Funnel, ArrowUp, ArrowDown } from 'lucide-react';
+import { useMemo } from 'react';
 import { cn } from '@/utils/utils';
-import { ColumnMeta } from './DataTable';
+import { ColumnMeta, FilterValue } from './DataTable';
 import { FilterDropdown } from './FilterDropdown';
 import { TableHead } from '../ui/table';
 
@@ -12,7 +13,7 @@ interface TableHeaderProps<TData> {
   filterConditions: Record<string, string>;
   setFilterConditions: (value: Record<string, string>) => void;
   onFilterClick: (columnId: string, event: React.MouseEvent) => void;
-  onApplyFilter: (columnId: string) => void;
+  onApplyFilter: (columnId: string, filters?: FilterValue[]) => void;
   onClearFilter: (columnId: string) => void;
   onSort: (columnId: string, direction: 'asc' | 'desc') => void;
   currentSortDirection?: 'asc' | 'desc' | null;
@@ -22,6 +23,7 @@ interface TableHeaderProps<TData> {
   filterInputRef?: (el: HTMLInputElement | HTMLSelectElement | null, key?: string) => void;
   filterConditionRef: (el: HTMLSelectElement | null) => void;
   multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
+  activeFilters: FilterValue[];
 }
 
 export function TableHeader<TData>({
@@ -41,12 +43,17 @@ export function TableHeader<TData>({
   filterInputRef,
   filterConditionRef,
   multiSelectRemoteSource,
+  activeFilters,
 }: TableHeaderProps<TData>) {
   const column = header.column;
   const meta = column.columnDef.meta as ColumnMeta;
   const headerText = typeof column.columnDef.header === 'string' 
     ? column.columnDef.header 
     : column.id;
+
+  const filtersForColumn = useMemo(() => {
+    return activeFilters.filter((filter) => filter.key === column.id);
+  }, [activeFilters, column.id]);
 
   const renderSortIcon = () => {
     if (meta?.disableSorting) return null;
@@ -106,6 +113,7 @@ export function TableHeader<TData>({
             filterInputRef={filterInputRef}
             filterConditionRef={filterConditionRef}
             multiSelectRemoteSource={multiSelectRemoteSource}
+            activeFilters={filtersForColumn}
           />
         </div>
       )}

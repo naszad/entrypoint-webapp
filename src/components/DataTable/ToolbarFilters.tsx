@@ -6,9 +6,9 @@ import { getDisplayValueById } from '@/utils/filterConditions';
 
 interface ToolbarFiltersProps {
   filterValues: FilterValue[];
-  getColumnHeader: (columnId: string) => string | undefined;
-  getColumnValue: (columnId: string) => string | undefined;
-  onRemoveFilter: (columnId: string) => void;
+  getColumnHeader: (filter: FilterValue) => string | undefined;
+  getColumnValue: (filter: FilterValue) => string | undefined;
+  onRemoveFilter: (filter: FilterValue) => void;
   onClearAllFilters: () => void;
 }
 
@@ -70,10 +70,10 @@ export function ToolbarFilters({
       >
         {filterValues.map((filter) => (
           <FilterPill
-            key={filter.key}
-            columnId={filter.key}
-            label={getColumnHeader(filter.key) ?? filter.key}
-            value={getColumnValue(filter.key) ?? filter.value}
+            key={filter.id ?? `${filter.key}-${filter.condition}-${filter.value}`}
+            filter={filter}
+            label={getColumnHeader(filter) ?? filter.key}
+            value={getColumnValue(filter) ?? filter.value}
             condition={getDisplayValueById(filter.condition)}
             onRemove={onRemoveFilter}
           />

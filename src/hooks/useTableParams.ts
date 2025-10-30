@@ -14,6 +14,12 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
   const pathname = usePathname();
   const router = useRouter();
   
+  const generateFilterId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return `filter-${Math.random().toString(36).slice(2, 10)}`;
+  }, []);
 
 
   // Helper function to compare filter arrays
@@ -57,12 +63,14 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
     if (!filtersParam) return [];
 
     try {
-      return filtersParam.split(',').map(filter => {
+      const parsed: FilterValue[] = [];
+      filtersParam.split(',').forEach(filter => {
         const parts = filter.split(':');
-        if (parts.length !== 3) return null;
+        if (parts.length !== 3) return;
         const [key, condition, value] = parts;
-        return { key, condition, value };
-      }).filter((filter): filter is FilterValue => filter !== null);
+        parsed.push({ id: generateFilterId(), key, condition, value });
+      });
+      return parsed;
     } catch (error) {
       console.error('Error parsing filters from URL:', error);
       return [];
@@ -148,23 +156,23 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
     const newFilterConditions: Record<string, string> = {};
     if (filtersParam) {
       try {
-        newFilterValues = filtersParam.split(',').map(filter => {
+        const parsedFilters: FilterValue[] = [];
+        filtersParam.split(',').forEach(filter => {
           const parts = filter.split(':');
-          if (parts.length !== 3) return null;
+          if (parts.length !== 3) return;
           const [key, condition, value] = parts;
-          
-          // Update filter conditions for RecentOnly and date range filters
+
           if (key.endsWith('RecentOnly') || key.endsWith('From') || key.endsWith('To')) {
             newFilterConditions[key] = value;
           } else if (condition === 'in') {
-            // Multi-select: store actual values so UI can reflect selections
             newFilterConditions[key] = value;
           } else {
             newFilterConditions[key] = condition;
           }
-          
-          return { key, condition, value };
-        }).filter((filter): filter is FilterValue => filter !== null);
+
+          parsedFilters.push({ id: generateFilterId(), key, condition, value });
+        });
+        newFilterValues = parsedFilters;
       } catch (error) {
         console.error('Error parsing filters from URL:', error);
       }
@@ -191,7 +199,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       }
       return prev;
     });
-  }, [searchParams, compareFilters, compareSorting]);
+  }, [searchParams, compareFilters, compareSorting, generateFilterId]);
 
   // Set input and condition values when filter dropdown opens
   useEffect(() => {
@@ -326,7 +334,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         router.replace(newUrl);
       }
     }
-     }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination, mostRecentOnly, compareParams]);
+  }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination, mostRecentOnly, compareParams]);
 
   // Filter handlers
   const handleFilterClick = (columnId: string, event: React.MouseEvent) => {
@@ -334,7 +342,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
     setOpenFilterColumn(openFilterColumn === columnId ? null : columnId);
   };
 
-  const handleApplyFilter = (columnId: string) => {
+  const handleApplyFilter = (columnId: string, updatedFilters?: FilterValue[]) => {
     const input = filterInputRefs.current[columnId];
     const conditionSelect = filterConditionRefs.current[columnId];
     
@@ -343,6 +351,28 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
     const recentOnlyValue = filterConditions[`${columnId}RecentOnly`];
 
     setPageNumber(1);
+
+    // Numeric filters supply the complete set of conditions so replace them wholesale.
+    if (updatedFilters) {
+      setFilterValues(prev => {
+        const withoutColumn = prev.filter(f => f.key !== columnId);
+        if (updatedFilters.length === 0) {
+          return withoutColumn;
+        }
+        const normalized = updatedFilters.map(filter => ({
+          ...filter,
+          id: filter.id ?? generateFilterId(),
+        }));
+        return [...withoutColumn, ...normalized];
+      });
+      setFilterConditions(prev => {
+        const newState = { ...prev };
+        delete newState[columnId];
+        return newState;
+      });
+      setOpenFilterColumn(null);
+      return;
+    }
     
     if (recentOnlyValue && parseInt(recentOnlyValue) > 0) {
       // Handle RecentOnly filter
@@ -354,6 +384,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         );
         
         newFilters.push({
+          id: generateFilterId(),
           key: `${columnId}RecentOnly`,
           value: recentOnlyValue,
           condition: 'in'
@@ -371,6 +402,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         
         if (fromValue) {
           newFilters.push({
+            id: generateFilterId(),
             key: `${columnId}From`,
             value: fromValue,
             condition: 'gte'
@@ -379,6 +411,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         
         if (toValue) {
           newFilters.push({
+            id: generateFilterId(),
             key: `${columnId}To`,
             value: toValue,
             condition: 'lte'
@@ -393,6 +426,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       setFilterValues(prev => {
         const existingFilterIndex = prev.findIndex(f => f.key === columnId);
         const newFilter = {
+          id: prev[existingFilterIndex]?.id ?? generateFilterId(),
           key: columnId,
           value: multiSelectValue,
           condition: 'in',
@@ -413,6 +447,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         setFilterValues(prev => {
           const existingFilterIndex = prev.findIndex(f => f.key === columnId);
           const newFilter = {
+            id: prev[existingFilterIndex]?.id ?? generateFilterId(),
             key: columnId,
             value: 'true',
             condition,
@@ -429,6 +464,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         setFilterValues(prev => {
           const existingFilterIndex = prev.findIndex(f => f.key === columnId);
           const newFilter = {
+            id: prev[existingFilterIndex]?.id ?? generateFilterId(),
             key: columnId,
             value: input.value,
             condition,
@@ -450,6 +486,8 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
     const toValue = filterConditions[`${columnId}To`];
     const recentOnlyValue = filterConditions[`${columnId}RecentOnly`];
     
+    setPageNumber(1);
+
     if (fromValue || toValue || recentOnlyValue) {
       setFilterValues(prev => prev.filter(f => 
         f.key !== `${columnId}From` && 
@@ -474,38 +512,37 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
     setOpenFilterColumn(null);
   };
 
-  const handleRemoveFilter = (columnId: string) => {
-    const fromValue = filterConditions[`${columnId}From`];
-    const toValue = filterConditions[`${columnId}To`];
-    const recentOnlyValue = filterConditions[`${columnId}RecentOnly`];
-    
-    if (fromValue || toValue || recentOnlyValue) {
-      setFilterValues(prev => prev.filter(f => 
-        f.key !== `${columnId}From` && 
-        f.key !== `${columnId}To` && 
-        f.key !== `${columnId}RecentOnly`
-      ));
-      setFilterConditions(prev => {
-        const newState = { ...prev };
-        delete newState[`${columnId}From`];
-        delete newState[`${columnId}To`];
-        delete newState[`${columnId}RecentOnly`];
-        return newState;
-      });
-    } else {
-      setFilterValues(prev => prev.filter(f => f.key !== columnId));
-      setFilterConditions(prev => {
-        const newState = { ...prev };
-        delete newState[columnId];
-        return newState;
-      });
+  const handleRemoveFilter = (filter: FilterValue) => {
+    if (filter.key.endsWith('From') || filter.key.endsWith('To') || filter.key.endsWith('RecentOnly')) {
+      const baseKey = filter.key.replace(/(?:From|To|RecentOnly)$/, '');
+      handleClearFilter(baseKey);
+      return;
     }
+
+    setPageNumber(1);
+
+    setFilterValues(prev => prev.filter(f => {
+      if (filter.id) {
+        if (f.id) {
+          return f.id !== filter.id;
+        }
+        return !(f.key === filter.key && f.condition === filter.condition && f.value === filter.value);
+      }
+      return !(f.key === filter.key && f.condition === filter.condition && f.value === filter.value);
+    }));
+
+    setFilterConditions(prev => {
+      const newState = { ...prev };
+      delete newState[filter.key];
+      return newState;
+    });
   };
 
   const handleClearAllFilters = () => {
     setFilterValues([]);
     setFilterConditions({});
     setOpenFilterColumn(null);
+    setPageNumber(1);
   };
 
   // Sort handlers

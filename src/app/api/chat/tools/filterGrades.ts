@@ -16,7 +16,8 @@ export const filterGradesTool: ChatTool = {
       'Use filter_grades ONLY when the user wants to view, show, find, or display a list/table of grades',
       'This tool is for navigation, not for answering specific questions about individual grades',
       'When course or subject name is mentioned, use course_name parameter',
-      'For sorting, use sortBy and sortDirection with fields: full_name, course_name, grade_letter, grade_percentage, grade_code, updated_at, local_course_code'
+      'For sorting, use sortBy and sortDirection with fields: full_name, course_name, grade_letter, grade_percentage, grade_code, updated_at, local_course_code',
+      'When expressing grade percentage ranges, provide multiple filters (use gte and lte operators) via gradePercentFilters'
     ]
   },
   definition: tool({
@@ -42,6 +43,10 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         percentage: z.number().describe('The grade percentage to filter by'),
         operator: z.enum(['eq', 'gte', 'lte']).default('eq').describe('The comparison operator for the grade percentage filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to)')
       }).optional().describe('Filter grades by percentage. For example, "grades above 85%" or "90% grades".'),
+      gradePercentFilters: z.array(z.object({
+        percentage: z.number().describe('The grade percentage to filter by'),
+        operator: z.enum(['eq', 'gte', 'lte']).describe('Comparison operator for the grade percentage filter')
+      })).max(5).optional().describe('Use multiple grade percentage filters to represent ranges (e.g., between 70 and 80 uses gte 70 and lte 80).'),
       grade_code: z.string().optional().describe('Grade code (e.g., A, B, C, D, F, P, I)'),
       updatedAfter: z.string().optional().describe('Show grades updated after this date (YYYY-MM-DD format)'),
       updatedBefore: z.string().optional().describe('Show grades updated before this date (YYYY-MM-DD format)'),
@@ -88,6 +93,24 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
           case 'lte':
             filters.push(`grade_percent:lte:${percentage}`);
             break;
+        }
+      }
+
+      if (parsedFilters.gradePercentFilters && Array.isArray(parsedFilters.gradePercentFilters)) {
+        for (const gradeFilterEntry of parsedFilters.gradePercentFilters) {
+          const { percentage, operator } = gradeFilterEntry;
+
+          switch (operator) {
+            case 'eq':
+              filters.push(`grade_percent:eq:${percentage}`);
+              break;
+            case 'gte':
+              filters.push(`grade_percent:gte:${percentage}`);
+              break;
+            case 'lte':
+              filters.push(`grade_percent:lte:${percentage}`);
+              break;
+          }
         }
       }
 

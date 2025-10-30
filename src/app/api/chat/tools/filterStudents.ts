@@ -17,7 +17,10 @@ export const filterStudentsTool: ChatTool = {
       'This tool is for navigation, not for answering questions - do not use for queries like "What grade is Jane Doe in?"',
       'When user asks for students "updated/modified/changed in the last X days", use updatedAtRecentOnly',
       'When user asks for students "created/added/registered in the last X days", use createdAtRecentOnly',
-      'For sorting, use sortBy and sortDirection parameters with supported fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa'
+      'For sorting, use sortBy and sortDirection parameters with supported fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa',
+      'When expressing numeric ranges (e.g., GPA between 3 and 3.5) provide multiple filters for the same field using the gte/lte operators',
+      'Combine all requested constraints into a single tool call—never produce multiple navigation results for one request',
+      'When users reference multiple grade levels, use gradeLevelFilters (with gte/lte or multiple eq operators) so everything stays within one tool response'
     ]
   },
   definition: tool({
@@ -25,7 +28,7 @@ export const filterStudentsTool: ChatTool = {
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending", "Show students with lunch ID starting with 123", "Find students by state student number", "Show me students filtered by race", "Show me inactive students", "Show all students including inactive"
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending", "Show students with lunch ID starting with 123", "Find students by state student number", "Show me students filtered by race", "Show me inactive students", "Show all students including inactive", "Show me students in grades 9 through 11 with GPA between 3.5 and 3.8" (use gradeLevelFilters gte 9 & lte 11 plus gpaFilters)
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
 
 **Active Only Toggle:**
@@ -40,12 +43,21 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 - When user asks for students "created/added/registered in the last X days", use createdAtRecentOnly with the number of days
 - Examples: "last 30 days" = 30, "last week" = 7, "last month" = 30, "yesterday" = 1, "last 2 weeks" = 14
 
+**Numeric Range Instructions:**
+- Use multiple numeric filters to represent ranges. Example: GPA between 2.5 and 3.5 should produce two entries (gte 2.5 and lte 3.5) using gpaFilters.
+- Apply the same pattern for ageFilters when users describe age ranges.
+- When users mention multiple grade levels or ranges ("grades 9 and 10", "grades 9 through 11"), prefer gradeLevelFilters with gte/lte bounds (for ranges) or multiple eq filters when specific grade lists are given. Keep all constraints in a **single** tool invocation—do not emit multiple navigation links.
+
 **Sorting Instructions:**
 - When user asks to sort by a field, use sortBy and sortDirection parameters
 - Sortable fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa, studentNumber, lunchId, stateStudentNumber, race
 - Direction: "asc" for ascending (A-Z, low to high), "desc" for descending (Z-A, high to low)`,
     inputSchema: z.object({
-      gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12)'),
+  gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12). Use only for single-grade requests; use gradeLevelFilters for multiple grades or ranges.'),
+      gradeLevelFilters: z.array(z.object({
+        value: z.number().describe('The grade level value to filter by'),
+        operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte']).describe('Comparison operator for the grade level filter')
+      })).max(6).optional().describe('Use multiple grade level filters to represent ranges (e.g., between 9 and 11 uses gte 9 and lte 11). Prefer gte/lte for ranges; multiple eq operators are acceptable for discrete grades.'),
       fullName: z.string().optional().describe('Name or part of name to search for'),
       enrollmentStatus: z.enum(['Active', 'Inactive']).optional().describe('Student enrollment status'),
       gender: z.enum(['male', 'female']).optional().describe('Student gender'),
@@ -60,10 +72,18 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         value: z.number().describe('The GPA value to filter by'),
         operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte', 'not']).default('eq').describe('The comparison operator for the GPA filter: "eq" (equal to), "gt" (greater than), "lt" (less than), "gte" (greater than or equal to), "lte" (less than or equal to), "not" (not equal to)')
       }).optional().describe('Filter students by cumulative GPA. For example, "students with GPA above 3.5" or "students with GPA below 2.0".'),
+      gpaFilters: z.array(z.object({
+        value: z.number().describe('The GPA value to filter by'),
+        operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte', 'not']).describe('Comparison operator for the GPA filter')
+      })).max(5).optional().describe('Use multiple GPA filters to describe ranges or compound conditions (e.g., GPA between 3.0 and 3.5 uses gte 3.0 and lte 3.5).'),
       ageFilter: z.object({
         age: z.number().describe('The age to filter by'),
         operator: z.enum(['eq', 'gte', 'lte', 'not']).default('eq').describe('The comparison operator for the age filter: "eq" (equal to), "gte" (greater than or equal to), "lte" (less than or equal to), "not" (not equal to)')
       }).optional().describe('Filter students by age. For example, "students older than 15" or "10-year-old students".'),
+      ageFilters: z.array(z.object({
+        age: z.number().describe('The age to filter by'),
+        operator: z.enum(['eq', 'gte', 'lte', 'not']).describe('Comparison operator for the age filter')
+      })).max(5).optional().describe('Use multiple age filters to describe age ranges or compound conditions.'),
       createdAtRecentOnly: z.number().positive().optional().describe('Filter students created in the last N days. Use when user asks for students "created", "added", or "registered" in recent time period.'),
       updatedAtRecentOnly: z.number().positive().optional().describe('Filter students updated in the last N days. Use when user asks for students "updated", "modified", or "changed" in recent time period.'),
       // Negative and empty value filters
@@ -93,7 +113,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       const baseUrl = '/students';
 
       for (const [key, value] of Object.entries(parsedFilters)) {
-        if (!value || key === 'ageFilter' || key === 'gpaFilter' || key === 'sortBy' || key === 'sortDirection' || key === 'activeOnly') continue;
+        if (!value || key === 'ageFilter' || key === 'ageFilters' || key === 'gpaFilter' || key === 'gpaFilters' || key === 'gradeLevelFilters' || key === 'sortBy' || key === 'sortDirection' || key === 'activeOnly') continue;
         
         switch (key) {
           case 'gradeLevel':
@@ -193,6 +213,20 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         filters.push(`gpa:${operator}:${value}`);
       }
 
+      if (parsedFilters.gpaFilters && Array.isArray(parsedFilters.gpaFilters)) {
+        for (const gpaFilterEntry of parsedFilters.gpaFilters) {
+          const { value, operator } = gpaFilterEntry;
+          filters.push(`gpa:${operator}:${value}`);
+        }
+      }
+
+      if (parsedFilters.gradeLevelFilters && Array.isArray(parsedFilters.gradeLevelFilters)) {
+        for (const gradeFilterEntry of parsedFilters.gradeLevelFilters) {
+          const { value, operator } = gradeFilterEntry;
+          filters.push(`gradeLevel:${operator}:${value}`);
+        }
+      }
+
       if (parsedFilters.ageFilter) {
         const { age, operator } = parsedFilters.ageFilter;
         const currentYear = new Date().getFullYear();
@@ -211,6 +245,26 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
             // age <= X means birth year >= Y
             filters.push(`date_of_birth:gte:${birthYear}-01-01`);
             break;
+        }
+      }
+
+      if (parsedFilters.ageFilters && Array.isArray(parsedFilters.ageFilters)) {
+        const currentYear = new Date().getFullYear();
+        for (const ageFilterEntry of parsedFilters.ageFilters) {
+          const { age, operator } = ageFilterEntry;
+          const birthYear = currentYear - age;
+
+          switch (operator) {
+            case 'eq':
+              filters.push(`date_of_birth:contains:${birthYear}`);
+              break;
+            case 'gte':
+              filters.push(`date_of_birth:lte:${birthYear}-12-31`);
+              break;
+            case 'lte':
+              filters.push(`date_of_birth:gte:${birthYear}-01-01`);
+              break;
+          }
         }
       }
 
