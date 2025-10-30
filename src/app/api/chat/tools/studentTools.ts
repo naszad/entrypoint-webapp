@@ -28,10 +28,24 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
 2. Multiple matches: Returns a list of potential students for the user to choose from.
 3. No matches: Returns a message indicating the student was not found.`,
     inputSchema: z.object({
+      firstName: z.string().describe("The student's first name or partial first name to search for."),
+      middleName: z.string().describe("The student's middle name or initial to search for."),
+      lastName: z.string().describe("The student's last name or partial last name to search for."),  
       studentName: z.string().describe("The student's full name or partial name to search for."),
     }),
-    execute: async ({ studentName }) => {
+    execute: async ({ firstName, middleName, lastName, studentName }) => {
       const supabase = await createClient();
+
+      const partialMatchConditions = [];
+      if (firstName) {
+        partialMatchConditions.push(`first_name.ilike.%${firstName}%`);
+      }
+      if (middleName) {
+        partialMatchConditions.push(`middle_name.ilike.%${middleName}%`);
+      }
+      if (lastName) {
+        partialMatchConditions.push(`last_name.ilike.%${lastName}%`);
+      }
 
       // Query for students scoped to the selected school (when available)
       const studentQuery = supabase
@@ -43,8 +57,9 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
           schools!school_student_link!inner (school_id)
         `)
         .eq('schools.school_id', context.selectedSchoolId)
-        .ilike('full_name', `%${studentName}%`)
+        .or(`full_name.ilike.%${studentName}%,and(${partialMatchConditions.join(',')})`)
         .order('full_name', { ascending: true});
+
 
       type studentQueryType = QueryData<typeof studentQuery>;
       const { data, error } = await studentQuery;
