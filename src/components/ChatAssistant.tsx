@@ -913,25 +913,64 @@ export function ChatAssistant() {
       
       try {
         // Always load chat list first
-        await loadChatList();
+        const chats = await loadChatList();
+        
+        // Helper function to check if a chat is too old (more than 30 days)
+        const isChatTooOld = (updatedAt: string): boolean => {
+          const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+          const chatDate = new Date(updatedAt).getTime();
+          const now = Date.now();
+          return (now - chatDate) > thirtyDaysInMs;
+        };
         
         if (currentChatId) {
           console.log('Loading existing chat:', currentChatId);
           // Try to load existing chat from database
           const chat = await loadChat(currentChatId);
           if (!chat) {
-            console.log('Failed to load chat, creating new one');
-            // If loading fails, create a new chat
+            console.log('Failed to load chat, checking for other chats');
+            // If loading fails, check if there are other chats
+            if (chats && chats.length > 0) {
+              const mostRecentChat = chats[0];
+              // Check if most recent chat is too old (>30 days)
+              if (isChatTooOld(mostRecentChat.updated_at)) {
+                console.log('Most recent chat is older than 30 days, creating new chat');
+                await createNewChat();
+                await loadChatList();
+              } else {
+                console.log('Loading most recent chat:', mostRecentChat.chat_id);
+                // Load the most recent chat (first in list, ordered by updated_at DESC)
+                await loadChat(mostRecentChat.chat_id);
+              }
+            } else {
+              console.log('No chats found, creating new one');
+              // No chats exist, create a new one
+              await createNewChat();
+              // Reload chat list to include the new chat
+              await loadChatList();
+            }
+          }
+        } else {
+          // No currentChatId in localStorage
+          if (chats && chats.length > 0) {
+            const mostRecentChat = chats[0];
+            // Check if most recent chat is too old (>30 days)
+            if (isChatTooOld(mostRecentChat.updated_at)) {
+              console.log('Most recent chat is older than 30 days, creating new chat');
+              await createNewChat();
+              await loadChatList();
+            } else {
+              console.log('No current chat ID, loading most recent chat:', mostRecentChat.chat_id);
+              // Load the most recent chat (first in list, ordered by updated_at DESC)
+              await loadChat(mostRecentChat.chat_id);
+            }
+          } else {
+            console.log('No chat ID found and no existing chats, creating new chat');
+            // No chats exist, create a new chat
             await createNewChat();
             // Reload chat list to include the new chat
             await loadChatList();
           }
-        } else {
-          console.log('No chat ID found, creating new chat');
-          // No chat ID, create a new chat
-          await createNewChat();
-          // Reload chat list to include the new chat
-          await loadChatList();
         }
       } finally {
         initializationRef.current.isInitializing = false;
@@ -941,7 +980,8 @@ export function ChatAssistant() {
     };
 
     initializeChat();
-  }); // Only run on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount - intentionally using initial currentChatId from localStorage
 
   // Messages are now persisted in database, no local storage needed
 
