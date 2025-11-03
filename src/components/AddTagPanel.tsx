@@ -77,6 +77,12 @@ export function AddTagPanel({
     }
   }
 
+  const handleNameBlur = () => {
+    if (name) {
+      setValue(name)
+    }
+  }
+
   const handleSelectTagName = (tagId: string, tagName: string) => {
     setName(tagName)
     setSelectedTagId(tagId)
@@ -167,13 +173,15 @@ export function AddTagPanel({
               htmlFor="name"
               className="block text-sm font-medium text-gray-700"
             >
-              Tag Name
+              Name
             </label>
+            <small className="text-gray-500 text-xs">What to track, e.g. &quot;Target College&quot; or &quot;Sport&quot;</small>
             <div className="relative">
               <input
                 type="text"
                 id="name"
                 value={name}
+                onBlur={handleNameBlur}
                 onChange={handleNameChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Enter or select a tag name"
@@ -204,8 +212,9 @@ export function AddTagPanel({
               htmlFor="value"
               className="block text-sm font-medium text-gray-700"
             >
-              Tag Value
+              Display
             </label>
+            <small className="text-gray-500 text-xs">What will be shown, e.g. &quot;Purdue&quot; or &quot;Basketball&quot;</small>
             <div className="relative">
               <input
                 type="text"

@@ -7,7 +7,7 @@ import { StudentTagInfo } from '@/types/StudentTagInfo';
 import { Alert } from '@/components/ui/alert';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { StudentContext } from '@/contexts/StudentContext';
+import { StudentContext } from '@/context/StudentContext';
 
 export default function StudentProfileLayout({ children }: { children: React.ReactNode }) {
     const params = useParams();

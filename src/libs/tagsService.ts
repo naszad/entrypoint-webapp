@@ -123,27 +123,30 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
       throw new Error('User not authenticated');
     }
 
+    const {studentId, tagId, tagName, tagCategoryId, value} = params;
+
     // Get student info to get customer ID
     const { data: student, error: studentError } = await supabase
       .from('students')
       .select('customer_id')
-      .eq('student_id', params.studentId)
+      .eq('student_id', studentId)
       .single();
 
     if (studentError || !student) {
       throw new Error(`Student not found: ${studentError?.message}`);
     }
 
-    let finalTagId = params.tagId;
+    let finalTagId = tagId;
 
     // If tagId is not provided, create a new tag
     if (!finalTagId) {
       const { data: newTag, error: tagError } = await supabase
         .from('tags')
         .insert({
-          tag_category_id: params.tagCategoryId,
+          tag_category_id: tagCategoryId,
           customer_id: student.customer_id,
-          name: params.tagName,
+          name: tagName,
+          is_multi_value: tagName?.toLowerCase() !== value?.toLowerCase(),
           created_by_user_id: user.id,
           updated_by_user_id: user.id,
         })
@@ -154,6 +157,8 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
         throw new Error(`Failed to create new tag: ${tagError?.message}`);
       }
 
+      console.log('newTag created:', newTag);
+
       finalTagId = newTag.tag_id;
     }
 
@@ -161,16 +166,16 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
     const canonicalValueId = finalTagId ? await findCanonicalValue(
       supabase,
       finalTagId,
-      params.value
+      value
     ) : null;
 
     // Create the student_tags entry
     const { error: studentTagError } = await supabase
       .from('student_tags')
       .insert({
-        student_id: params.studentId,
+        student_id: studentId,
         tag_id: finalTagId,
-        value: params.value,
+        value,
         canonical_value_id: canonicalValueId,
         source: 'manual',
         created_by_user_id: user.id,

@@ -60,32 +60,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!error && data?.user) {
 
-        const { id } = data.user
+        const { id, user_metadata } = data.user
         const user = await getUserByAuthId(id);
 
         if (user) {
-          // Check if user needs to agree to EULA first
-          if (!user.eula_agree_timestamp) {
-            setLoading(false);
-            router.push('/eula');
-            return;
-          }
+          // Always set the user - middleware will handle redirects for password reset and EULA
           setUser(user);
-          setupMixpanelUser(user);
-          
-          if (user.isMultiSchoolUser) {
-            setCookie('isMultiSchoolUser', user.isMultiSchoolUser.toString())
 
-            const existingSchool = loadSelectedSchool();
-            if (!existingSchool) {
-              saveSelectedSchool(null);
+          // Only setup full user session if all requirements are met
+          if (!user_metadata?.reset_password_required && user_metadata?.eula_agree_signed) {
+            setupMixpanelUser(user);
+          
+            if (user.isMultiSchoolUser) {
+              setCookie('isMultiSchoolUser', user.isMultiSchoolUser.toString())
+
+              const existingSchool = loadSelectedSchool();
+              if (!existingSchool) {
+                saveSelectedSchool(null);
+              }
+              // Don't redirect here - let middleware handle it
+            } else {
+              const primarySchool = user.schools?.[0] || null;
+              saveSelectedSchool(primarySchool);
             }
-            // Don't redirect here - let middleware handle it
-          } else {
-            const primarySchool = user.schools?.[0] || null;
-            saveSelectedSchool(primarySchool);
+            refreshSuperProperties();
           }
-          refreshSuperProperties();
           setLoading(false);
           setRefreshUser(false);
           return;
@@ -121,19 +120,23 @@ const login = async (email: string, password: string) => {
       throw new Error('Invalid credentials')
     } else {
       const { user } = data;
+      
+      const supabase = await createClient();
+      try {
+        await supabase.auth.updateUser({
+          data: { reset_password_required: false }
+        });
+      } catch (updateError) {
+        console.error('Failed to clear reset_password_required flag:', updateError);
+      }
+
       const userDetails = await getUserByAuthId(user.id);
       if (userDetails) {
-        
-        setUser({ ...userDetails});
+        setUser(userDetails);
         setupMixpanelUser(userDetails);
 
-         // If user hasn't agreed to EULA, send them to EULA screen first
-        if (!userDetails.eula_agree_timestamp) {
-          router.push('/eula');
-          return null;
-        }
-        setUser(userDetails);
-
+        // Middleware will handle redirects for password reset and EULA
+        // Just handle the school selection and final navigation
         if (userDetails.isMultiSchoolUser) {
           setCookie('isMultiSchoolUser', userDetails.isMultiSchoolUser.toString())
           saveSelectedSchool(null);

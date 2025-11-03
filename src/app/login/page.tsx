@@ -13,17 +13,22 @@ export default function LoginPage() {
   const isLocalDevelopment = process.env.NODE_ENV === 'development';
   const [email, setEmail] = useState(isLocalDevelopment ? 'test@email.com' : '')
   const [password, setPassword] = useState(isLocalDevelopment ? 'password' : '')
-
+  const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+    
     try {
       await login(email, password);
     } catch (e: unknown) {
       if (e instanceof Error) {
         setMessage(e.message);
       }
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -80,10 +85,12 @@ export default function LoginPage() {
 
             <div className="text-sm">
               <Button
+                type="button"
                 variant="link"
                 onClick={() => {
                   router.push('/forgot-password')
                 }}
+                disabled={isLoading}
               >
                 Forgot your password?
               </Button>
@@ -95,8 +102,16 @@ export default function LoginPage() {
               variant="primary"
               className='w-full'
               type="submit"
+              disabled={isLoading}
             >
-              <span className='text-lg'>Log In</span>
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className='text-lg'>Please wait...</span>
+                </div>
+              ) : (
+                <span className='text-lg'>Log In</span>
+              )}
             </Button>
           </div>
 

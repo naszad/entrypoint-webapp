@@ -9,7 +9,7 @@ import { useParams } from 'next/navigation';
 import { Alert } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useConfig } from '@/hooks/useConfig';
-import { useStudent } from '@/contexts/StudentContext';
+import { useStudent } from '@/context/StudentContext';
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 

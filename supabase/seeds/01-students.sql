@@ -15,7 +15,8 @@ INSERT INTO students (
   graduation_year,
   enrollment_status,
   homeroom_name,
-  full_name
+  full_name,
+  customer_id
 ) VALUES 
   (
     'Emma',
@@ -33,7 +34,8 @@ INSERT INTO students (
     2026,
     'Active',
     'Room 101',
-    'Emma Johnson'
+    'Emma Johnson',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Michael',
@@ -51,7 +53,8 @@ INSERT INTO students (
     2026,
     'Active',
     'Room 102',
-    'Michael Chen'
+    'Michael Chen',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Sophia',
@@ -69,7 +72,8 @@ INSERT INTO students (
     2024,
     'Active',
     'Room 103',
-    'Sophia Rodriguez'
+    'Sophia Rodriguez',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   );
 
 -- Associate all above students with Lincoln High School
@@ -112,7 +116,8 @@ INSERT INTO students (
   graduation_year,
   enrollment_status,
   homeroom_name,
-  full_name
+  full_name,
+  customer_id
 ) VALUES 
   (
     'Noah',
@@ -130,7 +135,8 @@ INSERT INTO students (
     2024,
     'Active',
     'Room 104',
-    'Noah Miller'
+    'Noah Miller',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Isabella',
@@ -148,7 +154,8 @@ INSERT INTO students (
     2024,
     'Active',
     'Room 105',
-    'Isabella Garcia'
+    'Isabella Garcia',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Lucas',
@@ -166,7 +173,8 @@ INSERT INTO students (
     2025,
     'Active',
     'Room 106',
-    'Lucas Martinez'
+    'Lucas Martinez',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
     (
     'Charlotte',
@@ -184,7 +192,8 @@ INSERT INTO students (
     2025,
     'Active',
     'Room 107',
-    'Charlotte Davis'
+    'Charlotte Davis',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Benjamin',
@@ -202,7 +211,8 @@ INSERT INTO students (
     2026,
     'Active',
     'Room 108',
-    'Benjamin Wilson'
+    'Benjamin Wilson',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
     (
     'Amelia',
@@ -220,7 +230,8 @@ INSERT INTO students (
     2026,
     'Active',
     'Room 109',
-    'Amelia Taylor'
+    'Amelia Taylor',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Ethan',
@@ -238,7 +249,8 @@ INSERT INTO students (
     2027,
     'Active',
     'Room 110',
-    'Ethan Anderson'
+    'Ethan Anderson',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   );
 
 -- Associate all new students with Lincoln High School
@@ -285,7 +297,8 @@ INSERT INTO students (
   graduation_year,
   enrollment_status,
   homeroom_name,
-  full_name
+  full_name,
+  customer_id
 ) VALUES 
   (
     'James',
@@ -303,7 +316,8 @@ INSERT INTO students (
     2027,
     'Active',
     'Room 201',
-    'James Williams'
+    'James Williams',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Olivia',
@@ -321,7 +335,8 @@ INSERT INTO students (
     2026,
     'Active',
     'Room 202',
-    'Olivia Brown'
+    'Olivia Brown',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   ),
   (
     'Liam',
@@ -339,7 +354,8 @@ INSERT INTO students (
     2025,
     'Active',
     'Room 203',
-    'Liam Jones'
+    'Liam Jones',
+    '48aac272-392f-4086-9dd3-4e4defaf3c18'
   );
 
 -- Associate students with Washington High School

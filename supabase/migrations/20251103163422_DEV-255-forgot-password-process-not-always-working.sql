@@ -1,0 +1,1 @@
+UPDATE public.users SET eula_agree_timestamp = NULL WHERE eula_agree_timestamp IS NOT NULL;

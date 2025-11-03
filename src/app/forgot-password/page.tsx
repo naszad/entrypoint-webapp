@@ -17,15 +17,10 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullScreenMessage, setFullScreenMessage] = useState('');
   const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false);
   const { handleLogout } = useAuth();
 
-  const code = searchParams.get('code');
-
-  const hash = window.location.hash.substring(1) // remove '#'
-  const hashParams = new URLSearchParams(hash)
-  const accessToken = hashParams.get('access_token');
-  const refreshToken = hashParams.get('refresh_token');
-  const type = hashParams.get('type');
+  const resetRequired = searchParams.get('reset_required') === 'true';
 
 const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,22 +30,28 @@ const handleResetPassword = async (e: React.FormEvent) => {
       return;
     }
     
-    const supabase = await createClient()
-    
-    // Use a more robust redirect URL with fallback
-    const redirectUrl = window.env?.APP_URL 
-      ? `${window.env.APP_URL}/forgot-password`
-      : `${window.location.origin}/forgot-password`;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl
-    })
+    setIsLoading(true);
+    setMessage('');
 
-    if (error) {
-      setMessage(`Error: ${error.message}`);
-    } else {
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        setMessage(error.error || 'Something went wrong, please try again later.');
+        return;
+      }
+
       setFullScreenMessage('Password reset email sent. Please check your email and spam folder.');
-    }
+    } catch (error) {
+      setMessage(`Error: ${error instanceof Error ? error.message : 'Something went wrong, please try again later.'}`);
+    } finally {
+      setIsLoading(false);
+    }     
   }
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -59,33 +60,44 @@ const handleResetPassword = async (e: React.FormEvent) => {
       setMessage('Passwords do not match');
       return;
     }
+    setIsLoading(true);
     const supabase = await createClient()
-    if (accessToken && refreshToken) {
-     await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-    }
-    const { error } = await supabase.auth.updateUser({ password })    
+    
+    // Update the password
+    const { error: passwordError } = await supabase.auth.updateUser({ password,
+      data: { reset_password_required: false }
+     })    
 
-    if (error) {
-      setMessage('Something went wrong while updating your password. Please use the forgot password link on login page to reset your password again.');
-    } else {
-      await handleLogout();
-      setShowUpdatePassword(false);
-      setFullScreenMessage('Password updated successfully.');
+    if (passwordError) {
+      const message = passwordError.message || 'Something went wrong while updating your password. Please try again if issue persists, use the forgot password link on login page to reset your password again.';
+      setMessage(message);
+      setIsLoading(false);
+      return;
     }
+
+    await supabase.auth.signOut();
+    sessionStorage.clear();
+    localStorage.clear();
+    setShowUpdatePassword(false);
+    setFullScreenMessage('Password updated successfully. Please login with your new password.');
+    setIsLoading(false);
   }
 
   useEffect(() => {
-    if (!code && !accessToken && !type) return;
-    console.log('code', code, 'accessToken', accessToken, 'type', type);
-    setShowUpdatePassword(true);
-  }, [code, accessToken, type]);
+    if (resetRequired) {
+      setShowUpdatePassword(true);
+    }
+  }, [resetRequired]);
 
   if (showUpdatePassword) {
+    const headerDescription = resetRequired 
+      ? "You must set a new password to continue" 
+      : "Update your password";
 
     return (
       <main className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
-        <LoginHeader description="Update your password" />
+        <LoginHeader description={headerDescription} />
         <div className="mt-8 space-y-6">
           <div className="rounded-md shadow-sm space-y-4">
             <div>
@@ -117,10 +129,33 @@ const handleResetPassword = async (e: React.FormEvent) => {
               variant="primary"
               className='w-full'
               onClick={handleUpdatePassword}
+              disabled={isLoading}
             >
-              <span className='text-lg'>Update Password</span>
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className='text-lg'>Please wait...</span>
+                </div>
+              ) : (
+                <span className='text-lg'>Update Password</span>
+              )}
             </Button>
           </div>
+
+          {resetRequired && (
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Or{' '}
+                <Button
+                  variant="link"
+                  onClick={handleLogout}
+                  className="text-sm"
+                >
+                  Go back to login page
+                </Button>
+              </p>
+            </div>
+          )}
 
           {message && (
             <Alert  className="mb-4"
@@ -179,8 +214,16 @@ const handleResetPassword = async (e: React.FormEvent) => {
               variant="primary"
               className='w-full'
               onClick={handleResetPassword}
+              disabled={isLoading}
             >
-              <span className='text-lg'>Reset Password</span>
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className='text-lg'>Please wait...</span>
+                </div>
+              ) : (
+                <span className='text-lg'>Reset Password</span>
+              )}
             </Button>
           </div>
 

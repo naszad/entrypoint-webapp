@@ -149,6 +149,7 @@ async function associateUserWithSchool(user_email: string, schoolName: string) {
 }
 
 async function main() {
+  console.log('Seeding users...')
   await seedAll(seedUsers).catch(console.error)
   await associateUserWithSchool(seedUsers[0].email, 'Washington High School').catch(console.error)
 }

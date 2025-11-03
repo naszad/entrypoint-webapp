@@ -354,8 +354,8 @@ export async function addUser(userData: {
 
     if (!existingUser) {
       
-      // Send invite email to user
-      const redirectUrl = `${process.env.APP_URL}/forgot-password`;
+      // Send invite email to user - redirect to auth callback to handle token setup
+      const redirectUrl = `${process.env.APP_URL}/auth/callback`;
       const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
         userData.email.trim().toLowerCase(),
         {
@@ -518,10 +518,14 @@ export async function getOrCreateAuthUser({supabase, email, password, firstName,
     return {userId: existingUser.user_id, existingUser: true};
   }
 
-  // Step 1: Try to create a new user
+  // Step 1: Try to create a new user with reset_password_required flag
   const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
     email,
     password,
+    user_metadata: {
+      reset_password_required: true,
+      eula_agree_signed: false,
+    },
     email_confirm: false
   });
 
