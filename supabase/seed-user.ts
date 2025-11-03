@@ -88,6 +88,7 @@ async function seed(seedUser: SeedUser, schoolName: string = 'Lincoln High Schoo
   const authUser = authData.user!
 
   // 2) Insert into your app's users table
+  console.log(`Creating app user for ${authUser.email}...`)
   const { data: appUser, error: userErr } = await supabase
   .from('users')
   .insert([{
@@ -102,6 +103,7 @@ async function seed(seedUser: SeedUser, schoolName: string = 'Lincoln High Schoo
   .single()
   if (userErr) throw userErr
 
+  // 3) Associate user with school
   await associateUserWithSchool(appUser.email, schoolName)
 
   console.log('Seed complete:', { authUser, appUser })
@@ -114,6 +116,7 @@ async function seedAll(seedUsers: SeedUser[]) {
 }
 
 async function associateUserWithSchool(user_email: string, schoolName: string) {
+  console.log(`Associating user ${user_email} with school ${schoolName}...`)
   //Select the school
   const { data: schoolData, error: schoolErr } = await supabase
     .from('schools')
@@ -142,7 +145,7 @@ async function associateUserWithSchool(user_email: string, schoolName: string) {
     updated_at: new Date(),
   }])
   if (membershipErr) throw membershipErr
-
+  console.log(`User ${user_email} associated with school ${schoolName}`)
 }
 
 async function main() {

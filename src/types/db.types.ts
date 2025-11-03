@@ -336,51 +336,6 @@ export type Database = {
           },
         ]
       }
-      pipeline_error_log: {
-        Row: {
-          conflict_key: string | null
-          created_at: string | null
-          customer_id: string | null
-          error_message: string | null
-          id: string
-          record: Json | null
-          run_id: string | null
-          school_external_id: string | null
-          section_external_id: string | null
-          student_external_id: string | null
-          table_name: string | null
-          year_external_id: string | null
-        }
-        Insert: {
-          conflict_key?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          error_message?: string | null
-          id?: string
-          record?: Json | null
-          run_id?: string | null
-          school_external_id?: string | null
-          section_external_id?: string | null
-          student_external_id?: string | null
-          table_name?: string | null
-          year_external_id?: string | null
-        }
-        Update: {
-          conflict_key?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          error_message?: string | null
-          id?: string
-          record?: Json | null
-          run_id?: string | null
-          school_external_id?: string | null
-          section_external_id?: string | null
-          student_external_id?: string | null
-          table_name?: string | null
-          year_external_id?: string | null
-        }
-        Relationships: []
-      }
       reports: {
         Row: {
           created_at: string | null
