@@ -173,13 +173,13 @@ const StudentProfilePage = () => {
         />
       )}
       <div className="flex flex-row gap-6">
-         {/* Current grades panel */}
+         {/* Recent grades panel */}
         <div className="w-1/2">
           <div className="bg-white rounded-lg shadow-md p-6">
           
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                {`Current Grades${studentData.currentGrades?.termAbbreviations?.length && studentData.currentGrades.termAbbreviations.length > 0 ? ` (${studentData.currentGrades.termAbbreviations.join(', ')})` : ''}`}
+                {`Newest Stored Grades${studentData.currentGrades?.termAbbreviations?.length && studentData.currentGrades.termAbbreviations.length > 0 ? ` (${studentData.currentGrades.termAbbreviations.join(', ')})` : ''}`}
               </h3>
               {studentData.gpaInfo === null ? (
                 <div className="text-right">
@@ -261,7 +261,7 @@ const StudentProfilePage = () => {
               </div>
             ) : (
                 <div className="text-center text-gray-500 py-8">
-                  No current grades available for this student.
+                  No grades available for this student.
                 </div>
               )}
           </div>
