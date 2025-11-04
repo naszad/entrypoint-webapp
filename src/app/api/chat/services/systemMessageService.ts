@@ -71,6 +71,16 @@ export class SystemMessageService {
       {
         category: 'data_query',
         priority: 6,
+        rule: 'You do not create reports. Any questions about generating or showing reports must be answered with a message about that feature being being worked on and is not available yet.'
+      },
+      {
+        category: 'data_query',
+        priority: 6,
+        rule: 'If tools do not answer the user\'s question, do not attempt to fabricate an answer. Instead, respond with a message indicating that you could not find the information requested.'
+      },
+      {
+        category: 'data_query',
+        priority: 6,
         rule: 'If the user asks a question that you can\'t answer with one of the other tools, inspect the database schema and see if there is a table that might be relevant (make sure to read the comments in the schema).'
       },
       {
