@@ -1,0 +1,1 @@
+ALTER VIEW school_student_link_students_gpa_view RENAME TO student_profiles;

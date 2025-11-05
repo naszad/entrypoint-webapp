@@ -1794,67 +1794,6 @@ export type Database = {
           },
         ]
       }
-      school_student_link_students_gpa_view: {
-        Row: {
-          created_at: string | null
-          customer_id: string | null
-          date_of_birth: string | null
-          email: string | null
-          enrollment_status: string | null
-          external_id: string | null
-          external_key: string | null
-          external_key_hash: string | null
-          external_name: string | null
-          external_source: string | null
-          first_name: string | null
-          full_name: string | null
-          gender: string | null
-          gpa: number | null
-          grade_level: number | null
-          graduation_year: number | null
-          homeroom_name: string | null
-          last_name: string | null
-          lunch_id: string | null
-          middle_name: string | null
-          phone: string | null
-          race: string | null
-          school_id: string | null
-          state_student_number: string | null
-          student_id: string | null
-          student_number: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "school_student_link_school_id_schools_school_id_fk"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_student_link_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_notes_students_school_student_link_view"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "school_student_link_student_id_students_student_id_fk"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["student_id"]
-          },
-          {
-            foreignKeyName: "students_customer_id_customers_customer_id_fk"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["customer_id"]
-          },
-        ]
-      }
       section_enrollments_terms_years_sections_courses_view: {
         Row: {
           abbreviation: string | null
@@ -2075,6 +2014,67 @@ export type Database = {
           year_name: string | null
         }
         Relationships: []
+      }
+      student_profiles: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          date_of_birth: string | null
+          email: string | null
+          enrollment_status: string | null
+          external_id: string | null
+          external_key: string | null
+          external_key_hash: string | null
+          external_name: string | null
+          external_source: string | null
+          first_name: string | null
+          full_name: string | null
+          gender: string | null
+          gpa: number | null
+          grade_level: number | null
+          graduation_year: number | null
+          homeroom_name: string | null
+          last_name: string | null
+          lunch_id: string | null
+          middle_name: string | null
+          phone: string | null
+          race: string | null
+          school_id: string | null
+          state_student_number: string | null
+          student_id: string | null
+          student_number: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_student_link_school_id_schools_school_id_fk"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_student_link_student_id_students_student_id_fk"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_notes_students_school_student_link_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "school_student_link_student_id_students_student_id_fk"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "students_customer_id_customers_customer_id_fk"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["customer_id"]
+          },
+        ]
       }
       user_school_memberships_users_schools_view: {
         Row: {

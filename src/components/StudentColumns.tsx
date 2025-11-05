@@ -17,6 +17,8 @@ export const defaultVisibility: VisibilityState = {
   lunchId: false,
   stateStudentNumber: false,
   race: true,
+  dateOfBirth: false,
+  graduationYear: false,
   updatedAt: false,
 };
 
@@ -151,6 +153,31 @@ export const columns: ColumnDef<StudentInfo>[] = [
     },
   },
   {
+    accessorKey: "dateOfBirth",
+    header: "Date of Birth",
+    meta: {
+      enableFiltering: true,
+      filterType: "date",
+    },
+    cell: ({ row }) => {
+      const date = row.original.dateOfBirth;
+      return date ? new Date(date).toLocaleDateString() : "N/A";
+    },
+  },
+  {
+    accessorKey: "graduationYear",
+    header: "Graduation Year",
+    meta: {
+      enableFiltering: true,
+      filterType: "number",
+    },
+    cell: ({ row }) => (
+      <div style={{ textAlign: "center", width: "80%" }}>
+        {row.original.graduationYear}
+      </div>
+    ),
+  },
+  {
     accessorKey: "updatedAt",
     header: "Last Updated",
     meta: {
@@ -159,7 +186,7 @@ export const columns: ColumnDef<StudentInfo>[] = [
     },
     cell: ({ row }) => {
       const date = row.original.updatedAt;
-      return date ? new Date(date).toLocaleString() : "N/A";
+      return date ? new Date(date).toLocaleDateString() : "N/A";
     },
   },
 ];

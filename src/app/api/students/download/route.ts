@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchStudentsByFilterCriteria, countStudentsByFilterCriteria } from '@/libs/studentsService';
+import { fetchStudentsByFilterCriteria } from '@/libs/studentsService';
 import { FilterValue } from '@/components/DataTable/DataTable';
 
 export async function GET(req: NextRequest) {
@@ -20,12 +20,6 @@ export async function GET(req: NextRequest) {
 
     if (activeOnly && !filters.some(f => f.key === 'enrollmentStatus')) {
       filters.push({ key: 'enrollmentStatus', condition: 'eq', value: 'Active' });
-    }
-
-    const totalStudents = await countStudentsByFilterCriteria({filters});
-
-    if (totalStudents > 5000) {
-      return NextResponse.json({ error: 'Too many students to download. Please filter your results to less than 5000.' }, { status: 400 });
     }
 
     const studentsResponse = await fetchStudentsByFilterCriteria({      

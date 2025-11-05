@@ -85,6 +85,8 @@ const getColumnName = (key: string) => {
       return 'date_of_birth';
     case 'dateOfBirthTo':
       return 'date_of_birth';
+    case 'graduationYear':
+      return 'graduation_year';
     case 'createdAt':
       return 'created_at';
     case 'createdAtFrom':
@@ -363,7 +365,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const selectOptions = fetchWithCount ? { count: 'exact' as const } : undefined;
 
     let query = supabase
-      .from('school_student_link_students_gpa_view')
+      .from('student_profiles')
       .select(`*`, selectOptions)
       .eq('school_id', selectedSchoolId);
     
@@ -444,31 +446,6 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     throw new Error(`Failed to fetch students. Error: ${message}`);
-  }
-} 
-
-export async function countStudentsByFilterCriteria(request: StudentsRequest): Promise<number> {
-  try {
-    const supabase = await createClient()
-    const { filters } = request;
-    const cookieStore = await cookies();
-    const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
-
-    let countQuery = supabase
-        .from('school_student_link_students_gpa_view')
-        .select('*', { count: 'exact', head: true })
-        .eq('school_id', selectedSchoolId);
-      
-      // Apply the same filters to count query
-      countQuery = applyFilters(countQuery, filters);
-      
-      const { count, error: countError } = await countQuery;
-      if (countError) {
-        throw new Error(countError.message);
-      }
-      return count || 0;
-  } catch (err) {
-    throw new Error(`Failed to count students ${err}`);
   }
 }
 

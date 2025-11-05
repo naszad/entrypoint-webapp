@@ -299,6 +299,13 @@ const StudentsPage = () => {
   };
 
   const handleDownloadClick = async () => {
+    if (totalCount > 5000) {
+      setAlertMessage({ 
+        type: 'destructive', 
+        message: 'Too many students to download. Please filter your results to less than 5000.'
+      });
+      return;
+    }
     const filters = searchParams.get('filters');
     const sort = searchParams.get('sort');
     const columns = searchParams.get('columns') || Object.keys(initialVisibility).filter(key => initialVisibility[key as keyof typeof initialVisibility] === true).join(',');
