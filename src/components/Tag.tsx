@@ -4,6 +4,7 @@ import { MoreVertical } from 'lucide-react'
 import React, { useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { getTagColors } from '@/utils/tagColors'
+import { getFuzzyMatchingValue } from '@/utils/utils'
 
 interface TagProps {
   category: string
@@ -61,17 +62,17 @@ export function Tag({ category, name, value, studentTagId, tagId, allTags, isNew
     const newValue = e.target.value
     setEditValue(newValue)
 
-    if (newValue && possibleTagValues.length > 0) {
-      const filtered = possibleTagValues.filter(val =>
-        val.toLowerCase().includes(newValue.toLowerCase()) &&
-        val.toLowerCase() !== newValue.toLowerCase()
-      )
-      setFilteredTagValues(filtered)
-      setShowSuggestions(filtered.length > 0)
-    } else {
-      setFilteredTagValues([])
-      setShowSuggestions(false)
+    if (!newValue || possibleTagValues.length === 0) {
+      setFilteredTagValues([]);
+      setShowSuggestions(false);
+      return;
     }
+    
+    const { bestMatch, score } = getFuzzyMatchingValue(newValue, possibleTagValues);
+    const isStrongMatch = score > 0.8;
+    
+    setFilteredTagValues(isStrongMatch ? [bestMatch] : []);
+    setShowSuggestions(isStrongMatch);
   }
 
   const handleSelectTagValue = (tagValue: string) => {

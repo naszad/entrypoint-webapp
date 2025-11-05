@@ -1,35 +1,69 @@
 
 'use server';
 
+import { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/supabaseServer';
 import { StudentTagInfo, CategoryTagInfo } from '@/types/StudentTagInfo';
+import { getFuzzyMatchingValue } from '@/utils/utils';
+import { cookies } from 'next/headers';
 
 /**
  * Finds an existing canonical value for a tag value.
  * This function implements fuzzy matching to find close canonical values if they exist.
  */
-async function findCanonicalValue(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+async function findOrCreateCanonicalValue(
+  supabase: SupabaseClient,
   tagId: string,
-  value: string
+  value: string,
+  userId: string
 ): Promise<string | null> {
   try {
-    // First, try to find an exact match
-    const { data: exactMatch, error: exactError } = await supabase
+    // Fetch canonical values for the given tag
+    const { data: canonicalValues} = await supabase
       .from('tag_canonical_values')
-      .select('tag_canonical_value_id')
-      .eq('tag_id', tagId)
-      .eq('value', value)
-      .single();
+      .select('tag_canonical_value_id, value')
+      .eq('tag_id', tagId);
 
-    if (exactMatch && !exactError) {
-      return exactMatch.tag_canonical_value_id;
+    if (canonicalValues?.length) {
+      // Check for an exact match (case-insensitive)
+      const exactMatch = canonicalValues.find(
+        (cv) => cv.value.toLowerCase() === value.toLowerCase()
+      );
+
+      if (exactMatch) {
+        return exactMatch.tag_canonical_value_id;
+      }
+
+      // Apply fuzzy matching
+      const { bestMatch, score } = getFuzzyMatchingValue(
+        value,
+        canonicalValues.map((cv) => cv.value)
+      );
+
+      // If there's a close match but not exact, do not store a new canonical value
+      const isCloseButNotExact = score > 0.8 && bestMatch.toLowerCase() !== value.toLowerCase();
+      if (isCloseButNotExact) {
+        return null;
+      }
     }
 
-    // No match found, return null
-    return null;
+    console.log('going to insert canonical value: ', { tag_id: tagId, value, created_by_user_id: userId })
+
+    // Create a new canonical value if no match was found
+    const { data: newCanonicalValue, error: newCanonicalValueError } = await supabase
+      .from('tag_canonical_values')
+      .insert({ tag_id: tagId, value, created_by_user_id: userId })
+      .select('tag_canonical_value_id')
+      .single();
+
+    if (newCanonicalValueError) {
+      console.error('Error inserting canonical value:', newCanonicalValueError);
+      return null;
+    }
+
+    return newCanonicalValue?.tag_canonical_value_id ?? null;
   } catch (err) {
-    console.warn('Error in findCanonicalValue:', err);
+    console.warn('Unexpected error in findOrCreateCanonicalValue:', err);
     return null;
   }
 }
@@ -124,19 +158,22 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
     }
 
     const {studentId, tagId, tagName, tagCategoryId, value} = params;
+    const cookieStore = await cookies();
+    const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
+  
 
     // Get student info to get customer ID
-    const { data: student, error: studentError } = await supabase
-      .from('students')
+    const { data: school, error: schoolError } = await supabase
+      .from('schools')
       .select('customer_id')
-      .eq('student_id', studentId)
+      .eq('school_id', selectedSchoolId)
       .single();
 
-    if (studentError || !student) {
-      throw new Error(`Student not found: ${studentError?.message}`);
+    if (schoolError || !school) {
+      throw new Error(`School not found: ${schoolError?.message}`);
     }
 
-    let finalTagId = tagId;
+    let finalTagId = tagId ?? '';
 
     // If tagId is not provided, create a new tag
     if (!finalTagId) {
@@ -144,7 +181,7 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
         .from('tags')
         .insert({
           tag_category_id: tagCategoryId,
-          customer_id: student.customer_id,
+          customer_id: school.customer_id,
           name: tagName,
           is_multi_value: tagName?.toLowerCase() !== value?.toLowerCase(),
           created_by_user_id: user.id,
@@ -157,17 +194,15 @@ export async function addNewStudentTag(params: AddNewStudentTagParams): Promise<
         throw new Error(`Failed to create new tag: ${tagError?.message}`);
       }
 
-      console.log('newTag created:', newTag);
-
       finalTagId = newTag.tag_id;
     }
 
-    // Find existing canonical value for the tag value (do not create new ones)
-    const canonicalValueId = finalTagId ? await findCanonicalValue(
+    const canonicalValueId = await findOrCreateCanonicalValue(
       supabase,
       finalTagId,
-      value
-    ) : null;
+      value,
+      user.id
+    );
 
     // Create the student_tags entry
     const { error: studentTagError } = await supabase
@@ -214,11 +249,11 @@ export async function updateStudentTag(studentTagId: string, value: string): Pro
       throw new Error(`Failed to find student tag: ${fetchError?.message}`);
     }
 
-    // Find existing canonical value for the new tag value (do not create new ones)
-    const canonicalValueId = await findCanonicalValue(
+    const canonicalValueId = await findOrCreateCanonicalValue(
       supabase,
       studentTag.tag_id,
-      value
+      value,
+      user.id
     );
 
     const { error: studentTagError } = await supabase
@@ -331,7 +366,7 @@ export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: st
           tag_category_id,
           name
         ),
-        student_tags (
+        tag_canonical_values (
           value
         )
       `)
@@ -348,10 +383,11 @@ export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: st
       name: tag.name,
       categoryId: tag.tag_categories?.tag_category_id ?? '',
       categoryName: tag.tag_categories?.name ?? '',
-      values: [...new Set(tag.student_tags?.map((st: { value: string }) => st.value) ?? [])] as string[]
+      values: [...new Set(tag.tag_canonical_values?.map((tcv: { value: string }) => tcv.value) ?? [])] as string[]
     })) ?? [];
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     throw new Error(`Failed to fetch tags. Error: ${message}`);
   }
 }
+

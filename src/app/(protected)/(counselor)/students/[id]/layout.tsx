@@ -66,6 +66,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
     useEffect(() => {
       const handleTagsRefresh = async () => {
         try {
+          // Refresh student tags
           const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
@@ -96,6 +97,13 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
               }, 400);
               return updated;
             });
+          }
+          
+          // Also refresh all tags to get any new canonical values
+          const allTagsResponse = await fetch('/api/tags');
+          if (allTagsResponse.ok) {
+            const allTagsData = await allTagsResponse.json();
+            setAllTags(allTagsData);
           }
         } catch (err) {
           console.warn('Tag refresh failed', err);
@@ -130,13 +138,12 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
             setStudentTags(tagsData);
           }
           
-          // Refresh all tags if a new tag was created
-          if (!tag.tagId) {
-            const allTagsResponse = await fetch('/api/tags');
-            if (allTagsResponse.ok) {
-              const allTagsData = await allTagsResponse.json();
-              setAllTags(allTagsData);
-            }
+          // Refresh all tags to get any new canonical values
+          // This includes both new tag creation AND new canonical values for existing tags
+          const allTagsResponse = await fetch('/api/tags');
+          if (allTagsResponse.ok) {
+            const allTagsData = await allTagsResponse.json();
+            setAllTags(allTagsData);
           }
         }
       } catch (err) {
@@ -158,6 +165,13 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setStudentTags(tagsData);
+          }
+          
+          // Refresh all tags to get any new canonical values
+          const allTagsResponse = await fetch('/api/tags');
+          if (allTagsResponse.ok) {
+            const allTagsData = await allTagsResponse.json();
+            setAllTags(allTagsData);
           }
         }
       } catch (err) {

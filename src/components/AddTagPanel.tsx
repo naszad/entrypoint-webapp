@@ -2,6 +2,8 @@
 
 import { X } from 'lucide-react'
 import { useState, useMemo } from 'react'
+import { getFuzzyMatchingValue } from '@/utils/utils';
+
 
 interface AddTagPanelProps {
   categories: { tagCategoryId: string; name: string }[]
@@ -78,7 +80,7 @@ export function AddTagPanel({
   }
 
   const handleNameBlur = () => {
-    if (name) {
+    if (name && !value) {
       setValue(name)
     }
   }
@@ -88,6 +90,10 @@ export function AddTagPanel({
     setSelectedTagId(tagId)
     setFilteredTagNames([])
     setIsCreatingNewTag(false)
+
+    if (tagName && tagId) {
+      setValue('')
+    }
 
     // Auto-select category if not already selected
     if (!categoryId) {
@@ -102,14 +108,13 @@ export function AddTagPanel({
     const newValue = e.target.value
     setValue(newValue)
 
-    if (newValue && possibleTagValues.length > 0) {
-      const filtered = possibleTagValues.filter(val =>
-        val.toLowerCase().includes(newValue.toLowerCase()),
-      )
-      setFilteredTagValues(filtered)
-    } else {
-      setFilteredTagValues([])
+    if (!newValue || possibleTagValues.length === 0) {
+      setFilteredTagValues([]);
+      return;
     }
+    
+    const { bestMatch, score } = getFuzzyMatchingValue(newValue, possibleTagValues);
+    setFilteredTagValues(score > 0.8 ? [bestMatch] : []);
   }
 
   const handleSelectTagValue = (tagValue: string) => {

@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import jaroWinkler from 'jaro-winkler';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -44,4 +45,19 @@ export function stringToColor(str: string): string {
   }
   const index = Math.abs(hash) % colors.length;
   return colors[index];
+}
+
+export function getFuzzyMatchingValue(target: string, candidates: string[]): { bestMatch: string, score: number } {
+  let bestMatch = '';
+  let highestScore = 0;
+
+  for (const candidate of candidates) {
+    const score = jaroWinkler(target.toLowerCase(), candidate.toLowerCase());
+    if (score > highestScore) {
+      highestScore = score;
+      bestMatch = candidate;
+    }
+  }
+
+  return { bestMatch, score: highestScore };
 }
