@@ -11,7 +11,7 @@ interface SortableTagProps {
   value: string
   studentTagId: string
   tagId: string
-  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]
+  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[]; isMultiValue: boolean }[]
   isNew?: boolean
   onEdit?: (studentTagId: string, value: string) => void
   onDelete?: (studentTagId: string) => void

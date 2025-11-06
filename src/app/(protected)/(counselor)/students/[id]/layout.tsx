@@ -14,7 +14,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
     const [student, setStudent] = useState<StudentInfo | null>(null);
     const [studentTags, setStudentTags] = useState<StudentTagInfo | null>(null);
     const [allCategories, setAllCategories] = useState<{ tagCategoryId: string; name: string }[]>([]);
-    const [allTags, setAllTags] = useState<{ tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]>([]);
+  const [allTags, setAllTags] = useState<{ tagId: string; name: string; categoryId: string; categoryName: string; values: string[]; isMultiValue: boolean }[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const pathname = usePathname();

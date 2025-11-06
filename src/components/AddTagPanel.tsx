@@ -1,13 +1,13 @@
 'use client'
 
 import { X } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { getFuzzyMatchingValue } from '@/utils/utils';
 
 
 interface AddTagPanelProps {
   categories: { tagCategoryId: string; name: string }[]
-  allTags: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]
+  allTags: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[]; isMultiValue: boolean }[]
   onClose: () => void
   onSave: (tag: { tagId?: string; tagName: string; tagCategoryId: string; value: string }) => void
 }
@@ -25,6 +25,7 @@ export function AddTagPanel({
   const [filteredTagNames, setFilteredTagNames] = useState<{ tagId: string; name: string }[]>([])
   const [filteredTagValues, setFilteredTagValues] = useState<string[]>([])
   const [selectedTagId, setSelectedTagId] = useState<string | undefined>()
+  const [isValueReadOnly, setIsValueReadOnly] = useState(false)
 
   const uniqueTagNames = useMemo(() => {
     if (categoryId) {
@@ -37,11 +38,29 @@ export function AddTagPanel({
     return allTags.map(t => ({ tagId: t.tagId, name: t.name }))
   }, [allTags, categoryId])
 
-  const possibleTagValues = useMemo(() => {
-    if (!selectedTagId) return []
-    const tag = allTags.find(t => t.tagId === selectedTagId)
-    return tag?.values ?? []
+  const selectedTag = useMemo(() => {
+    if (!selectedTagId) return undefined
+    return allTags.find(t => t.tagId === selectedTagId)
   }, [selectedTagId, allTags])
+
+  const possibleTagValues = useMemo(() => selectedTag?.values ?? [], [selectedTag])
+
+  useEffect(() => {
+    if (!selectedTag) {
+      setIsValueReadOnly(false)
+      return
+    }
+
+    if (!selectedTag.isMultiValue) {
+      const canonicalValue = selectedTag.values[0] ?? selectedTag.name
+      setValue(canonicalValue)
+      setIsValueReadOnly(true)
+      setFilteredTagValues([])
+    } else {
+      setIsValueReadOnly(false)
+      setFilteredTagValues([])
+    }
+  }, [selectedTag])
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCategoryId = e.target.value
@@ -52,12 +71,14 @@ export function AddTagPanel({
     setSelectedTagId(undefined)
     setFilteredTagNames([])
     setFilteredTagValues([])
+    setIsValueReadOnly(false)
   }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value
     setName(newName)
     setSelectedTagId(undefined)
+    setIsValueReadOnly(false)
 
     if (newName) {
       const filtered = uniqueTagNames.filter(tag =>
@@ -70,6 +91,13 @@ export function AddTagPanel({
       if (exactMatch) {
         setIsCreatingNewTag(false)
         setSelectedTagId(exactMatch.tagId)
+
+        const matchingTag = allTags.find(t => t.tagId === exactMatch.tagId)
+        if (matchingTag) {
+          if (!categoryId || matchingTag.categoryId !== categoryId) {
+            setCategoryId(matchingTag.categoryId)
+          }
+        }
       } else {
         setIsCreatingNewTag(true)
       }
@@ -91,20 +119,36 @@ export function AddTagPanel({
     setFilteredTagNames([])
     setIsCreatingNewTag(false)
 
-    if (tagName && tagId) {
-      setValue('')
-    }
-
     // Auto-select category if not already selected
     if (!categoryId) {
       const selectedTag = allTags.find(t => t.tagId === tagId)
       if (selectedTag) {
         setCategoryId(selectedTag.categoryId)
       }
+    } else {
+      const selectedTag = allTags.find(t => t.tagId === tagId)
+      if (selectedTag && selectedTag.categoryId !== categoryId) {
+        setCategoryId(selectedTag.categoryId)
+      }
+    }
+
+    const tag = allTags.find(t => t.tagId === tagId)
+    if (tag) {
+      if (tag.isMultiValue) {
+        setValue('')
+        setIsValueReadOnly(false)
+      } else {
+        const canonicalValue = tag.values[0] ?? tag.name
+        setValue(canonicalValue)
+        setIsValueReadOnly(true)
+      }
     }
   }
 
   const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isValueReadOnly) {
+      return
+    }
     const newValue = e.target.value
     setValue(newValue)
 
@@ -134,7 +178,11 @@ export function AddTagPanel({
     onClose()
   }
 
-  const canEditValue = categoryId && name
+  const isValueInputDisabled = !categoryId || !name || isValueReadOnly
+  const canSave = Boolean(categoryId && name && value)
+  const valuePlaceholder = isValueInputDisabled
+    ? (isValueReadOnly ? 'Value is locked for this tag' : 'Select category and name first')
+    : 'Enter tag value'
 
   return (
     <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg z-50 border border-gray-200">
@@ -226,11 +274,12 @@ export function AddTagPanel({
                 id="value"
                 value={value}
                 onChange={handleValueChange}
-                disabled={!canEditValue}
+                disabled={isValueInputDisabled}
+                readOnly={isValueReadOnly}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-50 disabled:cursor-not-allowed"
-                placeholder={canEditValue ? 'Enter tag value' : 'Select category and name first'}
+                placeholder={valuePlaceholder}
               />
-              {filteredTagValues.length > 0 && canEditValue && (
+              {filteredTagValues.length > 0 && !isValueInputDisabled && (
                 <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto">
                   {filteredTagValues.map(val => (
                     <li
@@ -242,6 +291,11 @@ export function AddTagPanel({
                     </li>
                   ))}
                 </ul>
+              )}
+              {isValueReadOnly && value && (
+                <p className="mt-2 text-xs text-gray-500">
+                  This tag has a fixed value and will be saved as &quot;{value}&quot;.
+                </p>
               )}
             </div>
           </div>
@@ -256,7 +310,7 @@ export function AddTagPanel({
           </button>
           <button
             onClick={handleSave}
-            disabled={!canEditValue || !value}
+            disabled={!canSave}
             className="px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
           >
             Save

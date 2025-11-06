@@ -326,7 +326,7 @@ export async function getAllTagCategories(): Promise<{ tagCategoryId: string; na
   }
 }
 
-export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]> {
+export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: string; categoryId: string; categoryName: string; values: string[]; isMultiValue: boolean }[]> {
   try {
     const supabase = await createClient();
     
@@ -336,25 +336,24 @@ export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: st
       throw new Error('User not authenticated');
     }
 
-    // Get user's customer ID through their school membership
-    const { data: memberships, error: membershipError } = await supabase
-      .from('user_school_memberships')
-      .select(`
-        schools (
-          customer_id
-        )
-      `)
-      .eq('user_id', user.id)
-      .limit(1);
+    const cookieStore = await cookies();
+    const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
 
-    if (membershipError || !memberships || memberships.length === 0) {
-      throw new Error(`User school membership not found. User ID: ${user.id}, Error: ${membershipError?.message || 'No memberships found'}`);
+    if (!selectedSchoolId) {
+      throw new Error('Selected school not found; cannot scope tags without school context.');
     }
 
-    const membership = memberships[0];
+    const { data: school, error: schoolError } = await supabase
+      .from('schools')
+      .select('customer_id')
+      .eq('school_id', selectedSchoolId)
+      .single();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const customerId = (membership as any).schools?.customer_id;
+    if (schoolError || !school?.customer_id) {
+      throw new Error(`Unable to resolve customer for selected school ${selectedSchoolId}. Error: ${schoolError?.message ?? 'No customer found'}`);
+    }
+
+    const customerId = school.customer_id;
 
     // Get all tags for this customer with their categories and values
     const { data: tags, error: tagsError } = await supabase
@@ -362,6 +361,7 @@ export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: st
       .select(`
         tag_id,
         name,
+        is_multi_value,
         tag_categories (
           tag_category_id,
           name
@@ -383,7 +383,8 @@ export async function getAllTagsForCustomer(): Promise<{ tagId: string; name: st
       name: tag.name,
       categoryId: tag.tag_categories?.tag_category_id ?? '',
       categoryName: tag.tag_categories?.name ?? '',
-      values: [...new Set(tag.tag_canonical_values?.map((tcv: { value: string }) => tcv.value) ?? [])] as string[]
+      values: [...new Set(tag.tag_canonical_values?.map((tcv: { value: string }) => tcv.value) ?? [])] as string[],
+      isMultiValue: Boolean(tag.is_multi_value),
     })) ?? [];
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';

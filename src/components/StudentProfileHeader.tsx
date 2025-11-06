@@ -42,7 +42,7 @@ interface StudentProfileHeaderProps {
   photoUrl?: string;
   tags?: CategoryTagInfo[];
   allTagCategories?: { tagCategoryId: string; name: string }[];
-  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[];
+  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[]; isMultiValue: boolean }[];
   onTagAdd?: (tag: { tagId?: string; tagName: string; tagCategoryId: string; value: string }) => void;
   onTagEdit?: (studentTagId: string, value: string) => void;
   onTagDelete?: (studentTagId: string) => void;

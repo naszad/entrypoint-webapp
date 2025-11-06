@@ -17,7 +17,7 @@ interface SortableCategoryProps {
     tagName: string
     tagValue: string
   }>
-  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[] }[]
+  allTags?: { tagId: string; name: string; categoryId: string; categoryName: string; values: string[]; isMultiValue: boolean }[]
   onTagEdit?: (studentTagId: string, value: string) => void
   onTagDelete?: (studentTagId: string) => void
   onTagMenuClick?: (studentTagId: string, rect: DOMRect) => void
