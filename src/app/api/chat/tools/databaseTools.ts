@@ -23,8 +23,8 @@ export const listTablesTool: ChatTool = {
     description: `Lists all available tables in the database. Use the comments to understand the table better. This is the first step for answering a question that requires specific information. Use this if you do not know the database schema.`,
     inputSchema: z.object({}),
     execute: async () => {
-      const supabase = await createClient();
-      const { data, error } = await supabase.rpc('list_public_tables');
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('list_views');
 
       if (error) {
         console.error('Error listing tables:', error);
@@ -52,8 +52,8 @@ export const getTableSchemaTool: ChatTool = {
       tableName: z.string().describe('The name of the table to get the schema for.'),
     }),
     execute: async ({ tableName }) => {
-      const supabase = await createClient();
-      const { data, error } = await supabase.rpc('get_public_table_schema', { p_table_name: tableName });
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('get_view_schema', { p_view_name: tableName });
 
       if (error) {
         console.error(`Error getting schema for table ${tableName}:`, error);
@@ -110,8 +110,14 @@ export const executeSqlTool = (context: ToolContext): ChatTool => ({
       const vettedSql = evaluation.normalizedSql ?? sql;
 
       const supabase = await createClient();
+
+      if(process.env.DEBUG === 'true') {
+        console.log('Executing vetted SQL:', vettedSql);
+        console.log('With school ID:', { selectedSchoolId: context.selectedSchoolId });
+      }
+
       const { data, error } = await supabase.rpc('execute_safe_select', { 
-        query_text: vettedSql,
+        p_query: vettedSql,
         p_selected_school_id: context.selectedSchoolId
       });
 
@@ -121,6 +127,10 @@ export const executeSqlTool = (context: ToolContext): ChatTool => ({
           error: `Failed to execute query: ${error.message}`,
           evaluation,
         };
+      }
+
+      if(process.env.DEBUG === 'true') {
+        console.log('SQL execution result:', data);
       }
 
       return {

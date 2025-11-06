@@ -52,6 +52,11 @@ export function runStreamingWorkflow({
     );
   }
 
+  const formattingReminder = systemMessageService.buildFormattingReminderBlock();
+  if (formattingReminder) {
+    systemInstructionParts.push(formattingReminder);
+  }
+
   const systemMessage = systemInstructionParts.join('\n\n');
   const toolsForAI = toolRegistry.getToolsForAI();
 
@@ -285,8 +290,8 @@ async function getFormattedSchemaForTable(
     return cached;
   }
 
-  const { data, error } = await supabase.rpc('get_public_table_schema', {
-    p_table_name: tableName,
+  const { data, error } = await supabase.rpc('get_view_schema', {
+    p_view_name: tableName,
   });
 
   if (error) {
@@ -341,7 +346,7 @@ export async function buildSchemaSummary(options: SchemaSummaryOptions = {}): Pr
     };
   }
 
-  const { data: tablesData, error: tablesError } = await supabaseClient.rpc('list_public_tables');
+  const { data: tablesData, error: tablesError } = await supabaseClient.rpc('list_views');
   if (tablesError || !Array.isArray(tablesData)) {
     warnings.push(`Failed to fetch table list: ${tablesError?.message ?? 'Unknown error'}`);
     return {

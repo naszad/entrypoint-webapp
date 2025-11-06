@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      canvases: {
+        Row: {
+          canvas_id: string
+          created_at: string | null
+          sql_statement: string
+          updated_at: string | null
+        }
+        Insert: {
+          canvas_id?: string
+          created_at?: string | null
+          sql_statement: string
+          updated_at?: string | null
+        }
+        Update: {
+          canvas_id?: string
+          created_at?: string | null
+          sql_statement?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       chat_message_feedback: {
         Row: {
           comment: string | null
@@ -2196,10 +2217,6 @@ export type Database = {
         }
         Returns: string
       }
-      execute_safe_select: {
-        Args: { p_selected_school_id?: string; query_text: string }
-        Returns: Json
-      }
       fetch_public_config: {
         Args: {
           p_config_key: string
@@ -2245,14 +2262,6 @@ export type Database = {
           year_name: string
         }[]
       }
-      get_public_table_schema: {
-        Args: { p_table_name: string }
-        Returns: {
-          column_name: string
-          comment: string
-          data_type: string
-        }[]
-      }
       get_student_daily_absences_and_tardies: {
         Args: { p_student_id: string }
         Returns: {
@@ -2267,13 +2276,6 @@ export type Database = {
       is_email_domain_whitelisted: {
         Args: { p_email_domain: string; p_school_id: string }
         Returns: boolean
-      }
-      list_public_tables: {
-        Args: never
-        Returns: {
-          comment: string
-          name: string
-        }[]
       }
     }
     Enums: {

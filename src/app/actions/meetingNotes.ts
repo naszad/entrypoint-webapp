@@ -14,10 +14,12 @@ import {
   getAllTagCategories,
 } from "@/libs/tagsService";
 
+const AI_MODEL_DEFAULT = process.env.AI_MODEL_DEFAULT || "gpt-4.1-mini";
+
 // Helper function to generate AI summary from notes
 async function generateSummaryFromNotes(notes: string): Promise<string> {
   const result = streamText({
-    model: openai("gpt-4o"),
+    model: openai(AI_MODEL_DEFAULT),
     system:
       "You are a highly precise AI assistant for guidance counselors. Generate a concise, one-sentence summary from the provided meeting notes. Focus only on the key topics, decisions, and outcomes mentioned in the notes. Be factual and avoid inference.",
     messages: [
@@ -184,7 +186,7 @@ ${Array.from(studentTagValues).join(", ")}`;
     });
 
     const { object } = await generateObject({
-      model: openai("gpt-4o"),
+      model: openai(AI_MODEL_DEFAULT),
       system: systemPrompt,
       messages: [
         {
@@ -310,7 +312,7 @@ export async function generateMeetingNotesFromTranscript(
 ) {
   try {
     const result = streamText({
-      model: openai("gpt-4o"),
+      model: openai(AI_MODEL_DEFAULT),
       //Modified system prompt to midigate hallucinations
       system:
         'You are a highly precise AI assistant for guidance counselors. Your task is to process a meeting transcript and generate a concise, factual summary for case notes. **CRITICAL INSTRUCTIONS:** 1.  **Strictly Extractive:** Your summary MUST ONLY contain information explicitly stated in the provided transcript. 2.  **NO INFERENCE:** DO NOT infer any actions, emotions, or next steps. If the transcript doesnt say "we discussed the application process" you must not mention it. 3.  **NO FABRICATION:** DO NOT add any details, topics, or conclusions that are not directly present in the text. It is better to have a short, accurate summary than a longer, embellished one. 4.  **Quote, Dont Interpret:** Base every summary point on a specific statement from the transcript. Avoid interpreting intent or emotion (e.g., "Bob is excited"). 5.  **Focus on Facts:** Extract key names, topics, goals, and decisions only. Do not include any headings or titles in your response.',

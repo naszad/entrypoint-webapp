@@ -14,12 +14,14 @@ interface WorkflowConfig {
   workflowId: 'general_assistant' | 'navigation_assistant' | 'data_query_assistant' | 'student_insights_assistant';
 }
 
-const DEFAULT_ROUTER_MODEL = 'gpt-4o';
+const AI_MODEL_ROUTER = process.env.AI_MODEL_ROUTER || process.env.AI_MODEL_DEFAULT || 'gpt-4o';
 const ALL_TOOL_NAMES = [
   'filter_students',
   'filter_grades',
   'list_tables',
   'get_table_schema',
+  'list_tags',
+  'list_tag_values',
   'execute_sql',
   'identify_student',
   'get_student_gpa',
@@ -32,7 +34,7 @@ const WORKFLOW_CONFIGS: Record<WorkflowCategory, WorkflowConfig> = {
     id: 'navigation',
     label: 'Navigation Workflow',
     description:
-      'Use when the user query can be addressed by filtering students or grades and navigating them to those views in the UI.',
+      'Use when the user query can be addressed by filtering students or grades (using the filters explicitly available in those tools) and navigating them to those views in the UI.',
     systemInstruction:
       'Focus on navigation and UI actions. Prefer using navigation tools to generate actionable filters rather than answering from memory. Explain to the user what view or filter is being applied.',
     toolNames: [...ALL_TOOL_NAMES],
@@ -44,7 +46,7 @@ const WORKFLOW_CONFIGS: Record<WorkflowCategory, WorkflowConfig> = {
     description:
       'Use when the user needs an answer that requires querying the database, aggregating data, or tag related data.',
     systemInstruction:
-      'Act as an analytical data specialist. Use schema exploration tools before executing SQL. Clearly explain the query logic and summarize key results without exposing raw SQL.',
+      'Act as an analytical data specialist. Use schema exploration tools before executing SQL. Recommend tag-related tools if the query involves qualitative information like goals or hobbies. Clearly explain the query logic and summarize key results without exposing raw SQL.',
     toolNames: [...ALL_TOOL_NAMES],
     workflowId: 'data_query_assistant',
   },
@@ -112,8 +114,9 @@ export async function routeChatRequest({
     return DEFAULT_DECISION;
   }
 
-  const modelName = routerModel ?? DEFAULT_ROUTER_MODEL;
+  const modelName = routerModel ?? AI_MODEL_ROUTER;
   const availableTools = Array.from(toolRegistry.getAllTools().keys());
+  const toolGuidance = buildToolGuidance(toolRegistry);
   const describeWorkflows = Object.values(WORKFLOW_CONFIGS)
     .map(
       (workflow) =>
@@ -129,12 +132,15 @@ export async function routeChatRequest({
 Available workflows:
 ${describeWorkflows}
 
+Available tools and descriptions:
+${toolGuidance}
+
 Always pick exactly one category. Recommend tool names that exist in the provided defaults for that workflow. If no tools are required, return an empty list.`,
       prompt: `Latest user message:
 "${latestUserMessage}"
 
 ${conversationSummary ? `Recent conversation context:\n${conversationSummary}\n` : ''}
-Available tool names: ${availableTools.join(', ')}.`,
+`,
     });
 
     const category = WORKFLOW_CONFIGS[routingResult.category]?.id ?? 'general';
@@ -160,4 +166,17 @@ Available tool names: ${availableTools.join(', ')}.`,
     console.error('Routing workflow failed; defaulting to general workflow.', error);
     return DEFAULT_DECISION;
   }
+}
+
+function buildToolGuidance(toolRegistry: ToolRegistry): string {
+  const lines: string[] = [];
+
+  for (const tool of toolRegistry.getAllTools().values()) {
+    const description = tool.metadata.description ?? '';
+    const sanitized = description.replace(/\s+/g, ' ').trim();
+    const trimmedDescription = sanitized.length > 300 ? `${sanitized.slice(0, 300)}…` : sanitized;
+    lines.push(`- ${tool.metadata.name}: ${trimmedDescription}`);
+  }
+
+  return lines.length > 0 ? lines.join('\n') : 'No tools currently registered.';
 }

@@ -37,7 +37,8 @@ This guide provides essential context for AI coding agents working in the EntryP
 - **Migration Naming**: Use ticket/branch names in migration filenames
 - **Environment Files**: Use `ENV_FILE` shell variable to switch env configs
 - **Seed Data**: Initial user is `test@email.com` / `password`
-- **Auth/Access**: RLS policies enforced; check migrations for changes
+- **Auth/Access**: RLS policies exist on tables; use Supabase client with authenticated user context ONLY in the application code
+- **Error Handling**: Implement robust error handling and logging for all API routes
 
 ## Integration Points
 - **AI Features**: See usage of AI SDK and OpenAI in `src/libs/` and API routes
@@ -47,6 +48,7 @@ This guide provides essential context for AI coding agents working in the EntryP
 - Always run DB migrations and type generation before pushing changes
 - Do not edit generated types directly
 - Run commands inside Docker for consistency
+- Don't look at migration files to understand DB schema; look at the database (using the Supabase MCP server if you have access to it)
 
 ## Example Commands
 - Start dev: `docker compose -f docker-compose.dev.yml up --build`

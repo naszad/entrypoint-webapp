@@ -6,18 +6,20 @@
 import { tool } from 'ai';
 import { z } from 'zod/v3';
 import { ChatTool } from './types';
+import { studentColumnAccessorKeys } from '@/components/StudentColumnsConfig';
 
 export const filterStudentsTool: ChatTool = {
   metadata: {
     name: 'filter_students',
     category: 'navigation',
-    description: 'Applies filters and sorting to the student data table and navigates the user to the filtered view.',
+    description: `Applies filters and sorting to the student data table and navigates the user there. Only operates on a fixed set of fields: ${studentColumnAccessorKeys.join(", ")}.`,
     systemMessageRules: [
       'Use filter_students ONLY when the user wants to view, show, find, or display a list/table of students',
       'This tool is for navigation, not for answering questions - do not use for queries like "What grade is Jane Doe in?"',
       'When user asks for students "updated/modified/changed in the last X days", use updatedAtRecentOnly',
       'When user asks for students "created/added/registered in the last X days", use createdAtRecentOnly',
       'For sorting, use sortBy and sortDirection parameters with supported fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa',
+      'Make sure to use the columns parameter to make visible those fields that are relevant to the user query',
       'When expressing numeric ranges (e.g., GPA between 3 and 3.5) provide multiple filters for the same field using the gte/lte operators',
       'Combine all requested constraints into a single tool call—never produce multiple navigation results for one request',
       'When users reference multiple grade levels, use gradeLevelFilters (with gte/lte or multiple eq operators) so everything stays within one tool response'
@@ -53,7 +55,8 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 - Sortable fields: fullName, email, gradeLevel, gender, enrollmentStatus, homeroomName, gpa, studentNumber, lunchId, stateStudentNumber, race
 - Direction: "asc" for ascending (A-Z, low to high), "desc" for descending (Z-A, high to low)`,
     inputSchema: z.object({
-  gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12). Use only for single-grade requests; use gradeLevelFilters for multiple grades or ranges.'),
+      columns: z.array(z.enum(studentColumnAccessorKeys)).optional().describe('Columns to display in the student table. Include all fields relevant to the user query.'),
+      gradeLevel: z.number().optional().describe('Grade level (e.g., 9, 10, 11, 12). Use only for single-grade requests; use gradeLevelFilters for multiple grades or ranges.'),
       gradeLevelFilters: z.array(z.object({
         value: z.number().describe('The grade level value to filter by'),
         operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte']).describe('Comparison operator for the grade level filter')
@@ -287,6 +290,12 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         queryParams.push(`activeOnly=false`);
       } else if (parsedFilters.activeOnly === true) {
         queryParams.push(`activeOnly=true`);
+      }
+
+      //Visible columns
+      if (parsedFilters.columns && parsedFilters.columns.length > 0) {
+        const columnsString = parsedFilters.columns.join(',');
+        queryParams.push(`columns=${encodeURIComponent(columnsString)}`);
       }
       
       if (queryParams.length > 0) {

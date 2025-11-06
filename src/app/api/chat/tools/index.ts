@@ -14,6 +14,7 @@ import { listTablesTool, getTableSchemaTool, executeSqlTool } from './databaseTo
 import { identifyStudentTool, getStudentGpaTool } from './studentTools';
 import { getCurrentDateTool } from './dateTools';
 import { getAcademicTermsTool } from './termTools';
+import { listTagsTool, getTagValuesTool } from './tagTools';
 
 export class ToolRegistry {
   private tools: Map<string, ChatTool> = new Map();
@@ -33,6 +34,8 @@ export class ToolRegistry {
     // Register database query tools
     this.registerTool(listTablesTool);
     this.registerTool(getTableSchemaTool);
+    this.registerTool(listTagsTool(this.context));
+    this.registerTool(getTagValuesTool());
     this.registerTool(executeSqlTool(this.context));
 
     // Register student-specific tools
@@ -86,6 +89,12 @@ export class ToolRegistry {
     return new Map(this.tools);
   }
 
+  getContext(): ToolContext {
+    const contextClone: ToolContext = { ...this.context };
+    delete contextClone.sqlEvaluationCache;
+    return contextClone;
+  }
+
   /**
    * Get tools by category
    */
@@ -102,10 +111,14 @@ export class ToolRegistry {
     
     // Re-register context-dependent tools
     this.tools.delete('identify_student');
+    this.tools.delete('list_tags');
+    this.tools.delete('list_tag_values');
     this.tools.delete('execute_sql');
     this.tools.delete('get_student_gpa');
     this.tools.delete('get_academic_terms');
     
+    this.registerTool(listTagsTool(this.context));
+    this.registerTool(getTagValuesTool());
     this.registerTool(identifyStudentTool(this.context));
     this.registerTool(executeSqlTool(this.context));
     this.registerTool(getStudentGpaTool(this.context));

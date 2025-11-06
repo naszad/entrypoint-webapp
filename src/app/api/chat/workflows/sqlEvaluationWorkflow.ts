@@ -3,6 +3,9 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod/v3';
 import { buildSchemaSummary, type SchemaSummaryResult } from './common';
 
+const AI_MODEL_DEFAULT = process.env.AI_MODEL_DEFAULT || 'gpt-4.1-mini';
+const DEFAULT_MAX_ITERATIONS = 2;
+
 interface EvaluationSchemaResult {
   syntaxLikelyValid: boolean;
   severity: 'none' | 'low' | 'medium' | 'high';
@@ -40,8 +43,7 @@ interface EvaluateSqlQueryOptions {
   routerContext?: string;
 }
 
-const DEFAULT_MAX_ITERATIONS = 2;
-
+// Public entry point: evaluates a SQL SELECT for safety, re-attempting fixes when needed.
 export async function evaluateSqlQuery(
   sql: string,
   options: EvaluateSqlQueryOptions = {},
@@ -109,6 +111,7 @@ export async function evaluateSqlQuery(
   };
 }
 
+// Single evaluation pass that asks the model to judge syntax/risks for the provided SQL.
 async function runEvaluation(sql: string, schemaContext: string, routerContext?: string): Promise<z.infer<typeof evaluationSchema>> {
   const promptSegments = [
     'Evaluate the following postgres SQL query for syntax correctness and safety.',
@@ -126,7 +129,7 @@ async function runEvaluation(sql: string, schemaContext: string, routerContext?:
   try {
     console.log('Running SQL evaluation')
     const { object } = await generateObject({
-      model: openai('gpt-4o'),
+      model: openai(AI_MODEL_DEFAULT),
       schema: evaluationSchema,
       system:
         'You are a precise SQL syntax evaluator. Focus on identifying issues that would prevent successful execution on PostgreSQL. Respond with a JSON object that matches the provided schema.',
@@ -143,7 +146,7 @@ async function runEvaluation(sql: string, schemaContext: string, routerContext?:
     console.warn('SQL evaluation failed to generate an object. Retrying with clarified instructions.', error);
 
     const { object } = await generateObject({
-      model: openai('gpt-4o'),
+      model: openai(AI_MODEL_DEFAULT),
       schema: evaluationSchema,
       system:
         'You are a precise SQL syntax evaluator. Return ONLY a JSON object that conforms exactly to the schema fields: syntaxLikelyValid (boolean), severity (none|low|medium|high), blockingIssues (string array), reasoning (string), recommendedFix (string, optional), normalizedQuery (string, optional), notes (string, optional). Do not wrap the object in any other structure.',
@@ -154,10 +157,11 @@ async function runEvaluation(sql: string, schemaContext: string, routerContext?:
   }
 }
 
+// Uses model-provided guidance to attempt an improved SQL variant when the first pass fails.
 async function attemptImprovement(sql: string, guidance: string, schemaContext: string): Promise<string | null> {
   try {
     const { text } = await generateText({
-      model: openai('gpt-4o'),
+      model: openai(AI_MODEL_DEFAULT),
       system: 'You fix SQL SELECT queries so they execute successfully on PostgreSQL without changing intent.',
       prompt: `Improve this SQL query so it resolves the following issues while keeping intent intact:
 

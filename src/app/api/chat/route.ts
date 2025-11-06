@@ -12,6 +12,8 @@ import { runWorkflow } from './workflows/workflowRegistry';
 
 type ModelMessage = ReturnType<typeof convertToModelMessages>[number];
 
+const AI_MODEL_DEFAULT = process.env.AI_MODEL_DEFAULT || 'gpt-4o';
+
 function extractTextFromContent(content: unknown): string {
   if (typeof content === 'string') {
     return content;
@@ -136,7 +138,7 @@ export async function POST(req: Request) {
 
   // Only allow selectedModel if dev options are enabled via environment variable
   const isDevOptionsEnabled = process.env.ENABLE_DEV_OPTIONS === 'true';
-  const modelToUse = (isDevOptionsEnabled && selectedModel) ? selectedModel : 'gpt-4o';
+  const modelToUse = (isDevOptionsEnabled && selectedModel) ? selectedModel : AI_MODEL_DEFAULT;
   console.log('modelToUse', modelToUse);
   
   let messages = convertToModelMessages(uiMessages);

@@ -1,361 +1,106 @@
 
-# Workflow Patterns
+## AI Workflow Architecture
 
-Combine the building blocks from the [overview](/docs/agents/overview) with these patterns to add structure and reliability to your agents:
+Our chat assistant runs on a layered workflow engine built specifically for EntryPoint SRM. The stack prioritizes predictable routing, workflow-specific guidance, and tightly scoped tool usage.
 
-- [Sequential Processing](#sequential-processing-chains) - Steps executed in order
-- [Parallel Processing](#parallel-processing) - Independent tasks run simultaneously
-- [Evaluation/Feedback Loops](#evaluator-optimizer) - Results checked and improved iteratively
-- [Orchestration](#orchestrator-worker) - Coordinating multiple components
-- [Routing](#routing) - Directing work based on context
-
-## Choose Your Approach
-
-Consider these key factors:
-
-- **Flexibility vs Control** - How much freedom does the LLM need vs how tightly you must constrain its actions?
-- **Error Tolerance** - What are the consequences of mistakes in your use case?
-- **Cost Considerations** - More complex systems typically mean more LLM calls and higher costs
-- **Maintenance** - Simpler architectures are easier to debug and modify
-
-**Start with the simplest approach that meets your needs**. Add complexity only when required by:
-
-1. Breaking down tasks into clear steps
-2. Adding tools for specific capabilities
-3. Implementing feedback loops for quality control
-4. Introducing multiple agents for complex workflows
-
-Let's look at examples of these patterns in action.
-
-## Patterns with Examples
-
-These patterns, adapted from [Anthropic's guide on building effective agents](https://www.anthropic.com/research/building-effective-agents), serve as building blocks you can combine to create comprehensive workflows. Each pattern addresses specific aspects of task execution. Combine them thoughtfully to build reliable solutions for complex problems.
-
-## Sequential Processing (Chains)
-
-The simplest workflow pattern executes steps in a predefined order. Each step's output becomes input for the next step, creating a clear chain of operations. Use this pattern for tasks with well-defined sequences, like content generation pipelines or data transformation processes.
-
-```ts
-import { generateText, generateObject } from 'ai';
-import { z } from 'zod';
-
-async function generateMarketingCopy(input: string) {
-  const model = 'openai/gpt-4o';
-
-  // First step: Generate marketing copy
-  const { text: copy } = await generateText({
-    model,
-    prompt: `Write persuasive marketing copy for: ${input}. Focus on benefits and emotional appeal.`,
-  });
-
-  // Perform quality check on copy
-  const { object: qualityMetrics } = await generateObject({
-    model,
-    schema: z.object({
-      hasCallToAction: z.boolean(),
-      emotionalAppeal: z.number().min(1).max(10),
-      clarity: z.number().min(1).max(10),
-    }),
-    prompt: `Evaluate this marketing copy for:
-    1. Presence of call to action (true/false)
-    2. Emotional appeal (1-10)
-    3. Clarity (1-10)
-
-    Copy to evaluate: ${copy}`,
-  });
-
-  // If quality check fails, regenerate with more specific instructions
-  if (
-    !qualityMetrics.hasCallToAction ||
-    qualityMetrics.emotionalAppeal < 7 ||
-    qualityMetrics.clarity < 7
-  ) {
-    const { text: improvedCopy } = await generateText({
-      model,
-      prompt: `Rewrite this marketing copy with:
-      ${!qualityMetrics.hasCallToAction ? '- A clear call to action' : ''}
-      ${qualityMetrics.emotionalAppeal < 7 ? '- Stronger emotional appeal' : ''}
-      ${qualityMetrics.clarity < 7 ? '- Improved clarity and directness' : ''}
-
-      Original copy: ${copy}`,
-    });
-    return { copy: improvedCopy, qualityMetrics };
-  }
-
-  return { copy, qualityMetrics };
-}
+```
+User Request
+    |
+    v
+Router (routingWorkflow.ts)
+    |
+    v
+Selected Workflow (general | navigation | data_query | student_specific)
+    |
+    v
+Workflow Runner (runStreamingWorkflow)
+    |
+    +--> System instructions + contexts
+    |
+    +--> Tool Registry (tools/index.ts)
+                |
+                v
+             Tool Calls
 ```
 
-## Routing
+Each layer has a clear responsibility:
 
-This pattern lets the model decide which path to take through a workflow based on context and intermediate results. The model acts as an intelligent router, directing the flow of execution between different branches of your workflow. Use this when handling varied inputs that require different processing approaches. In the example below, the first LLM call's results determine the second call's model size and system prompt.
+- **Router** – Classifies the latest user message, selects the best workflow, and recommends an allowed tool list.
+- **Workflow** – Prepares tailored system instructions, adds contextual blocks (plans, tag guidance, tool evaluation), and invokes the shared runner.
+- **Tool Registry** – Exposes scoped capabilities and embeds tool-specific rules into the system message.
 
-```ts
-import { generateObject, generateText } from 'ai';
-import { z } from 'zod';
+## Routing Layer
 
-async function handleCustomerQuery(query: string) {
-  const model = 'openai/gpt-4o';
+- Implemented in `routingWorkflow.ts` using the `generateObject` helper.
+- Considers recent conversation summary plus the latest user message.
+- Chooses one of four categories:
+  - `general`: conversational or policy questions.
+  - `navigation`: filter builders and UI guidance.
+  - `data_query`: database-backed analysis.
+  - `student_specific`: questions about a known student or small group.
+- Returns workflow metadata: system instruction, preferred tool list, and confidence.
+- Falls back to the general workflow if routing fails.
 
-  // First step: Classify the query type
-  const { object: classification } = await generateObject({
-    model,
-    schema: z.object({
-      reasoning: z.string(),
-      type: z.enum(['general', 'refund', 'technical']),
-      complexity: z.enum(['simple', 'complex']),
-    }),
-    prompt: `Classify this customer query:
-    ${query}
+## Workflow Layer
 
-    Determine:
-    1. Query type (general, refund, or technical)
-    2. Complexity (simple or complex)
-    3. Brief reasoning for classification`,
-  });
+Workflows live under `src/app/api/chat/workflows`. Each workflow composes:
 
-  // Route based on classification
-  // Set model and system prompt based on query type and complexity
-  const { text: response } = await generateText({
-    model:
-      classification.complexity === 'simple'
-        ? 'openai/gpt-4o-mini'
-        : 'openai/o4-mini',
-    system: {
-      general:
-        'You are an expert customer service agent handling general inquiries.',
-      refund:
-        'You are a customer service agent specializing in refund requests. Follow company policy and collect necessary information.',
-      technical:
-        'You are a technical support specialist with deep product knowledge. Focus on clear step-by-step troubleshooting.',
-    }[classification.type],
-    prompt: query,
-  });
+- **Base rules** from `systemMessageService`.
+- **Workflow-specific instruction** (e.g., emphasize navigation steps or analytical reasoning).
+- **Optional contexts** injected into the streaming run (query plans, tag analysis, SQL evaluation).
+- **Preferred tool hints** to steer the model toward the right actions.
 
-  return { response, classification };
-}
-```
+Key workflows:
 
-## Parallel Processing
+- `general_assistant`: minimal instructions; avoids unnecessary tool usage.
+- `navigation_assistant`: highlights filter tools and instructs the agent to describe resulting UI views.
+- `student_insights_assistant`: enforces student identification via the `identify_student` tool, then allows focused queries.
+- `data_query_assistant`: builds a structured plan before any SQL runs, gathers schema/tag context, evaluates SQL, and only then allows execution.
 
-Break down tasks into independent subtasks that execute simultaneously. This pattern uses parallel execution to improve efficiency while maintaining the benefits of structured workflows. For example, analyze multiple documents or process different aspects of a single input concurrently (like code review).
+## Streaming Runner
 
-```ts
-import { generateText, generateObject } from 'ai';
-import { z } from 'zod';
+- `runStreamingWorkflow` (in `common.ts`) orchestrates the call to `streamText`.
+- Applies a step limit by default (15) to cap tool loops.
+- Logs tool calls/results for observability.
+- Persists the final response, including routing metadata and context summaries, to `chat_messages`.
+- Appends formatting reminders so the final reply matches UI requirements.
 
-// Example: Parallel code review with multiple specialized reviewers
-async function parallelCodeReview(code: string) {
-  const model = 'openai/gpt-4o';
+### Context Blocks
 
-  // Run parallel reviews
-  const [securityReview, performanceReview, maintainabilityReview] =
-    await Promise.all([
-      generateObject({
-        model,
-        system:
-          'You are an expert in code security. Focus on identifying security vulnerabilities, injection risks, and authentication issues.',
-        schema: z.object({
-          vulnerabilities: z.array(z.string()),
-          riskLevel: z.enum(['low', 'medium', 'high']),
-          suggestions: z.array(z.string()),
-        }),
-        prompt: `Review this code:
-      ${code}`,
-      }),
+Workflows attach lightweight context objects that the model can reference:
 
-      generateObject({
-        model,
-        system:
-          'You are an expert in code performance. Focus on identifying performance bottlenecks, memory leaks, and optimization opportunities.',
-        schema: z.object({
-          issues: z.array(z.string()),
-          impact: z.enum(['low', 'medium', 'high']),
-          optimizations: z.array(z.string()),
-        }),
-        prompt: `Review this code:
-      ${code}`,
-      }),
+- `data_query_plan`: outlines objective, draft SQL, assumptions, follow-ups.
+- `tag_analysis` and `tag_value_map`: capture relevant tags and candidate values.
+- `sql_evaluation`: records automatic linting/approval feedback.
 
-      generateObject({
-        model,
-        system:
-          'You are an expert in code quality. Focus on code structure, readability, and adherence to best practices.',
-        schema: z.object({
-          concerns: z.array(z.string()),
-          qualityScore: z.number().min(1).max(10),
-          recommendations: z.array(z.string()),
-        }),
-        prompt: `Review this code:
-      ${code}`,
-      }),
-    ]);
+These contexts keep the prompt narrow while preserving the reasoning trail.
 
-  const reviews = [
-    { ...securityReview.object, type: 'security' },
-    { ...performanceReview.object, type: 'performance' },
-    { ...maintainabilityReview.object, type: 'maintainability' },
-  ];
+## Tool Layer
 
-  // Aggregate results using another model instance
-  const { text: summary } = await generateText({
-    model,
-    system: 'You are a technical lead summarizing multiple code reviews.',
-    prompt: `Synthesize these code review results into a concise summary with key actions:
-    ${JSON.stringify(reviews, null, 2)}`,
-  });
+- Managed by `ToolRegistry` (`tools/index.ts`). Tools are registered once and surfaced to the AI SDK in a stable shape.
+- Registry maintains user/session context (selected school, authenticated user ID, SQL evaluation cache).
+- Tool categories:
+  - **Navigation**: `filter_students`, `filter_grades`.
+  - **Schema & Query**: `list_tables`, `get_table_schema`, `execute_sql`.
+  - **Tags**: `list_tags`, `list_tag_values`.
+  - **Student Insights**: `identify_student`, `get_student_gpa`.
+  - **Utilities**: `get_current_date`, `get_academic_terms`.
+- When context changes (e.g., school switch) the registry rebuilds dependent tools to inject updated credentials.
+- Tool-specific rules are forwarded to `systemMessageService` so workflows can emphasize guardrails when those tools are favored.
 
-  return { reviews, summary };
-}
-```
+## Execution Flow
 
-## Orchestrator-Worker
+1. **Message arrives.** Router inspects the request and selects a workflow.
+2. **Workflow prepares instructions.** Adds system guidance, contexts, and preferred tools.
+3. **Streaming run begins.** `streamText` receives the assembled prompt plus available tools.
+4. **Tools execute as needed.** Tool calls log inputs/outputs and may add new context (e.g., SQL evaluation cache entries).
+5. **Response persists.** The assistant’s final text, metadata, and routing decision are stored for future turns.
 
-A primary model (orchestrator) coordinates the execution of specialized workers. Each worker optimizes for a specific subtask, while the orchestrator maintains overall context and ensures coherent results. This pattern excels at complex tasks requiring different types of expertise or processing.
+## Design Principles
 
-```ts
-import { generateObject } from 'ai';
-import { z } from 'zod';
+- **Concept-first prompts.** We describe desired behaviors (e.g., “review tag analysis before querying”) instead of dictating exact SQL or UI strings.
+- **Fail-safe defaults.** If planning or evaluation fails, the assistant asks clarifying questions rather than guessing.
+- **Visibility-aware analytics.** SQL evaluation caches keep the assistant from rerunning unsafe queries; workflows remind it to honor RLS constraints and active-student filters.
+- **Extensible tooling.** New tools only require registration plus optional rule snippets—the router and workflows automatically gain access.
 
-async function implementFeature(featureRequest: string) {
-  // Orchestrator: Plan the implementation
-  const { object: implementationPlan } = await generateObject({
-    model: 'openai/o4-mini',
-    schema: z.object({
-      files: z.array(
-        z.object({
-          purpose: z.string(),
-          filePath: z.string(),
-          changeType: z.enum(['create', 'modify', 'delete']),
-        }),
-      ),
-      estimatedComplexity: z.enum(['low', 'medium', 'high']),
-    }),
-    system:
-      'You are a senior software architect planning feature implementations.',
-    prompt: `Analyze this feature request and create an implementation plan:
-    ${featureRequest}`,
-  });
-
-  // Workers: Execute the planned changes
-  const fileChanges = await Promise.all(
-    implementationPlan.files.map(async file => {
-      // Each worker is specialized for the type of change
-      const workerSystemPrompt = {
-        create:
-          'You are an expert at implementing new files following best practices and project patterns.',
-        modify:
-          'You are an expert at modifying existing code while maintaining consistency and avoiding regressions.',
-        delete:
-          'You are an expert at safely removing code while ensuring no breaking changes.',
-      }[file.changeType];
-
-      const { object: change } = await generateObject({
-        model: 'openai/gpt-4o',
-        schema: z.object({
-          explanation: z.string(),
-          code: z.string(),
-        }),
-        system: workerSystemPrompt,
-        prompt: `Implement the changes for ${file.filePath} to support:
-        ${file.purpose}
-
-        Consider the overall feature context:
-        ${featureRequest}`,
-      });
-
-      return {
-        file,
-        implementation: change,
-      };
-    }),
-  );
-
-  return {
-    plan: implementationPlan,
-    changes: fileChanges,
-  };
-}
-```
-
-## Evaluator-Optimizer
-
-Add quality control to workflows with dedicated evaluation steps that assess intermediate results. Based on the evaluation, the workflow proceeds, retries with adjusted parameters, or takes corrective action. This creates robust workflows capable of self-improvement and error recovery.
-
-```ts
-import { generateText, generateObject } from 'ai';
-import { z } from 'zod';
-
-async function translateWithFeedback(text: string, targetLanguage: string) {
-  let currentTranslation = '';
-  let iterations = 0;
-  const MAX_ITERATIONS = 3;
-
-  // Initial translation
-  const { text: translation } = await generateText({
-    model: 'openai/gpt-4o-mini', // use small model for first attempt
-    system: 'You are an expert literary translator.',
-    prompt: `Translate this text to ${targetLanguage}, preserving tone and cultural nuances:
-    ${text}`,
-  });
-
-  currentTranslation = translation;
-
-  // Evaluation-optimization loop
-  while (iterations < MAX_ITERATIONS) {
-    // Evaluate current translation
-    const { object: evaluation } = await generateObject({
-      model: 'openai/gpt-4o', // use a larger model to evaluate
-      schema: z.object({
-        qualityScore: z.number().min(1).max(10),
-        preservesTone: z.boolean(),
-        preservesNuance: z.boolean(),
-        culturallyAccurate: z.boolean(),
-        specificIssues: z.array(z.string()),
-        improvementSuggestions: z.array(z.string()),
-      }),
-      system: 'You are an expert in evaluating literary translations.',
-      prompt: `Evaluate this translation:
-
-      Original: ${text}
-      Translation: ${currentTranslation}
-
-      Consider:
-      1. Overall quality
-      2. Preservation of tone
-      3. Preservation of nuance
-      4. Cultural accuracy`,
-    });
-
-    // Check if quality meets threshold
-    if (
-      evaluation.qualityScore >= 8 &&
-      evaluation.preservesTone &&
-      evaluation.preservesNuance &&
-      evaluation.culturallyAccurate
-    ) {
-      break;
-    }
-
-    // Generate improved translation based on feedback
-    const { text: improvedTranslation } = await generateText({
-      model: 'openai/gpt-4o', // use a larger model
-      system: 'You are an expert literary translator.',
-      prompt: `Improve this translation based on the following feedback:
-      ${evaluation.specificIssues.join('\n')}
-      ${evaluation.improvementSuggestions.join('\n')}
-
-      Original: ${text}
-      Current Translation: ${currentTranslation}`,
-    });
-
-    currentTranslation = improvedTranslation;
-    iterations++;
-  }
-
-  return {
-    finalTranslation: currentTranslation,
-    iterationsRequired: iterations,
-  };
-}
-```
+Use this document as the conceptual map; implementation details live alongside the source files noted above.

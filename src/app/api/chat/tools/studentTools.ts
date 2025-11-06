@@ -19,7 +19,8 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
     systemMessageRules: [
       'ALWAYS use identify_student first when working with a specific student',
       'If multiple matches are found, present all options to the user for clarification',
-      'Never assume a student_id - always verify with this tool first'
+      'Never assume a student_id - always verify with this tool first',
+      'If given a name like Spencer Dunn, search for partial matches on first (Spencer) and last (Dunn) name',
     ]
   },
   definition: tool({
@@ -49,14 +50,14 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
 
       // Query for students scoped to the selected school (when available)
       const studentQuery = supabase
-        .from('students')
+        .schema('views')
+        .from('student_profiles')
         .select(`
           student_id,
           full_name,
-          grade_level,
-          schools!school_student_link!inner (school_id)
+          grade_level
         `)
-        .eq('schools.school_id', context.selectedSchoolId)
+        .eq('school_id', context.selectedSchoolId)
         .or(`full_name.ilike.%${studentName}%,and(${partialMatchConditions.join(',')})`)
         .order('full_name', { ascending: true});
 

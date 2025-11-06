@@ -3,6 +3,8 @@ import { createClient } from '@/utils/supabase/supabaseServer'
 import { openai } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 
+const AI_MODEL_DEFAULT = process.env.AI_MODEL_DEFAULT || 'gpt-4.1-mini';
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
 
     // Generate title using OpenAI
     const { text: generatedTitle } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai(AI_MODEL_DEFAULT),
       prompt: `Based on the following conversation, generate a concise, descriptive title (maximum 50 characters). The title should capture the main topic or purpose of the conversation. Do not use quotes or special formatting.
 
 Conversation:

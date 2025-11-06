@@ -1,6 +1,6 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { VisibilityState, Updater } from "@tanstack/react-table";
 
 export function useColumnVisibility(defaultVisibility: VisibilityState = {}) {
@@ -10,13 +10,16 @@ export function useColumnVisibility(defaultVisibility: VisibilityState = {}) {
 
   const columnsParam = searchParams.get("columns");
 
-  const [visibility, setVisibility] = useState<VisibilityState>(() => {
-    if (!columnsParam || columnsParam.trim() === "") {
-      return defaultVisibility;
+  const computeVisibility = (columns: string | null, defaults: VisibilityState) => {
+    if (!columns || columns.trim() === "") {
+      return { ...defaults };
     }
 
-    const visibleKeys = columnsParam.split(",").map((k) => k.trim());
-    const allKeys = Object.keys(defaultVisibility);
+    const visibleKeys = columns
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+    const allKeys = Object.keys(defaults);
     const merged: VisibilityState = {};
 
     for (const key of allKeys) {
@@ -24,7 +27,27 @@ export function useColumnVisibility(defaultVisibility: VisibilityState = {}) {
     }
 
     return merged;
+  };
+
+  const [visibility, setVisibility] = useState<VisibilityState>(() => {
+    return computeVisibility(columnsParam, defaultVisibility);
   });
+
+  useEffect(() => {
+    setVisibility((prev) => {
+      const next = computeVisibility(columnsParam, defaultVisibility);
+
+      const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+      for (const key of keys) {
+        if ((prev[key] ?? false) !== (next[key] ?? false)) {
+          return next;
+        }
+      }
+
+      return prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnsParam, defaultVisibility]);
 
   const updateVisibility = (updaterOrValue: Updater<VisibilityState>) => {
     const newVisibility =

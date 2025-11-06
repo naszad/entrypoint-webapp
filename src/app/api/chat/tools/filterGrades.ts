@@ -6,6 +6,7 @@
 import { tool } from 'ai';
 import { z } from 'zod/v3';
 import { ChatTool } from './types';
+import { gradeColumnAccessorKeys } from '@/components/gradeColumnsConfig';
 
 export const filterGradesTool: ChatTool = {
   metadata: {
@@ -34,6 +35,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 - Sortable fields: full_name, course_name, grade_letter, grade_percentage, grade_code, updated_at, local_course_code (course number, course code)
 - Direction: "asc" for ascending (A-Z, low to high), "desc" for descending (Z-A, high to low)`,
     inputSchema: z.object({
+      columns: z.array(z.enum(gradeColumnAccessorKeys)).optional().describe('Columns to display in the grades table. Include all fields relevant to the user query.'),
       full_name: z.string().optional().describe('Student name or part of name to search for'),
       local_course_code: z.string().optional().describe('Course code or part of course code to search for'),
       credit_type: z.string().optional().describe('Credit type (e.g., Math, Science, English, History, Arts, etc.)'),
@@ -54,7 +56,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
     }),
     execute: async (parsedFilters) => {
-      const filters: string[] = [];
+  const filters: string[] = [];
       const baseUrl = '/grades';
 
       // Consolidate filter parameters to support generic filter logic
@@ -126,6 +128,10 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       // Add sorting to URL if specified
       if (parsedFilters.sortBy && parsedFilters.sortDirection) {
         queryParams.push(`sort=${parsedFilters.sortBy}:${parsedFilters.sortDirection}`);
+      }
+
+      if (parsedFilters.columns && parsedFilters.columns.length > 0) {
+        queryParams.push(`columns=${encodeURIComponent(parsedFilters.columns.join(','))}`);
       }
       
       if (queryParams.length > 0) {

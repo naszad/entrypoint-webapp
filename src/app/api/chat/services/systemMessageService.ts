@@ -51,19 +51,24 @@ export class SystemMessageService {
       },
       {
         category: 'general',
-        priority: 10,
+        priority: 4,
+        rule: 'After providing an answer, don\'t ask the user if they want more information.'
+      },
+      {
+        category: 'general',
+        priority: 5,
         rule: '"Current year" refers to the school year where \'is_current\' is true in the database.'
       },
 
       // Student-specific Rules
       {
         category: 'student_specific',
-        priority: 4,
+        priority: 10,
         rule: 'For any task involving a specific student, if you don\'t already know the student_id, you must first use the \'identify_student\' tool to get their unique ID.'
       },
       {
         category: 'student_specific',
-        priority: 5,
+        priority: 11,
         rule: 'If the name is ambiguous, present the potential matches to the user for clarification.'
       },
 
@@ -85,44 +90,49 @@ export class SystemMessageService {
       },
       {
         category: 'data_query',
-        priority: 7,
+        priority: 21,
         rule: 'If you find a relevant table, use the `get_table_schema` tool to get the schema and understand the table better. Then use the `execute_sql` tool to execute a query on the table.'
       },
       {
         category: 'data_query',
-        priority: 8,
-        rule: 'Questions about students\' goals, interests, and other non-academic information should be answered by looking for relevant tags in the tags table or meeting_notes.'
+        priority: 22,
+        rule: 'Questions about students\' goals, interests, and other qualitative or non-academic information should be answered by looking for relevant tags using the tag tools.'
       },
       {
         category: 'data_query',
-        priority: 9,
-        rule: 'Search the tags table for potentially relevant tag names (if you don\'t find any relevant ones by assuming a name, then select all tag names and look for possibly relevant ones), then look in the student_tags table for the values to help answer the question.'
+        priority: 23,
+        rule: 'For questions about data that may span school years, ensure your queries account for the correct academic term or year as needed. If the user does not specify, default to the current academic year for things like grades and absences.'
+      },
+      {
+        category: 'general',
+        priority: 24,
+        rule: 'Academic grades include + and - suffixes (e.g., A-, B+). You must account for these suffixes. If a user asks for a grade "below" a certain grade, include the appropriate suffixes. "Below D" means "D, D-, and F".'
       },
       {
         category: 'data_query',
-        priority: 11,
+        priority: 25,
         rule: 'Questions about students\' academic track should be contained by tags in the Academics tag_category.'
       },
       {
         category: 'data_query',
-        priority: 12,
+        priority: 26,
         rule: 'You may search the meeting_notes table for potentially relevant information about a single student. You may not search the meeting_notes table for information about multiple students at once.'
       },
 
       // Formatting Rules
       {
         category: 'formatting',
-        priority: 13,
-        rule: 'When referencing a student, use their full name and format it as a markdown link to their profile, like this: [Student\'s Full Name](/students/<studentId>).'
+        priority: 90,
+        rule: 'Whenever referencing a student in a response, you MUST use their full name and format it as a markdown link to their profile, like this: [Student\'s Full Name](/students/<studentId>).'
       },
       {
         category: 'formatting',
-        priority: 14,
+        priority: 91,
         rule: 'Provide only the final, user-facing answer. Do not include intermediate steps, tool outputs, or error messages in your response.'
       },
       {
         category: 'formatting',
-        priority: 15,
+        priority: 92,
         rule: 'Never generate external links or urls. Only generate links or urls that lead to internal pages within the application.'
       }
     ];
@@ -227,6 +237,27 @@ export class SystemMessageService {
       base: [...this.baseRules],
       tools: new Map(this.toolRules)
     };
+  }
+
+  getFormattingRules(): string[] {
+    return [...this.baseRules]
+      .filter(rule => rule.category === 'formatting')
+      .sort((a, b) => a.priority - b.priority)
+      .map(rule => rule.rule);
+  }
+
+  buildFormattingReminderBlock(): string | null {
+    const formattingRules = this.getFormattingRules();
+    if (formattingRules.length === 0) {
+      return null;
+    }
+
+    const lines = ['Formatting rules (do not ignore):'];
+    formattingRules.forEach(rule => {
+      lines.push(`- ${rule}`);
+    });
+
+    return lines.join('\n');
   }
 }
 
