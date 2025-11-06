@@ -12,6 +12,7 @@ WITH scoped_terms AS (
     t.school_id,
     t.year_id,
     t.abbreviation,
+    t.external_name,
     t.start_date,
     t.end_date,
     t.created_at,
