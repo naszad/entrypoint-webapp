@@ -17,6 +17,7 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
   const [allTags, setAllTags] = useState<{ tagId: string; name: string; categoryId: string; categoryName: string; values: string[]; isMultiValue: boolean }[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [tagAlertMessage, setTagAlertMessage] = useState<{ type: 'success' | 'destructive'; message: string } | null>(null);
     const pathname = usePathname();
     const studentId = params.id as string;
     useEffect(() => {
@@ -129,25 +130,47 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(tag),
         });
-        
-        if (response.ok) {
-          // Refresh tags
-          const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
-          if (tagsResponse.ok) {
-            const tagsData = await tagsResponse.json();
-            setStudentTags(tagsData);
+
+        if (!response.ok) {
+          let errorMessage = 'Failed to add tag. Please try again.';
+          try {
+            const errorBody = await response.json();
+            if (errorBody?.error) {
+              errorMessage = errorBody.error;
+            }
+          } catch {
+            // ignore parse failure and use default message
           }
-          
-          // Refresh all tags to get any new canonical values
-          // This includes both new tag creation AND new canonical values for existing tags
-          const allTagsResponse = await fetch('/api/tags');
-          if (allTagsResponse.ok) {
-            const allTagsData = await allTagsResponse.json();
-            setAllTags(allTagsData);
-          }
+
+          setTagAlertMessage({ type: 'destructive', message: errorMessage });
+          return;
+        }
+
+        setTagAlertMessage({
+          type: 'success',
+          message: 'Tag added successfully. It may be a few minutes before this tag is available to the AI agent.',
+        });
+
+        // Refresh tags
+        const tagsResponse = await fetch(`/api/students/${studentId}/tags`);
+        if (tagsResponse.ok) {
+          const tagsData = await tagsResponse.json();
+          setStudentTags(tagsData);
+        }
+
+        // Refresh all tags to get any new canonical values
+        // This includes both new tag creation AND new canonical values for existing tags
+        const allTagsResponse = await fetch('/api/tags');
+        if (allTagsResponse.ok) {
+          const allTagsData = await allTagsResponse.json();
+          setAllTags(allTagsData);
         }
       } catch (err) {
         console.error('Failed to add tag:', err);
+        setTagAlertMessage({
+          type: 'destructive',
+          message: 'Failed to add tag. Please try again.',
+        });
       }
     };
     
@@ -256,6 +279,16 @@ export default function StudentProfileLayout({ children }: { children: React.Rea
               console.log('Tags reordered:', reorderedTags);
             }}
         />
+
+        {tagAlertMessage && (
+          <Alert
+            className="mt-4"
+            autoClose
+            variant={tagAlertMessage.type}
+            message={tagAlertMessage.message}
+            onClose={() => setTagAlertMessage(null)}
+          />
+        )}
 
         <div className="flex justify-center mt-4 rounded-full">
           <div className="flex space-x-8 bg-white rounded-4xl shadow p-2">

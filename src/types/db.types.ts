@@ -9,27 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      canvases: {
-        Row: {
-          canvas_id: string
-          created_at: string | null
-          sql_statement: string
-          updated_at: string | null
-        }
-        Insert: {
-          canvas_id?: string
-          created_at?: string | null
-          sql_statement: string
-          updated_at?: string | null
-        }
-        Update: {
-          canvas_id?: string
-          created_at?: string | null
-          sql_statement?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       chat_message_feedback: {
         Row: {
           comment: string | null
@@ -636,6 +615,7 @@ export type Database = {
           external_source: string
           grade_level: string
           no_of_students: number
+          school_id: string | null
           section_id: string
           section_number: string
           teacher_name: string | null
@@ -654,6 +634,7 @@ export type Database = {
           external_source?: string
           grade_level: string
           no_of_students: number
+          school_id?: string | null
           section_id?: string
           section_number: string
           teacher_name?: string | null
@@ -672,6 +653,7 @@ export type Database = {
           external_source?: string
           grade_level?: string
           no_of_students?: number
+          school_id?: string | null
           section_id?: string
           section_number?: string
           teacher_name?: string | null
@@ -699,6 +681,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sections_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["school_id"]
           },
         ]
       }
@@ -2217,6 +2206,10 @@ export type Database = {
         }
         Returns: string
       }
+      execute_safe_select: {
+        Args: { p_query: string; p_selected_school_id?: string }
+        Returns: Json
+      }
       fetch_public_config: {
         Args: {
           p_config_key: string
@@ -2273,9 +2266,24 @@ export type Database = {
         Args: { p_student_id: string }
         Returns: string[]
       }
+      get_view_schema: {
+        Args: { p_view_name: string }
+        Returns: {
+          column_name: string
+          comment: string
+          data_type: string
+        }[]
+      }
       is_email_domain_whitelisted: {
         Args: { p_email_domain: string; p_school_id: string }
         Returns: boolean
+      }
+      list_views: {
+        Args: never
+        Returns: {
+          comment: string
+          name: string
+        }[]
       }
     }
     Enums: {

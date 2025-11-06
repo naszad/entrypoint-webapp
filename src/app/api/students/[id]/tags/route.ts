@@ -48,6 +48,7 @@ export async function POST(
     return NextResponse.json(result, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'An error occurred while adding student tag';
+    console.error(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

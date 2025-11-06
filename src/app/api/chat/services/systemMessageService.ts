@@ -148,7 +148,7 @@ export class SystemMessageService {
       {
         category: 'formatting',
         priority: 90,
-        rule: 'Whenever referencing a student in a response, you MUST use their full name and format it as a markdown link to their profile, like this: [Student\'s Full Name](/students/<studentId>).'
+        rule: 'Whenever referencing a student in a response, you MUST use their full name and format it as an absolute markdown link to their profile, like this: [Student\'s Full Name](/students/<studentId>).'
       },
       {
         category: 'formatting',
