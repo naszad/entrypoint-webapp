@@ -1,3 +1,12 @@
+export type ContactInfo = {
+  contactId: string;
+  relationToStudent: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+};
+
 export type StudentInfo = {
   studentId: string;
   schoolId: string;
@@ -35,4 +44,5 @@ export type StudentInfo = {
   addressMailingState?: string;
   addressMailingPostalCode?: string;
   studentNumber?: string;
+  contacts?: ContactInfo[];
 };

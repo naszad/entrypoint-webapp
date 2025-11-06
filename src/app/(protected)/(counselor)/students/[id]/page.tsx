@@ -6,12 +6,15 @@ import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveCo
 import { Alert } from "@/components/ui/alert";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { StudentCurrentGrades } from "@/types/StudentCurrentGrades";
 import { StudentFinalTermGpa } from "@/types/StudentFinalTermGpa"; 
 import { gradeColors } from "@/utils/gradeColors";
 import { useAuth } from "@/context/AuthContext";
 import { useConfig } from "@/hooks/useConfig";
 import { useRouter } from "next/navigation";
+import { useStudent } from "@/context/StudentContext";
+import { Mail, Phone, CircleUser } from "lucide-react";
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -41,6 +44,7 @@ const StudentProfilePage = () => {
   });
 
   const { user } = useAuth();
+  const { student } = useStudent();
   const configKeys = useMemo(() => ['final_grade_codes'], []);
   const { loading: loadingConfig, finalGradeCodes } = useConfig(configKeys);
   const studentId = params.id as string;
@@ -349,6 +353,112 @@ const StudentProfilePage = () => {
 
       <div className="flex flex-row gap-6">
         <div className="w-1/2 mt-6">
+          {/* Contacts panel */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Contacts
+              </h3>
+              {student?.contacts && student.contacts.length > 0 && (
+                <Button
+                  variant="action"
+                  onClick={() => {
+                    const emails = student.contacts
+                      ?.filter(contact => contact.email)
+                      .map(contact => contact.email)
+                      .join(',');
+                    if (emails) {
+                      window.location.href = `mailto:${emails}`;
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <Mail className="w-4 h-4" />
+                  Email All
+                </Button>
+              )}
+            </div>
+
+            {!student || !student.contacts ? (
+              <div className="space-y-3">
+                {[...Array(3)].map((_, index) => (
+                  <div key={index} className="flex items-center gap-3 py-2">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Skeleton className="h-5 w-5" />
+                      <Skeleton className="h-5 w-5" />
+                      <Skeleton className="h-5 w-5" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : student.contacts && student.contacts.length > 0 ? (
+              <div className="space-y-0 divide-y">
+                {student.contacts.map((contact) => (
+                  <div
+                    key={contact.contactId}
+                    className="flex items-center gap-3 py-3"
+                  >
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      <CircleUser className="w-10 h-10 text-gray-400" />
+                    </div>
+                    
+                    {/* Name and Relation */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-900">
+                        {`${contact.firstName} ${contact.lastName}`}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {contact.relationToStudent}
+                      </div>
+                    </div>
+
+                    {/* Icons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Email icon */}
+                      {contact.email && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a
+                              href={`mailto:${contact.email}`}
+                              className="text-gray-500 hover:bg-gray-200 rounded p-1 transition-colors"
+                            >
+                              <Mail className="w-5 h-5" />
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{contact.email}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {/* Phone icon */}
+                      {contact.phone && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-gray-500 hover:bg-gray-200 rounded p-1 cursor-pointer transition-colors">
+                              <Phone className="w-5 h-5" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{contact.phone}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No contacts available for this student.
+              </div>
+            )}
+          </div>
         </div>
         {/* Attendance panel */}
         <div className="w-1/2 mt-6">

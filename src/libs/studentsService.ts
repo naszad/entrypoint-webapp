@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/supabaseServer'
 import { FilterValue } from '@/components/DataTable/DataTable';
-import { StudentInfo } from '@/types/StudentInfo';
+import { ContactInfo, StudentInfo } from '@/types/StudentInfo';
 import { cookies } from 'next/headers';
 import { YearGradeInfo } from '@/types/YearGradeInfo';
 import { StudentGradeInfo } from '@/types/StudentGradeInfo';
@@ -479,7 +479,17 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       enrollment_status,
       homeroom_name,
       customer_id,
-      student_number
+      student_number,
+      contacts:student_contact_relationships (
+        contact_id,
+        relation_to_student,
+        contact:contact_id (
+          first_name,
+          last_name,
+          email_address,
+          phone_mobile
+        )
+      )
     `)
     .eq('student_id', studentId)
     .single();
@@ -514,6 +524,15 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       homeroomName: student.homeroom_name,
       customerId: student.customer_id,
       studentNumber: student.student_number,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      contacts: student.contacts?.map((contact: any): ContactInfo => ({
+        contactId: contact.contact_id,
+        relationToStudent: contact.relation_to_student,
+        firstName: contact.contact.first_name,
+        lastName: contact.contact.last_name,
+        email: contact.contact.email_address,
+        phone: contact.contact.phone_mobile,
+      })),
     }
 
     return parsedStudent;
