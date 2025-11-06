@@ -46,7 +46,7 @@ export function useColumnVisibility(defaultVisibility: VisibilityState = {}) {
 
       return prev;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [columnsParam, defaultVisibility]);
 
   const updateVisibility = (updaterOrValue: Updater<VisibilityState>) => {

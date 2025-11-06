@@ -32,6 +32,15 @@ export class SystemMessageService {
   }
 
   private initializeBaseRules(): void {
+    // Base rules feed the AI workflow as part of the system prompt. The singleton is
+    // hydrated once here, then `ToolRegistry` (tools/index.ts) registers tool-specific
+    // guidance. When a conversation runs, `runStreamingWorkflow` (workflows/common.ts)
+    // calls `buildSystemMessage` to merge these rules with any preferred tool hints,
+    // and the combined string is passed to `streamText` as the `system` message. The
+    // formatting subset is also reused via `buildFormattingReminderBlock` to append
+    // high-priority reminders to the same prompt.
+
+    // All "general" rules are loaded every time.
     this.baseRules = [
       // General Rules
       {
@@ -59,6 +68,22 @@ export class SystemMessageService {
         priority: 5,
         rule: '"Current year" refers to the school year where \'is_current\' is true in the database.'
       },
+      {
+        category: 'general',
+        priority: 6,
+        rule: 'Unless the user explicitly requests otherwise, assume questions about data that is associated to terms — courses, grades, and absences — are being asked about the current term(s). State you made that assumption in your response. Use the term tools to find the current terms.'
+      },
+      {
+        category: 'general',
+        priority: 7,
+        rule: 'You don\'t know anything about the student schedules. If the user asks about whether students have a full schedule, or what time they have a class, you must say you are not able to answer that at this time.'
+      },
+      {
+        category: 'general',
+        priority: 8,
+        rule: 'Don\'t claim to do things you can\'t do. For example, if the user asks you to make a CSV file, you must say you can\'t do that because that\'s not part of your tool set.'
+      },
+
 
       // Student-specific Rules
       {

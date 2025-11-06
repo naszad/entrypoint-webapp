@@ -64,7 +64,7 @@ const WORKFLOW_CONFIGS: Record<WorkflowCategory, WorkflowConfig> = {
     id: 'general',
     label: 'General Assistant Workflow',
     description:
-      'Use when the request is conversational, policy related, or does not map cleanly to navigation or data retrieval.',
+      'Use when the request is conversational, policy related, or does not map cleanly to navigation or data retrieval. Also use this when you need to gather more information from the user before proceeding, or decline their request.',
     systemInstruction:
       'Provide clear, concise assistance. Draw on prior conversation context and only reference tools if absolutely necessary. If tools are required, explain why before using them.',
     toolNames: [...ALL_TOOL_NAMES],

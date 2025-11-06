@@ -1,10 +1,21 @@
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod/v3';
-import type { TagMetadata, TagValueMapEntry } from '../utils/tagMetadata';
-import { fetchTagMetadata, resolveCustomerId, fetchTagValues, fetchTagValueMap } from '../utils/tagMetadata';
+import type { TagMetadata } from '../utils/tagMetadata';
+import { fetchTagMetadata, fetchTagValueMap, resolveCustomerId } from '../utils/tagMetadata';
 
 const TAG_ANALYSIS_MODEL = process.env.AI_MODEL_TAG_ANALYSIS || process.env.AI_MODEL_DEFAULT || 'gpt-4o';
+const TAG_VALUE_LIMIT = 50;
+const DEBUG_TAG_ANALYSIS = process.env.DEBUG === 'true';
+const MAX_TAG_CANDIDATES = 60;
+
+function logDebug(...args: unknown[]) {
+  if (!DEBUG_TAG_ANALYSIS) {
+    return;
+  }
+
+  console.debug('[TagAnalysis]', ...args);
+}
 
 interface BuildTagAnalysisParams {
   latestUserMessage?: string;
@@ -13,69 +24,65 @@ interface BuildTagAnalysisParams {
   userId?: string;
 }
 
-interface CandidateTag {
+interface TagFilter {
   tagId: string;
-  name: string;
-  categoryName: string;
-  isMultiValue: boolean;
-  sampleValues: string[];
-  score: number;
+  tagName: string;
+  requiresValue: boolean;
+  values: string[];
+  explanation: string;
+  valueHints: string[];
 }
 
-const tagSelectionSchema = z.object({
+export interface TagAnalysisResult {
+  requiresTags: boolean;
+  reasoning: string;
+  tags: TagFilter[];
+  followUpQuestions: string[];
+}
+
+const tagRelevanceSchema = z.object({
   requiresTags: z.boolean(),
   reasoning: z.string(),
-  relevantTags: z
+  tags: z
     .array(
       z.object({
         tagId: z.string(),
-        matchReason: z.string(),
-        requiresValueDiscovery: z.boolean().default(false),
-        selectedValues: z.array(z.string()).default([]),
+        explanation: z.string(),
+        needsValues: z.boolean().default(false),
+        valueHints: z.array(z.string()).default([]),
       }),
     )
     .default([]),
   followUpQuestions: z.array(z.string()).default([]),
 });
 
-export interface TagSelection {
-  metadata: TagMetadata;
-  matchReason: string;
-  requiresValueDiscovery: boolean;
-  selectedValues: string[];
-  candidateValues: string[];
-}
+type TagRelevance = z.infer<typeof tagRelevanceSchema>;
+type RelevantTag = TagRelevance['tags'][number];
 
-export interface TagAnalysisResult {
-  requiresTags: boolean;
-  reasoning: string;
-  selections: TagSelection[];
-  followUpQuestions: string[];
-  valueMap: TagValueMapEntry[];
-}
-
-// Normalizes free-form text so downstream comparisons treat case and whitespace consistently.
-// Used by scoring helpers before calling the tag-selection model.
 function normalize(text: string): string {
   return text.toLowerCase().trim();
 }
 
-// Tokenizes text into stemmed identifiers the heuristic scoring can compare against the user request.
-// Feeds computeTagScore so only promising tags are shown to the model.
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((token) => (token.endsWith('s') ? token.slice(0, -1) : token));
+function normalizeForSearch(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Gives each tag a relevance score based on overlap with the user prompt before we invoke the LLM.
-// Higher scores surface first when drafting the candidate list for the model.
-function computeTagScore(tag: TagMetadata, messageTokens: Set<string>): number {
+function tokenize(text: string): string[] {
+  return normalizeForSearch(text)
+    .split(' ')
+    .filter(Boolean)
+    .map((token) => (token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token));
+}
+
+function computeTagScore(tag: TagMetadata, params: { messageTokens: Set<string>; normalizedMessage: string }): number {
+  const { messageTokens, normalizedMessage } = params;
   const nameTokens = tokenize(tag.name);
   let score = 0;
+
+  const normalizedName = normalizeForSearch(tag.name);
+  if (normalizedName && normalizedMessage.includes(normalizedName)) {
+    score += 5;
+  }
 
   for (const token of nameTokens) {
     if (messageTokens.has(token)) {
@@ -83,7 +90,7 @@ function computeTagScore(tag: TagMetadata, messageTokens: Set<string>): number {
     }
   }
 
-  for (const value of tag.values.slice(0, 30)) {
+  for (const value of tag.values.slice(0, 20)) {
     const valueTokens = tokenize(value);
     for (const token of valueTokens) {
       if (messageTokens.has(token)) {
@@ -92,97 +99,165 @@ function computeTagScore(tag: TagMetadata, messageTokens: Set<string>): number {
     }
   }
 
-  const strippedName = normalize(tag.name);
   for (const token of messageTokens) {
-    if (token.length > 3 && strippedName.includes(token)) {
+    if (token.length > 3 && normalizedName.includes(token)) {
       score += 1;
+    }
+  }
+
+  if (tag.categoryName) {
+    const categoryTokens = tokenize(tag.categoryName);
+    for (const token of categoryTokens) {
+      if (messageTokens.has(token)) {
+        score += 1;
+      }
     }
   }
 
   return score;
 }
 
-// Builds enriched tag descriptors (with heuristic scores) that seed the model prompt.
-// Called by buildTagAnalysis to reduce model token usage while keeping likely matches early.
-function buildCandidateTags(tags: TagMetadata[], latestUserMessage: string): CandidateTag[] {
+function buildCandidateTags(tags: TagMetadata[], latestUserMessage: string): TagMetadata[] {
+  if (!latestUserMessage.trim()) {
+    return [];
+  }
+
+  const normalizedMessage = normalizeForSearch(latestUserMessage);
   const messageTokens = new Set(tokenize(latestUserMessage));
+  logDebug('Message tokens for scoring:', Array.from(messageTokens));
 
-  return tags
-    .map((tag) => ({
-      tagId: tag.tagId,
-      name: tag.name,
-      categoryName: tag.categoryName,
-      isMultiValue: tag.isMultiValue,
-      sampleValues: tag.values.slice(0, 10),
-      score: computeTagScore(tag, messageTokens),
-    }))
-    .sort((a, b) => b.score - a.score);
-}
+  const scored = [...tags].map((tag) => ({
+    tag,
+    score: computeTagScore(tag, { messageTokens, normalizedMessage }),
+  }));
+  scored.sort((a, b) => b.score - a.score);
 
-// Trims the candidate set to the size we want to show the model, favoring high-confidence matches.
-// Helps buildTagAnalysis keep prompts compact without losing relevant tags.
-function preparePromptTagList(candidates: CandidateTag[], limit: number): CandidateTag[] {
-  if (candidates.length <= limit) {
-    return candidates;
+  logDebug(
+    'Top tag candidates by score:',
+    scored.slice(0, 20).map((entry) => ({ tagId: entry.tag.tagId, name: entry.tag.name, score: entry.score })),
+  );
+
+  const positive = scored.filter((entry) => entry.score > 0);
+  const nonPositive = scored.filter((entry) => entry.score <= 0);
+
+  if (!positive.length) {
+    logDebug('No positively scored tags; falling back to top candidates by heuristic order.');
+    return scored.slice(0, MAX_TAG_CANDIDATES).map((entry) => entry.tag);
   }
 
-  const withScore = candidates.filter((candidate) => candidate.score > 0).slice(0, limit);
-  if (withScore.length >= Math.ceil(limit * 0.6)) {
-    return withScore;
-  }
+  logDebug(
+    'Positively scored tag candidates:',
+    positive.slice(0, 20).map((entry) => ({ tagId: entry.tag.tagId, name: entry.tag.name, score: entry.score })),
+  );
 
-  const remainingSlots = limit - withScore.length;
-  const filler = candidates
-    .filter((candidate) => candidate.score === 0)
-    .slice(0, remainingSlots);
+  const combined = [...positive, ...nonPositive].slice(0, MAX_TAG_CANDIDATES);
 
-  return [...withScore, ...filler];
+  logDebug(
+    'Final candidate list for LLM relevance check:',
+    combined.slice(0, 20).map((entry) => ({ tagId: entry.tag.tagId, name: entry.tag.name, score: entry.score })),
+  );
+
+  return combined.map((entry) => entry.tag);
 }
 
-// Invokes LLM to decide which tag_ids and values matter for this request.
-// The result drives downstream SQL planning in the data query workflow.
-async function callTagSelectionModel(params: {
+async function analyzeTagRelevance(params: {
   latestUserMessage: string;
   conversationSummary?: string;
-  candidateTags: CandidateTag[];
-}) {
+  candidateTags: TagMetadata[];
+}): Promise<TagRelevance> {
   const { latestUserMessage, conversationSummary, candidateTags } = params;
 
-  const tagCatalog = candidateTags.map((candidate) => ({
-    tagId: candidate.tagId,
-    name: candidate.name,
-    categoryName: candidate.categoryName,
-    isMultiValue: candidate.isMultiValue,
-    sampleValues: candidate.sampleValues,
+  const tagCatalog = candidateTags.map((tag) => ({
+    tagId: tag.tagId,
+    name: tag.name,
+    categoryName: tag.categoryName,
+    isMultiValue: tag.isMultiValue,
+    valuesSample: tag.values.slice(0, 10),
   }));
 
-  const promptSegments = [
-    'Determine whether the user request depends on qualitative student tags.',
-    'Select relevant tag_ids from the provided list and decide if specific values need to be considered.',
-    'Only return tag_ids that exist in the list. If none apply, set requiresTags to false.',
+  logDebug('Calling tag relevance model with catalog size:', tagCatalog.length);
+  logDebug(
+    'Sample tag catalog entries:',
+    tagCatalog.slice(0, 20).map((entry) => ({ tagId: entry.tagId, name: entry.name, categoryName: entry.categoryName })),
+  );
+
+  const promptSections = [
+    'You are assisting a school counseling analytics system. Identify which student tags are relevant to the user request.',
+    'For each relevant tag, explain why it matters. Set needsValues to true only when the tag\'s value should constrain the SQL (e.g., the question asks for specific colleges).',
+    'You may see similar tags; include all possibly relevant tags even if they named similarly.',
+    'If the user names potential values, include them in valueHints. Otherwise, leave valueHints empty.',
+    'Return only tag_ids that appear in the provided tag catalog. If no tags are relevant, set requiresTags to false.',
     `User message: ${latestUserMessage}`,
-    conversationSummary ? `Recent conversation: ${conversationSummary}` : '',
-    `Available tags (${tagCatalog.length}): ${JSON.stringify(tagCatalog)}`,
+    conversationSummary ? `Recent conversation summary: ${conversationSummary}` : '',
+    `Tag catalog (${tagCatalog.length} entries): ${JSON.stringify(tagCatalog)}`,
   ].filter(Boolean);
 
-  const { object: selection } = await generateObject({
+  const { object } = await generateObject({
     model: openai(TAG_ANALYSIS_MODEL),
-    schema: tagSelectionSchema,
+    schema: tagRelevanceSchema,
     system:
-      'You evaluate which student tags are relevant to the request. Prefer precise matches. Only select tag_ids that you are confident apply.',
-    prompt: promptSegments.join('\n\n'),
+      'You evaluate tag names for relevance. Be precise and avoid inventing tags that are not listed.',
+    prompt: promptSections.join('\n\n'),
   });
 
-  return selection;
+  logDebug('Tag relevance result:', object);
+
+  return object;
 }
 
-// Main entry invoked by dataQueryWorkflow: resolves tenant context, gathers metadata, runs the model,
-// and returns structured guidance about which tags/values the SQL plan should consider.
+function selectTagValues(tag: RelevantTag, availableValues: string[]): string[] {
+  if (!tag.needsValues) {
+    return [];
+  }
+
+  if (!availableValues.length) {
+    return [];
+  }
+
+  const sortedValues = [...availableValues].sort((a, b) => a.localeCompare(b));
+
+  if (tag.valueHints.length === 0) {
+    return sortedValues.slice(0, TAG_VALUE_LIMIT);
+  }
+
+  const catalog = sortedValues.map((value) => ({
+    value,
+    normalized: normalize(value),
+  }));
+
+  const matches = new Set<string>();
+  for (const hint of tag.valueHints) {
+    const normalizedHint = normalize(hint);
+    if (!normalizedHint) {
+      continue;
+    }
+    for (const entry of catalog) {
+      if (entry.normalized.includes(normalizedHint) || normalizedHint.includes(entry.normalized)) {
+        matches.add(entry.value);
+      }
+    }
+  }
+
+  if (matches.size === 0) {
+    return sortedValues.slice(0, TAG_VALUE_LIMIT);
+  }
+
+  return Array.from(matches)
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, TAG_VALUE_LIMIT);
+}
+
 export async function buildTagAnalysis(params: BuildTagAnalysisParams): Promise<TagAnalysisResult | null> {
   const { latestUserMessage } = params;
 
   if (!latestUserMessage?.trim()) {
     return null;
+  }
+
+  logDebug('Starting tag analysis for message:', latestUserMessage);
+
+  if (params.conversationSummary) {
+    logDebug('Conversation summary:', params.conversationSummary);
   }
 
   const customerId = await resolveCustomerId({
@@ -191,114 +266,138 @@ export async function buildTagAnalysis(params: BuildTagAnalysisParams): Promise<
   });
 
   if (!customerId) {
+    logDebug('No customerId resolved; aborting tag analysis.');
     return null;
   }
+
+  logDebug('Resolved customerId:', customerId);
 
   const tags = await fetchTagMetadata(customerId);
   if (!tags.length) {
+    logDebug('No tag metadata available for customer.');
     return null;
   }
 
-  const candidateTags = buildCandidateTags(tags, latestUserMessage);
-  const promptTags = preparePromptTagList(candidateTags, 40);
+  logDebug('Fetched tag metadata count:', tags.length);
 
-  if (promptTags.length === 0) {
+  const tagNamesSample = tags
+    .slice(0, 20)
+    .map((tag) => ({ tagId: tag.tagId, name: tag.name, category: tag.categoryName, isMultiValue: tag.isMultiValue }));
+  logDebug('Sample of fetched tags:', tagNamesSample);
+
+  const candidates = buildCandidateTags(tags, latestUserMessage);
+  if (!candidates.length) {
+    logDebug('No candidate tags after scoring.');
     return {
       requiresTags: false,
       reasoning: 'No relevant tags identified for this request.',
-      selections: [],
+      tags: [],
       followUpQuestions: [],
-      valueMap: [],
     };
   }
 
-  const selection = await callTagSelectionModel({
+  logDebug('Candidate tags considered for relevance:', candidates.length);
+
+  const missingTargetCollege = !candidates.some((tag) => normalize(tag.name) === 'target college');
+  if (missingTargetCollege) {
+    logDebug('Warning: Target College tag not found in candidates.');
+  }
+
+  const relevance = await analyzeTagRelevance({
     latestUserMessage,
     conversationSummary: params.conversationSummary,
-    candidateTags: promptTags,
+    candidateTags: candidates,
   });
 
-  if (!selection.requiresTags || selection.relevantTags.length === 0) {
+  if (!relevance.requiresTags || relevance.tags.length === 0) {
+    logDebug('Relevance model indicated no tags required.', relevance);
     return {
       requiresTags: false,
-      reasoning: selection.reasoning,
-      selections: [],
-      followUpQuestions: selection.followUpQuestions,
-      valueMap: [],
+      reasoning: relevance.reasoning,
+      tags: [],
+      followUpQuestions: relevance.followUpQuestions,
     };
   }
 
-  const selectionMap = new Map(tags.map((tag) => [tag.tagId, tag] as const));
-  const relevantTagIds = selection.relevantTags.map((tag) => tag.tagId);
-  const valueMap = await fetchTagValueMap(relevantTagIds);
-  const valueLookup = new Map(valueMap.map((entry) => [entry.tagId, entry.values] as const));
+  logDebug('Relevance model selected tags:', relevance.tags);
 
-  const resolvedSelections: TagSelection[] = [];
+  const metadataLookup = new Map(tags.map((tag) => [tag.tagId, tag] as const));
+  const needsValues = relevance.tags.filter((tag) => tag.needsValues);
+  logDebug('Tags requiring values:', needsValues.map((tag) => tag.tagId));
 
-  for (const relevant of selection.relevantTags) {
-    const metadata = selectionMap.get(relevant.tagId);
+  const valueMapEntries = needsValues.length
+    ? await fetchTagValueMap(needsValues.map((tag) => tag.tagId))
+    : [];
+  logDebug('Value map entries fetched:', valueMapEntries);
+  const valueMap = new Map(valueMapEntries.map((entry) => [entry.tagId, entry.values] as const));
+
+  const analysisTags: TagFilter[] = [];
+
+  for (const tag of relevance.tags) {
+    const metadata = metadataLookup.get(tag.tagId);
     if (!metadata) {
+      logDebug('Skipping tag with missing metadata:', tag.tagId);
       continue;
     }
 
-    const normalizedValues = metadata.values.map((value) => normalize(value));
-    const matchedValues = relevant.selectedValues.filter((value) => {
-      const normalized = normalize(value);
-      return normalizedValues.includes(normalized);
+    const availableValues = valueMap.get(tag.tagId) ?? [];
+    const values = selectTagValues(tag, availableValues);
+
+    logDebug('Resolved tag filter:', {
+      tagId: metadata.tagId,
+      name: metadata.name,
+      requiresValue: tag.needsValues,
+      availableValues: availableValues.length,
+      selectedValues: values,
     });
 
-    let candidateValues: string[] = (valueLookup.get(metadata.tagId) ?? metadata.values).slice(0, 200);
-
-    if (relevant.requiresValueDiscovery && candidateValues.length === 0) {
-      const enrichedValues = await fetchTagValues(metadata.tagId);
-      if (enrichedValues.length) {
-        candidateValues = enrichedValues.slice(0, 200);
-      }
-    }
-
-    resolvedSelections.push({
-      metadata,
-      matchReason: relevant.matchReason,
-      requiresValueDiscovery: relevant.requiresValueDiscovery,
-      selectedValues: matchedValues.length ? matchedValues : relevant.selectedValues,
-      candidateValues,
+    analysisTags.push({
+      tagId: metadata.tagId,
+      tagName: metadata.name,
+      requiresValue: tag.needsValues,
+      values,
+      explanation: tag.explanation,
+      valueHints: tag.valueHints,
     });
   }
 
-  if (!resolvedSelections.length) {
+  if (!analysisTags.length) {
+    logDebug('No analysis tags constructed after processing relevance results.');
     return {
       requiresTags: false,
-      reasoning: selection.reasoning,
-      selections: [],
-      followUpQuestions: selection.followUpQuestions,
-      valueMap: [],
+      reasoning: relevance.reasoning,
+      tags: [],
+      followUpQuestions: relevance.followUpQuestions,
     };
   }
 
+  logDebug('Final tag analysis result:', {
+    requiresTags: true,
+    reasoning: relevance.reasoning,
+    tags: analysisTags,
+    followUpQuestions: relevance.followUpQuestions,
+  });
+
   return {
     requiresTags: true,
-    reasoning: selection.reasoning,
-    selections: resolvedSelections,
-    followUpQuestions: selection.followUpQuestions,
-    valueMap,
+    reasoning: relevance.reasoning,
+    tags: analysisTags,
+    followUpQuestions: relevance.followUpQuestions,
   };
 }
 
-// Creates a concise, human-readable summary of tag guidance for logging and AI context blocks.
-// Used when injecting tag analysis into the streaming workflow.
 export function summarizeTagAnalysis(result: TagAnalysisResult): string {
-  if (!result.requiresTags || result.selections.length === 0) {
+  if (!result.requiresTags || result.tags.length === 0) {
     return result.reasoning;
   }
 
-  const lines = result.selections.map((selection) => {
-    const valuesSummary = selection.selectedValues.length
-      ? `Matched values: ${selection.selectedValues.join(', ')}`
-      : selection.requiresValueDiscovery
-        ? `Candidate values (sample): ${selection.candidateValues.slice(0, 10).join(', ')}`
-        : 'No specific values identified.';
-
-    return `- ${selection.metadata.name} (Tag ID: ${selection.metadata.tagId}, Category: ${selection.metadata.categoryName}) → ${selection.matchReason}. ${valuesSummary}`;
+  const lines = result.tags.map((tag) => {
+    const valueNote = tag.requiresValue
+      ? tag.values.length
+        ? `Use values: ${tag.values.join(', ')}`
+        : 'Values required but not yet available; call list_tag_values before filtering.'
+      : 'Presence of this tag is sufficient.';
+    return `- ${tag.tagName} (tag_id ${tag.tagId}) → ${tag.explanation}. ${valueNote}`;
   });
 
   return [result.reasoning, ...lines].join('\n');

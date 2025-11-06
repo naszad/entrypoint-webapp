@@ -18,7 +18,7 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
     description: 'Identifies a student by name to get their unique studentId.',
     systemMessageRules: [
       'ALWAYS use identify_student first when working with a specific student',
-      'If multiple matches are found, present all options to the user for clarification',
+      'If multiple matches are found, present all options to the user for clarification using their names AND student numbers',
       'Never assume a student_id - always verify with this tool first',
       'If given a name like Spencer Dunn, search for partial matches on first (Spencer) and last (Dunn) name',
     ]
@@ -54,6 +54,7 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
         .from('student_profiles')
         .select(`
           student_id,
+          student_number,
           full_name,
           grade_level
         `)
@@ -87,6 +88,7 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
       return {
         potentialMatches: students.map(s => ({
           studentId: s.student_id,
+          studentNumber: s.student_number,
           fullName: s.full_name,
           gradeLevel: s.grade_level,
         })),

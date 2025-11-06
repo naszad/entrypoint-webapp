@@ -9,7 +9,8 @@ import {
   buildSchemaSummary,
 } from './common';
 import type { WorkflowExecutionParams } from './workflowRegistry';
-import { buildTagAnalysis, summarizeTagAnalysis, type TagAnalysisResult } from './tagAnalysis';
+import { buildPrefixContext } from './prefixContextPlanner';
+import type { TagAnalysisResult } from './tagAnalysis';
 
 const AI_MODEL_QUERY_PLAN = process.env.AI_MODEL_QUERY_PLAN || process.env.AI_MODEL_DEFAULT || 'gpt-4o';
 
@@ -21,101 +22,40 @@ const dataQueryPlanSchema = z.object({
   followUpQuestions: z.array(z.string()).default([]),
 });
 
-// Orchestrates the data-query workflow: builds plan, runs tag analysis, primes contexts, and streams the model response.
+// Orchestrates the data-query workflow: gathers prefix context, builds the query plan, and streams the model response.
 export async function runDataQueryWorkflow(params: WorkflowExecutionParams) {
   const toolContext = params.toolRegistry.getContext();
-  let tagAnalysis: TagAnalysisResult | null = null;
+  // Gather precomputed insights (terms, tags, guidance) that frame the model run.
+  const prefixContext = await buildPrefixContext({
+    latestUserMessage: params.latestUserMessage,
+    conversationSummary: params.conversationSummary,
+    toolContext,
+  });
 
-  try {
-    tagAnalysis = await buildTagAnalysis({
-      latestUserMessage: params.latestUserMessage,
-      conversationSummary: params.conversationSummary,
-      selectedSchoolId: toolContext.selectedSchoolId,
-      userId: toolContext.userId,
-    });
-    if (tagAnalysis) {
-      console.log('Tag analysis result', JSON.stringify(tagAnalysis, null, 2));
-    }
-  } catch (error) {
-    console.warn('Tag analysis failed; continuing without tag guidance.', error);
-  }
+  const tagAnalysisCandidate = prefixContext.metadata['tagAnalysis'];
+  const tagAnalysis = isTagAnalysisResult(tagAnalysisCandidate) ? tagAnalysisCandidate : null;
 
+  // Ask the planner model to draft intent, SQL, and follow-ups using gathered context.
   const plan = await buildDataQueryPlan({
     latestUserMessage: params.latestUserMessage,
     conversationSummary: params.conversationSummary,
     tagAnalysis,
+    prefixGuidance: prefixContext.planGuidance,
+    prefixAssumptions: prefixContext.assumptions,
   });
 
   if (plan) {
     console.log('Generated data query plan', JSON.stringify(plan, null, 2));
   }
 
+  // Validate the draft SQL early so downstream agents can see errors before execution.
   const evaluation = plan?.sql && plan.sql.trim() ? await evaluateSqlQuery(plan.sql) : null;
 
-  const contexts: StreamingWorkflowContext[] = [];
-  const additionalInstructions: string[] = [];
-
-  if (tagAnalysis?.requiresTags && tagAnalysis.selections.length > 0) {
-    const tagSummary = summarizeTagAnalysis(tagAnalysis);
-    contexts.push({
-      name: 'tag_analysis',
-      summary: tagSummary,
-      data: {
-        requiresTags: tagAnalysis.requiresTags,
-        reasoning: tagAnalysis.reasoning,
-        selections: tagAnalysis.selections.map((selection) => ({
-          tagId: selection.metadata.tagId,
-          tagName: selection.metadata.name,
-          categoryName: selection.metadata.categoryName,
-          requiresValueDiscovery: selection.requiresValueDiscovery,
-          selectedValues: selection.selectedValues,
-          candidateValues: selection.candidateValues,
-        })),
-        followUpQuestions: tagAnalysis.followUpQuestions,
-        valueMap: tagAnalysis.valueMap,
-      },
-    });
-
-    if (tagAnalysis.valueMap.length > 0) {
-      contexts.push({
-        name: 'tag_value_map',
-        summary: `Aggregated tag values fetched for ${tagAnalysis.valueMap.length} tag(s).`,
-        data: tagAnalysis.valueMap,
-      });
-    }
-
-    const tagInstructionLines = tagAnalysis.selections.map((selection) => {
-      const core = `${selection.metadata.name} (tag_id ${selection.metadata.tagId})`;
-      if (selection.selectedValues.length > 0) {
-        const values = selection.selectedValues.slice(0, 10).join(', ');
-        return `${core} → include stg.value IN (${values})`;
-      }
-      if (selection.requiresValueDiscovery && tagAnalysis.valueMap.length > 0) {
-        const lookup = tagAnalysis.valueMap.find((entry) => entry.tagId === selection.metadata.tagId);
-        const values = lookup?.values.slice(0, 15) ?? selection.candidateValues.slice(0, 15);
-        return values.length
-          ? `${core} → review candidate values (${values.join(', ')}) before filtering`
-          : `${core} → call list_tag_values if more values are required`;
-      }
-      return `${core} → filter by stg.tag_id only`;
-    });
-
-    additionalInstructions.push(
-      [
-        'Tag guidance: consult the tag_analysis context for tag_ids, reasoning, and recommended values. Do not guess tag names.',
-        tagAnalysis.valueMap.length
-          ? 'Use the tag_value_map context for candidate values before considering list_tag_values. Only call list_tag_values if additional values are needed.'
-          : 'Call list_tag_values only if you need specific values that are not already outlined in tag_analysis.',
-        'When writing SQL, join student_tags (alias stg) on student_id and filter using stg.tag_id. Apply stg.value filters when values are supplied.',
-        tagInstructionLines.length ? `Relevant tag actions:
-- ${tagInstructionLines.join('\n- ')}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-    );
-  }
+  const contexts: StreamingWorkflowContext[] = [...prefixContext.contexts];
+  const additionalInstructions: string[] = [...prefixContext.streamingInstructions];
 
   if (plan) {
+    // Give the assistant a structured plan context plus tailored marching orders.
     contexts.push({
       name: 'data_query_plan',
       summary: plan.summary,
@@ -143,21 +83,31 @@ export async function runDataQueryWorkflow(params: WorkflowExecutionParams) {
       plan.followUpQuestions.length ? `Follow-up questions:\n- ${plan.followUpQuestions.join('\n- ')}` : '',
     ];
 
+    if (prefixContext.assumptions.length) {
+      instructionLines.push(`Prefix assumptions to restate:\n- ${prefixContext.assumptions.join('\n- ')}`);
+    }
+
     if (hasSqlDraft) {
       instructionLines.push('Validated SQL template:', '```sql', sqlSnippet, '```');
     }
 
     additionalInstructions.push(instructionLines.filter(Boolean).join('\n'));
   } else {
+    // Without a plan, force the agent into a clarifying-conversation path.
     additionalInstructions.push(
       'No SQL plan could be generated automatically. Ask clarifying questions to understand the needed data before attempting to query the database.',
     );
+
+    if (prefixContext.assumptions.length) {
+      additionalInstructions.push(`Prefix assumptions to restate before drafting SQL:\n- ${prefixContext.assumptions.join('\n- ')}`);
+    }
   }
 
   if (evaluation) {
     if (plan?.sql && plan.sql.trim()) {
       params.toolRegistry.registerSqlEvaluation(plan.sql, evaluation);
     }
+    // Surface evaluator feedback so the assistant can gate or iterate on SQL.
     contexts.push({
       name: 'sql_evaluation',
       summary: evaluation.approved
@@ -173,7 +123,16 @@ export async function runDataQueryWorkflow(params: WorkflowExecutionParams) {
     additionalInstructions.push(evaluationInstruction);
   }
 
-  return runStreamingWorkflow(createStreamingOptions(params, additionalInstructions, contexts, tagAnalysis));
+  // Hand everything to the streaming runtime with prioritized tools and guidance.
+  return runStreamingWorkflow(
+    createStreamingOptions(
+      params,
+      additionalInstructions,
+      contexts,
+      tagAnalysis,
+      prefixContext.preferredToolNames,
+    ),
+  );
 }
 
 // Packages the streaming invocation parameters, wiring preferred tools and rich contexts for the model run.
@@ -182,17 +141,18 @@ function createStreamingOptions(
   additionalSystemInstructions: string[],
   contexts: StreamingWorkflowContext[],
   tagAnalysis: TagAnalysisResult | null,
+  prefixPreferredToolNames: string[],
 ): StreamingWorkflowParams {
   const basePreferred = params.decision.toolNames;
-  const prioritizedPreferred = tagAnalysis?.requiresTags
-    ? Array.from(
-        new Set([
-          'list_tags',
-          'list_tag_values',
-          ...basePreferred,
-        ]),
-      )
-    : basePreferred;
+  const tagPriority = tagAnalysis?.requiresTags ? ['list_tags', 'list_tag_values'] : [];
+
+  const combined = Array.from(
+    new Set([
+      ...prefixPreferredToolNames,
+      ...tagPriority,
+      ...basePreferred,
+    ]),
+  );
 
   return {
     model: params.model,
@@ -200,7 +160,7 @@ function createStreamingOptions(
     toolRegistry: params.toolRegistry,
     decision: params.decision,
     chatId: params.chatId,
-    preferredToolNames: prioritizedPreferred,
+    preferredToolNames: combined,
     additionalSystemInstructions,
     contexts,
   };
@@ -210,32 +170,8 @@ interface BuildDataQueryPlanParams {
   latestUserMessage?: string;
   conversationSummary?: string;
   tagAnalysis?: TagAnalysisResult | null;
-}
-
-// Summarizes tag-analysis selections into prose so the query planner knows which tag metadata to honor.
-function formatTagGuidance(tagAnalysis: TagAnalysisResult | null | undefined): string | null {
-  if (!tagAnalysis?.requiresTags || tagAnalysis.selections.length === 0) {
-    return null;
-  }
-
-  const lines = tagAnalysis.selections.map((selection) => {
-    const values = selection.selectedValues.length
-      ? `values: ${selection.selectedValues.join(', ')}`
-      : selection.requiresValueDiscovery
-        ? `candidate values: ${selection.candidateValues.slice(0, 15).join(', ')}`
-        : 'no specific values identified';
-
-    return `- ${selection.metadata.name} (tag_id ${selection.metadata.tagId}, category ${selection.metadata.categoryName}) → ${values}`;
-  });
-
-  if (tagAnalysis.valueMap.length > 0) {
-    const valueMapSummary = tagAnalysis.valueMap
-      .map((entry) => `  - ${entry.tagId}: ${entry.values.slice(0, 20).join(', ')}`)
-      .join('\n');
-    lines.push('Aggregated tag value map:\n' + valueMapSummary);
-  }
-
-  return lines.join('\n');
+  prefixGuidance?: string[];
+  prefixAssumptions?: string[];
 }
 
 // Calls the planning model to turn the user prompt (and tag guidance) into a SQL-oriented execution plan.
@@ -251,33 +187,38 @@ async function buildDataQueryPlan(params: BuildDataQueryPlanParams) {
     const { summary: schemaSummary } = await buildSchemaSummary();
     console.log('Schema context built:', schemaSummary ? 'Available' : 'Unavailable');
 
-      const tagGuidance = formatTagGuidance(params.tagAnalysis);
+    const tagGuidance = formatTagGuidance(params.tagAnalysis);
 
     const promptSections = [
       'Create a precise data query plan for the school counseling assistant.',
       'Produce a single postgres compatible SQL SELECT statement that will retrieve the exact data the user needs.',
       'Use only tables, views, and columns that exist in the database.',
-      'Reference tags and meeting_notes when qualitative data is required.',
-      'When qualitative data is requested, like questions about where the student wants to go to college, their hobbies, or similar info outside the realm of grades, attendance, or demographics, first look at all the available tag names and decide which ones might be relevant to search.',
-      'If tags, student_tags, tag_categories, or tag_canonical_values are relevant, know that values a user might reference can be stored in tag_canonical_values.value, student_tags.value, or tags.name. When tags appear relevant, plan to query them directly before considering meeting_notes. Only fall back to meeting_notes if the tag inspection shows no matching qualitative data.',
-      params.tagAnalysis?.valueMap?.length
-        ? 'You already have an aggregated tag value map covering the relevant tags. Incorporate every pertinent value into the filter logic instead of stopping after the first matching tag.'
+      tagGuidance
+        ? 'When tag analysis is provided, explicitly state in the plan that you will reuse the supplied tag IDs (and values when given) instead of guessing tag names. Call list_tags or list_tag_values only if you need additional detail beyond what is provided.'
         : '',
       tagGuidance
-        ? 'When tag analysis is provided, your query plan must state that you review the supplied tag metadata and aggregated value map before finalizing SQL. Call list_tags or list_tag_values only if you need additional detail beyond what is provided.'
+        ? 'Never filter by tag category or tag name. Join on student_tags and restrict by stg.tag_id (and stg.value only when the value list is provided or after fetching it explicitly).'
         : '',
-      tagGuidance ? 'Use the supplied tag analysis details. Only reference the provided tag_ids and value hints.' : '',
+      params.prefixGuidance?.length
+        ? `Pre-fetched context you must apply before drafting SQL:
+- ${params.prefixGuidance.join('\n- ')}`
+        : '',
       'Prefer joins on explicit keys (student_id, school_id, etc.). Include filters that align with the request.',
-      'Use ILIKE for string matches to allow for case insensitivity and partial matches.',
+      'Only use ILIKE on strings for student and course names; for columns that are more about status (e.g. grade status or enrollment status), prefer boolean columns if available or string equals. E.g. enrollment_status should be = or <>, and use is_final_grade instead of the string grade_status column',
       'If the request is ambiguous, include assumptions to clarify intent and suggest follow-up questions to refine the query, but do not ask about school selection—the user context already defines it.',
       'Unless the user explicitly requests otherwise, assume only active students (status = \'Active\') should be included.',
-  'Do not use complex SQL features like CTEs, window functions, or subqueries. Keep queries straightforward and efficient.',
-  'Return well-formatted SQL ending without a semicolon.',
+      'Do not use complex SQL features like CTEs, window functions, or subqueries. Keep queries straightforward and efficient.',
+      'Return well-formatted SQL ending without a semicolon.',
       `Latest user message:\n${latestUserMessage}`,
       schemaSummary
         ? `Database schema information:\n${schemaSummary}`
         : 'Database schema information unavailable. Use list_tables and get_table_schema before drafting SQL.',
-      tagGuidance ? `Tag analysis:\n${tagGuidance}` : '',
+      tagGuidance ? `Tag analysis:
+${tagGuidance}` : '',
+      params.prefixAssumptions?.length
+        ? `Assumptions that must be acknowledged:
+- ${params.prefixAssumptions.join('\n- ')}`
+        : '',
       'Provide the final SQL in the sql field.',
     ];
 
@@ -305,4 +246,45 @@ async function buildDataQueryPlan(params: BuildDataQueryPlanParams) {
     console.error('Failed to build data query plan', error);
     return null;
   }
+}
+
+function isTagAnalysisResult(value: unknown): value is TagAnalysisResult {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<TagAnalysisResult>;
+  return (
+    typeof candidate.requiresTags === 'boolean' &&
+    typeof candidate.reasoning === 'string' &&
+    Array.isArray(candidate.tags) &&
+    Array.isArray(candidate.followUpQuestions)
+  );
+}
+
+function formatTagGuidance(tagAnalysis: TagAnalysisResult | null | undefined): string | null {
+  if (!tagAnalysis?.requiresTags || tagAnalysis.tags.length === 0) {
+    return null;
+  }
+
+  const lines = tagAnalysis.tags.map((tag) => {
+    const tagId = tag.tagId;
+    const tagName = tag.tagName;
+    const base = `- Use tag_id ${tagId} (${tagName})`;
+
+    if (tag.requiresValue && tag.values.length > 0) {
+      const sample = tag.values.slice(0, 15).join(', ');
+      return `${base} and restrict stg.value to (${sample}).`;
+    }
+
+    if (tag.requiresValue) {
+      return `${base}. Retrieve allowable stg.value entries with list_tag_values before filtering by value.`;
+    }
+
+    return `${base}. Presence of this tag is sufficient—do not add an stg.value filter.`;
+  });
+
+  lines.push('Do not guess at tag names or categories. Rely on tag_id keys and the provided values.');
+
+  return lines.join('\n');
 }
