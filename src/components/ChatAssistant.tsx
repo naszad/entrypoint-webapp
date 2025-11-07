@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import ReactMarkdown from "react-markdown";
-import { MessagesSquare, Send, ChevronRight, MoveDown, Plus, ChevronDown, Trash2, Edit3, X, Check, Sparkles, Settings, ThumbsUp, ThumbsDown, Minus, MessageCircle, CheckCircle, XCircle } from 'lucide-react'
+import { MessagesSquare, MessageSquareWarning, Send, ChevronRight, MoveDown, Plus, ChevronDown, Trash2, Edit3, X, Check, Sparkles, Settings, ThumbsUp, ThumbsDown, Minus, MessageCircle, CheckCircle, XCircle } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/utils/utils'
 import { Button } from './ui/button'
@@ -257,7 +257,8 @@ export function ChatAssistant() {
   // Track which messages have had their feedback loaded
   const [loadedFeedbackMessages, setLoadedFeedbackMessages] = useState<Set<string>>(new Set());
   
-  // Enhanced feedback state for comments and tags
+  // Track which assistant messages have their feedback tray expanded
+  const [feedbackBarVisibility, setFeedbackBarVisibility] = useState<Record<string, boolean>>({});
   const [feedbackComments, setFeedbackComments] = useState<Record<string, string>>({});
   const [feedbackTags, setFeedbackTags] = useState<Record<string, string[]>>({});
   const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<string, boolean>>({});
@@ -342,6 +343,46 @@ export function ChatAssistant() {
   } = useChat({
     id: 'chat-assistant'
   });
+
+  type MarkdownAnchorProps = React.DetailedHTMLProps<React.AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>;
+
+  // Ensure markdown links keep internal navigation client-side while external links open in a new tab
+  const markdownComponents = useMemo(() => ({
+    a: ({ href = '', children, ...props }: MarkdownAnchorProps) => {
+      const { className } = props;
+      const isInternalLink = href.startsWith('/') || (typeof window !== 'undefined' && href.startsWith(window.location.origin));
+
+      if (isInternalLink) {
+        let normalizedHref = href;
+
+        if (!href.startsWith('/')) {
+          try {
+            const url = new URL(href);
+            normalizedHref = `${url.pathname}${url.search}${url.hash}`;
+          } catch {
+            normalizedHref = href;
+          }
+        }
+
+        return (
+          <Link href={normalizedHref} className={className}>
+            {children}
+          </Link>
+        );
+      }
+
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={className}
+        >
+          {children}
+        </a>
+      );
+    }
+  }), []);
 
   // Function to sync message IDs with database
   const syncMessageIds = async () => {
@@ -717,6 +758,34 @@ export function ChatAssistant() {
     setShowDevOptions(false);
   };
 
+  // Show or hide the feedback controls for a given assistant message
+  const toggleFeedbackBar = (messageId: string) => {
+    setFeedbackBarVisibility(prev => {
+      const isCurrentlyVisible = !!prev[messageId];
+
+      if (isCurrentlyVisible) {
+        // Collapse any expanded detail panel when closing the bar
+        setShowFeedbackDetails(details => {
+          if (!details[messageId]) {
+            return details;
+          }
+          const updatedDetails = { ...details };
+          delete updatedDetails[messageId];
+          return updatedDetails;
+        });
+
+        const updatedVisibility = { ...prev };
+        delete updatedVisibility[messageId];
+        return updatedVisibility;
+      }
+
+      return {
+        ...prev,
+        [messageId]: true
+      };
+    });
+  };
+
   // Toggle a feedback tag for a message
   const toggleFeedbackTag = (messageId: string, tag: string) => {
     const currentTags = feedbackTags[messageId] || [];
@@ -832,6 +901,7 @@ export function ChatAssistant() {
     setLastNavigatedMessageId(null);
     setMessageFeedback({}); // Clear feedback state
     setLoadedFeedbackMessages(new Set()); // Clear loaded feedback tracking
+    setFeedbackBarVisibility({}); // Clear feedback bar visibility
     setFeedbackComments({}); // Clear feedback comments
     setFeedbackTags({}); // Clear feedback tags
     setShowFeedbackDetails({}); // Clear feedback details visibility
@@ -1321,40 +1391,83 @@ export function ChatAssistant() {
                     : toolPart.type.replace('tool-', '');
                 }
               }
+              // Consolidate plain-text parts so we can gate feedback until real content exists
+              const textContent = message.parts
+                ?.filter((part) => part.type === 'text')
+                ?.map((part) => part.text)
+                ?.join('') || '';
+
+              const hasTextContent = textContent.trim().length > 0;
+              const hasToolContent = Boolean(toolResult?.url);
+              const lastMessage = messages[messages.length - 1];
+              const isLatestAssistantMessage =
+                message.role === 'assistant' && lastMessage?.id === message.id;
+              const isStreamingReply =
+                isLatestAssistantMessage && (status === 'submitted' || status === 'streaming');
+              // Delay feedback controls until the assistant response has visible content and streaming completes
+              // Only surface feedback affordances once the assistant has finished streaming visible content
+              const shouldShowFeedback =
+                message.role === 'assistant' && (hasTextContent || hasToolContent) && !isStreamingReply;
+              const isFeedbackVisible = !!feedbackBarVisibility[message.id];
+
+              // Render individual message bubble with optional feedback controls
               return (
               <div
                 key={message.id}
                 className={cn(
-                  "p-2 rounded-lg mb-2 max-w-[85%]",
+                  "relative p-2 rounded-lg mb-2 max-w-[85%]",
                   message.role === 'user'
                     ? "ml-auto bg-blue-100"
-                    : "mr-auto bg-gray-100"
+                    : "mr-auto bg-gray-100 pr-2",
                 )}
               >
-                <div className="prose prose-sm max-w-none prose-a:text-blue-600">
-                  <ReactMarkdown>
-                    {message.parts
-                      ?.filter((part) => part.type === 'text')
-                      ?.map((part) => part.text)
-                      ?.join('') || ''}
-                  </ReactMarkdown>
-                </div>
-                {toolResult?.url && (
-                  <div className="mt-2">
-                    <Button asChild variant="action" size="sm" className="h-auto whitespace-normal">
-                      <Link href={toolResult.url}>
-                        {toolName === 'filter_grades' 
-                          ? generateGradesFilterDescription(toolResult.filtersApplied as GradesFiltersApplied)
-                          : generateFilterDescription(toolResult.filtersApplied as FiltersApplied)
-                        }
-                      </Link>
-                    </Button>
+                <div className={cn("pt-1 pl-1 relative pb-1", shouldShowFeedback && "pr-3")}
+                >
+                  <div className="prose prose-sm max-w-none prose-a:text-blue-600">
+                    <ReactMarkdown components={markdownComponents}>
+                      {textContent}
+                    </ReactMarkdown>
                   </div>
-                )}
+                  {toolResult?.url && (
+                    <div className="mt-2">
+                      <Button asChild variant="action" size="sm" className="h-auto whitespace-normal">
+                        <Link href={toolResult.url}>
+                          {toolName === 'filter_grades' 
+                            ? generateGradesFilterDescription(toolResult.filtersApplied as GradesFiltersApplied)
+                            : generateFilterDescription(toolResult.filtersApplied as FiltersApplied)
+                          }
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+
+                  {shouldShowFeedback && (
+                    <div className="absolute right-0 bottom-0">
+                      <Button
+                        onClick={() => toggleFeedbackBar(message.id)}
+                        title='Feedback'
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        aria-label="Toggle feedback options"
+                        aria-expanded={isFeedbackVisible}
+                        aria-controls={`feedback-panel-${message.id}`}
+                        className={cn(
+                          "h-6 w-6 p-0 bg-transparent shadow-none hover:bg-transparent",
+                          isFeedbackVisible
+                            ? "text-blue-600"
+                            : "text-gray-500 hover:text-blue-500"
+                        )}
+                      >
+                        {isFeedbackVisible ? <X size={16} /> : <MessageSquareWarning size={16} />}
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 
                 {/* Feedback UI for assistant messages */}
-                {message.role === 'assistant' && (
-                  <div className="mt-2 border-t pt-2">
+                {shouldShowFeedback && isFeedbackVisible && (
+                  <div id={`feedback-panel-${message.id}`} className="mt-2 border-t pt-2">
                     <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
                       <span className="text-xs text-gray-500 mr-2">Feedback:</span>
                       <Button
