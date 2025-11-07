@@ -21,6 +21,7 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
       'If multiple matches are found, present all options to the user for clarification using their names AND student numbers',
       'Never assume a student_id - always verify with this tool first',
       'If given a name like Spencer Dunn, search for partial matches on first (Spencer) and last (Dunn) name',
+      'When responding, prefer the formattedName property which already wraps the student name in the required markdown link',
     ]
   },
   definition: tool({
@@ -37,19 +38,46 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
     execute: async ({ firstName, middleName, lastName, studentName }) => {
       const supabase = await createClient();
 
-      const partialMatchConditions = [];
-      if (firstName) {
-        partialMatchConditions.push(`first_name.ilike.%${firstName}%`);
-      }
-      if (middleName) {
-        partialMatchConditions.push(`middle_name.ilike.%${middleName}%`);
-      }
-      if (lastName) {
-        partialMatchConditions.push(`last_name.ilike.%${lastName}%`);
+      const escapeForFilter = (value: string): string => {
+        return value
+          .trim()
+          .replace(/\\/g, '\\\\')
+          .replace(/%/g, '\\%')
+          .replace(/_/g, '\\_')
+          .replace(/,/g, '\\,')
+          .replace(/'/g, "''");
+      };
+
+      const partialMatchConditions: string[] = [];
+      const addPartialCondition = (column: string, value?: string) => {
+        if (!value || !value.trim()) {
+          return;
+        }
+        const pattern = escapeForFilter(value);
+        partialMatchConditions.push(`${column}.ilike.%${pattern}%`);
+      };
+
+      addPartialCondition('first_name', firstName);
+      addPartialCondition('middle_name', middleName);
+      addPartialCondition('last_name', lastName);
+
+      const trimmedStudentName = studentName?.trim() ?? '';
+      const orFilters: string[] = [];
+
+      if (trimmedStudentName) {
+        const sanitizedFullName = escapeForFilter(trimmedStudentName);
+        orFilters.push(`full_name.ilike.%${sanitizedFullName}%`);
       }
 
-      // Query for students scoped to the selected school (when available)
-      const studentQuery = supabase
+      if (partialMatchConditions.length > 0) {
+        orFilters.push(`and(${partialMatchConditions.join(',')})`);
+      }
+
+      if (orFilters.length === 0) {
+        return { noMatchFound: 'Please provide at least part of the student\'s name to search for.' };
+      }
+
+      let studentQuery = supabase
         .schema('views')
         .from('student_profiles')
         .select(`
@@ -58,10 +86,16 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
           full_name,
           grade_level
         `)
-        .eq('school_id', context.selectedSchoolId)
-        .or(`full_name.ilike.%${studentName}%,and(${partialMatchConditions.join(',')})`)
-        .order('full_name', { ascending: true});
+        .order('full_name', { ascending: true })
+        .limit(25);
 
+      if (context.selectedSchoolId) {
+        studentQuery = studentQuery.eq('school_id', context.selectedSchoolId);
+      }
+
+      if (orFilters.length > 0) {
+        studentQuery = studentQuery.or(orFilters.join(','));
+      }
 
       type studentQueryType = QueryData<typeof studentQuery>;
       const { data, error } = await studentQuery;
@@ -78,20 +112,28 @@ export const identifyStudentTool = (context: ToolContext): ChatTool => ({
 
       if (students.length === 1) {
         const student = students[0];
+        const profilePath = `/students/${student.student_id}`;
         return {
           studentId: student.student_id,
           fullName: student.full_name,
+          profilePath,
+          formattedName: `[${student.full_name}](${profilePath})`,
         };
       }
 
       // Multiple matches found
       return {
-        potentialMatches: students.map(s => ({
-          studentId: s.student_id,
-          studentNumber: s.student_number,
-          fullName: s.full_name,
-          gradeLevel: s.grade_level,
-        })),
+        potentialMatches: students.map(s => {
+          const profilePath = `/students/${s.student_id}`;
+          return {
+            studentId: s.student_id,
+            studentNumber: s.student_number,
+            fullName: s.full_name,
+            gradeLevel: s.grade_level,
+            profilePath,
+            formattedName: `[${s.full_name}](${profilePath})`,
+          };
+        }),
       };
     },
   })
