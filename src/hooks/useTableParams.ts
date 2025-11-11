@@ -1,15 +1,68 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { SortingState } from '@tanstack/react-table';
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+
+const MAX_URL_LENGTH = 1800;
+
+const parseCommaSeparatedValues = (input: string): string[] =>
+  input
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value, index, self) => value !== '' && self.indexOf(value) === index);
+
+const formatValuesForStorage = (values: string[]): string => values.join('|');
+
+const formatValuesForDisplay = (value: string): string =>
+  value
+    .split('|')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(', ');
+
+const buildFilterConditionsFromFilters = (
+  filters: FilterValue[],
+  multiSelectKeys: Set<string>
+): Record<string, string> => {
+  return filters.reduce<Record<string, string>>((acc, filter) => {
+    if (
+      filter.key.endsWith('RecentOnly') ||
+      filter.key.endsWith('From') ||
+      filter.key.endsWith('To')
+    ) {
+      acc[filter.key] = filter.value;
+      return acc;
+    }
+
+    if (filter.condition === 'in') {
+      if (multiSelectKeys.has(filter.key)) {
+        acc[filter.key] = filter.value;
+      } else {
+        acc[filter.key] = 'in';
+      }
+      return acc;
+    }
+
+    acc[filter.key] = filter.condition;
+    return acc;
+  }, {});
+};
 
 interface UseTableParamsProps {
   onParamsChange?: (params: { filters: FilterValue[], sorting: SortingState, pageNumber: number, pageSize: number }) => void;
   enablePagination?: boolean;
   mostRecentOnly?: boolean;
+  multiSelectFilterKeys?: string[];
+  onFilterError?: (message: string | null) => void;
 }
 
-export function useTableParams({ onParamsChange, enablePagination = false, mostRecentOnly = false }: UseTableParamsProps) {
+export function useTableParams({
+  onParamsChange,
+  enablePagination = false,
+  mostRecentOnly = false,
+  multiSelectFilterKeys = [],
+  onFilterError,
+}: UseTableParamsProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -20,6 +73,8 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
     }
     return `filter-${Math.random().toString(36).slice(2, 10)}`;
   }, []);
+
+  const multiSelectKeySet = useMemo(() => new Set(multiSelectFilterKeys), [multiSelectFilterKeys]);
 
 
   // Helper function to compare filter arrays
@@ -98,7 +153,10 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
         
         // Handle multi-select filters (condition = 'in')
         if (condition === 'in') {
-          return { ...acc, [key]: value };
+          if (multiSelectKeySet.has(key)) {
+            return { ...acc, [key]: value };
+          }
+          return { ...acc, [key]: condition };
         }
         
         // Handle regular filters
@@ -145,7 +203,19 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
   const filterButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const filterInputRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | null>>({});
   const filterConditionRefs = useRef<Record<string, HTMLSelectElement | null>>({});
-  const prevParamsRef = useRef<{ filters: FilterValue[], sorting: SortingState, pageNumber: number, pageSize: number }>({ filters: [], sorting: [], pageNumber: 1, pageSize: 50 });
+  const prevParamsRef = useRef<{
+    filters: FilterValue[];
+    sorting: SortingState;
+    pageNumber: number;
+    pageSize: number;
+    filterConditions: Record<string, string>;
+  }>({
+    filters: [],
+    sorting: [],
+    pageNumber: 1,
+    pageSize: 50,
+    filterConditions: {},
+  });
   const initialLoadRef = useRef(true);
 
   // Sync filterValues and sorting with URL params when they change
@@ -165,7 +235,11 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
           if (key.endsWith('RecentOnly') || key.endsWith('From') || key.endsWith('To')) {
             newFilterConditions[key] = value;
           } else if (condition === 'in') {
+          if (multiSelectKeySet.has(key)) {
             newFilterConditions[key] = value;
+          } else {
+            newFilterConditions[key] = condition;
+          }
           } else {
             newFilterConditions[key] = condition;
           }
@@ -199,7 +273,7 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       }
       return prev;
     });
-  }, [searchParams, compareFilters, compareSorting, generateFilterId]);
+  }, [searchParams, compareFilters, compareSorting, generateFilterId, multiSelectKeySet]);
 
   // Set input and condition values when filter dropdown opens
   useEffect(() => {
@@ -220,7 +294,10 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
             if (mainFilter && (mainFilter.condition === 'is_empty' || mainFilter.condition === 'is_not_empty')) {
               input.value = '';
             } else {
-              input.value = filterValue.value;
+              input.value =
+                mainFilter?.condition === 'in'
+                  ? formatValuesForDisplay(filterValue.value)
+                  : filterValue.value;
             }
           }
         });
@@ -281,6 +358,48 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
   // Update URL and notify parent when params change
   useEffect(() => {
     const currentParams = { filters: filterValues, sorting, pageNumber, pageSize };
+    const currentFilterConditions = buildFilterConditionsFromFilters(filterValues, multiSelectKeySet);
+
+    const newSearchParams = new URLSearchParams();
+    // Copy existing params except managed ones
+    searchParams.forEach((value, key) => {
+      if (
+        key !== 'filters' &&
+        key !== 'sort' &&
+        key !== 'pageNumber' &&
+        key !== 'pageSize' &&
+        key !== 'mostRecentOnly'
+      ) {
+        newSearchParams.set(key, value);
+      }
+    });
+
+    if (filterValues.length > 0) {
+      const filtersString = filterValues
+        .map((filter) => `${filter.key}:${filter.condition}:${filter.value}`)
+        .join(',');
+      newSearchParams.set('filters', filtersString);
+    }
+
+    if (sorting.length > 0) {
+      const { id, desc } = sorting[0];
+      newSearchParams.set('sort', `${id}:${desc ? 'desc' : 'asc'}`);
+    }
+
+    if (enablePagination) {
+      newSearchParams.set('pageNumber', String(pageNumber));
+      newSearchParams.set('pageSize', String(pageSize));
+    }
+
+    if (mostRecentOnly) {
+      newSearchParams.set('mostRecentOnly', 'true');
+    }
+
+    const newQuery = newSearchParams.toString();
+    const newUrl = newQuery ? `${pathname}?${newQuery}` : pathname;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const fullUrlLength = origin ? origin.length + newUrl.length : newUrl.length;
+
     // Use deep compare for filters/sorting, but always check pageNumber/pageSize
     const paramsChanged =
       initialLoadRef.current ||
@@ -291,50 +410,51 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
       prevParamsRef.current.pageNumber !== currentParams.pageNumber ||
       prevParamsRef.current.pageSize !== currentParams.pageSize;
 
+    if (fullUrlLength > MAX_URL_LENGTH) {
+      onFilterError?.('Filters are too large. Please reduce the filter size and try again.');
+
+      // Revert to previous stable state
+      setFilterValues(prevParamsRef.current.filters);
+      setSorting(prevParamsRef.current.sorting);
+      setPageNumber(prevParamsRef.current.pageNumber);
+      setPageSize(prevParamsRef.current.pageSize);
+      setFilterConditions(prevParamsRef.current.filterConditions);
+      setOpenFilterColumn(null);
+      return;
+    }
+
+    onFilterError?.(null);
+
     if (paramsChanged) {
-      prevParamsRef.current = currentParams;
+      prevParamsRef.current = {
+        ...currentParams,
+        filterConditions: currentFilterConditions,
+      };
       onParamsChange?.(currentParams);
       if (initialLoadRef.current) {
         initialLoadRef.current = false;
       }
-      
-             const newSearchParams = new URLSearchParams();
-       // Copy existing params except filters, sort, pageNumber, pageSize, mostRecentOnly
-       searchParams.forEach((value, key) => {
-         if (key !== 'filters' && key !== 'sort' && key !== 'pageNumber' && key !== 'pageSize' && key !== 'mostRecentOnly') {
-           newSearchParams.set(key, value);
-         }
-       });
-      // Add filters
-      if (filterValues.length > 0) {
-        const filtersString = filterValues
-          .map(filter => `${filter.key}:${filter.condition}:${filter.value}`)
-          .join(',');
-        newSearchParams.set('filters', filtersString);
-      }
-      // Add sort
-      if (sorting.length > 0) {
-        const { id, desc } = sorting[0];
-        newSearchParams.set('sort', `${id}:${desc ? 'desc' : 'asc'}`);
-      }
-             // Add pagination only if enabled
-       if (enablePagination) {
-         newSearchParams.set('pageNumber', String(pageNumber));
-         newSearchParams.set('pageSize', String(pageSize));
-       }
-       // Add mostRecentOnly if true
-       if (mostRecentOnly) {
-         newSearchParams.set('mostRecentOnly', 'true');
-       }
-      const newQuery = newSearchParams.toString();
+
       const currentQuery = searchParams.toString();
-      // Only update URL if it's actually different
       if (currentQuery !== newQuery) {
-        const newUrl = newQuery ? `${pathname}?${newQuery}` : pathname;
         router.replace(newUrl);
       }
     }
-  }, [filterValues, sorting, pageNumber, pageSize, onParamsChange, pathname, router, searchParams, enablePagination, mostRecentOnly, compareParams]);
+  }, [
+    filterValues,
+    sorting,
+    pageNumber,
+    pageSize,
+    onParamsChange,
+    pathname,
+    router,
+    searchParams,
+    enablePagination,
+    mostRecentOnly,
+    compareParams,
+    multiSelectKeySet,
+    onFilterError,
+  ]);
 
   // Filter handlers
   const handleFilterClick = (columnId: string, event: React.MouseEvent) => {
@@ -459,23 +579,51 @@ export function useTableParams({ onParamsChange, enablePagination = false, mostR
           }
           return [...prev, newFilter];
         });
-      } else if (input && input.value) {
-        setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
-        setFilterValues(prev => {
-          const existingFilterIndex = prev.findIndex(f => f.key === columnId);
-          const newFilter = {
-            id: prev[existingFilterIndex]?.id ?? generateFilterId(),
-            key: columnId,
-            value: input.value,
-            condition,
-          };
-          if (existingFilterIndex >= 0) {
-            const newFilters = [...prev];
-            newFilters[existingFilterIndex] = newFilter;
-            return newFilters;
+      } else if (input && input.value.trim() !== '') {
+        const rawValue = input.value;
+        if (condition === 'in') {
+          const parsedValues = parseCommaSeparatedValues(rawValue);
+          if (parsedValues.length === 0) {
+            setOpenFilterColumn(null);
+            return;
           }
-          return [...prev, newFilter];
-        });
+          const storedValue = formatValuesForStorage(parsedValues);
+          input.value = parsedValues.join(', ');
+          setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
+          setFilterValues(prev => {
+            const existingFilterIndex = prev.findIndex(f => f.key === columnId);
+            const newFilter = {
+              id: prev[existingFilterIndex]?.id ?? generateFilterId(),
+              key: columnId,
+              value: storedValue,
+              condition,
+            };
+            if (existingFilterIndex >= 0) {
+              const newFilters = [...prev];
+              newFilters[existingFilterIndex] = newFilter;
+              return newFilters;
+            }
+            return [...prev, newFilter];
+          });
+        } else {
+          const trimmedValue = rawValue.trim();
+          setFilterConditions(prev => ({ ...prev, [columnId]: condition }));
+          setFilterValues(prev => {
+            const existingFilterIndex = prev.findIndex(f => f.key === columnId);
+            const newFilter = {
+              id: prev[existingFilterIndex]?.id ?? generateFilterId(),
+              key: columnId,
+              value: trimmedValue,
+              condition,
+            };
+            if (existingFilterIndex >= 0) {
+              const newFilters = [...prev];
+              newFilters[existingFilterIndex] = newFilter;
+              return newFilters;
+            }
+            return [...prev, newFilter];
+          });
+        }
       }
     }
     setOpenFilterColumn(null);

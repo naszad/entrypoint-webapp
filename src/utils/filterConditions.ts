@@ -6,6 +6,7 @@ export interface FilterCondition {
 export const TEXT_FILTER_CONDITIONS: FilterCondition[] = [
   { id: 'contains', displayValue: 'Contains' },
   { id: 'eq', displayValue: 'Equals' },
+  { id: 'in', displayValue: 'In list' },
   { id: 'starts', displayValue: 'Starts with' },
   { id: 'ends', displayValue: 'Ends with' },
   { id: 'not', displayValue: 'Not Equal' },
@@ -16,6 +17,7 @@ export const TEXT_FILTER_CONDITIONS: FilterCondition[] = [
 
 export const NUMBER_FILTER_CONDITIONS: FilterCondition[] = [
   { id: 'eq', displayValue: 'Equals' },
+  { id: 'in', displayValue: 'In list' },
   { id: 'gt', displayValue: 'Greater than' },
   { id: 'lt', displayValue: 'Less than' },
   { id: 'gte', displayValue: 'Greater than or equal to' },
@@ -42,7 +44,7 @@ export const getDisplayValueById = (id: string): string => {
   const allConditions = [
     ...TEXT_FILTER_CONDITIONS,
     ...NUMBER_FILTER_CONDITIONS,
-    {id: 'in', displayValue: 'In'}
+    {id: 'in', displayValue: 'In list'}
   ];
   const condition = allConditions.find(c => c.id === id);
   return condition?.displayValue || 'Equals';

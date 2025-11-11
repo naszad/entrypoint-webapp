@@ -18,7 +18,8 @@ export const filterGradesTool: ChatTool = {
       'This tool is for navigation, not for answering specific questions about individual grades',
       'When course or subject name is mentioned, use course_name parameter',
       'For sorting, use sortBy and sortDirection with fields: full_name, course_name, grade_letter, grade_percentage, grade_code, updated_at, local_course_code',
-      'When expressing grade percentage ranges, provide multiple filters (use gte and lte operators) via gradePercentFilters'
+      'When expressing grade percentage ranges, provide multiple filters (use gte and lte operators) via gradePercentFilters',
+      `Any time the user supplies multiple explicit values for a supported column (e.g. ${gradeColumnAccessorKeys.join(", ")}, etc.) (comma-separated, “and”, etc.), always aggregate them into one IN-list filter: add the field to multiValueFilters and never create separate eq filters for each value.Deduplicate any repeated values.`
     ]
   },
   definition: tool({
@@ -26,8 +27,10 @@ export const filterGradesTool: ChatTool = {
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of grades**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me grades below 90%", "Show me all A grades", "Find grades for Math courses", "Display grades for John Smith", "Show me Algebra grades sorted by percentage descending", "Find Math grades and sort by student name ascending"
-- **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade did Jane Doe get in Math?" or "How many students got A's?". For those, you must query the database directly.
+**Correct Usage Examples**:
+- "Show me grades below 90%", "Show me all A grades", "Find grades for Math courses", "Display grades for John Smith", "Show me Algebra grades sorted by percentage descending", "Find Math grades and sort by student name ascending", "Show me grades in grades in English, Math, and Science" (use multiValueFilters), "Show me all cources with grades in A, B, and C" (use multiValueFilters), "Show me all courses with grades in A, B, and C" (use multiValueFilters)
+**Incorrect Usage**:
+- Do not use this for questions asking for a specific fact, like "What grade did Jane Doe get in Math?" or "How many students got A's?". For those, you must query the database directly.
 - When course or subject name is mentioned, use course_name for example show me grades in english or show me grades in math courses
 
 **Sorting Instructions:**
@@ -52,6 +55,10 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       grade_code: z.string().optional().describe('Grade code (e.g., A, B, C, D, F, P, I)'),
       updatedAfter: z.string().optional().describe('Show grades updated after this date (YYYY-MM-DD format)'),
       updatedBefore: z.string().optional().describe('Show grades updated before this date (YYYY-MM-DD format)'),
+      multiValueFilters: z.array(z.object({
+        field: z.enum(gradeColumnAccessorKeys as [string, ...string[]]).describe('Column to apply the IN-list filter to'),
+        values: z.array(z.union([z.string(), z.number()])).min(2).max(20).describe('List of discrete values to include. Provide at least two values.')
+      })).max(10).optional().describe(`Use when the user specifies multiple discrete values for a column (e.g. ${gradeColumnAccessorKeys.join(", ")}). The tool will apply a single “In list” filter for the specified field.`),
       sortBy: z.enum(['full_name', 'course_name', 'grade_letter', 'grade_percent', 'grade_code', 'updatedAt', 'local_course_code']).optional().describe('Field to sort by'),
       sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
     }),
@@ -113,6 +120,38 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
               filters.push(`grade_percent:lte:${percentage}`);
               break;
           }
+        }
+      }
+
+      if (parsedFilters.multiValueFilters && Array.isArray(parsedFilters.multiValueFilters)) {
+        for (const multiFilter of parsedFilters.multiValueFilters) {
+          const { field, values } = multiFilter;
+          if (!field || !Array.isArray(values) || values.length === 0) {
+            continue;
+          }
+          if (!gradeColumnAccessorKeys.includes(field)) {
+            continue;
+          }
+          const normalizedValues: string[] = [];
+          for (const rawValue of values) {
+            if (rawValue === null || rawValue === undefined) {
+              continue;
+            }
+            const stringValue = String(rawValue).trim();
+            if (stringValue === '') {
+              continue;
+            }
+            normalizedValues.push(stringValue);
+          }
+          if (normalizedValues.length === 0) {
+            continue;
+          }
+          const uniqueValues = Array.from(new Set(normalizedValues));
+          if (uniqueValues.length === 0) {
+            continue;
+          }
+          const inList = uniqueValues.join('|');
+          filters.push(`${field}:in:${inList}`);
         }
       }
 

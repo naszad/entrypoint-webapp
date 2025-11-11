@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/utils/utils";
-import { useState, type RefObject } from "react";
+import { useState, useMemo, useCallback, type RefObject } from "react";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { DataTableToolbar, ActionItem } from "./DataTableToolbar";
 import { TableHeader as NewTableHeader } from "./TableHeader";
@@ -55,6 +55,7 @@ export interface DataTableProps<TData, TValue> {
   multiSelectRemoteSource?: (columnId: string) => Promise<{ value: string; label: string }[]>;
   mostRecentOnly?: boolean;
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
+  onFilterError?: (message: string | null) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -75,7 +76,42 @@ export function DataTable<TData, TValue>({
   multiSelectRemoteSource,
   mostRecentOnly = false,
   scrollContainerRef,
+  onFilterError,
 }: DataTableProps<TData, TValue>) {
+  const multiSelectFilterKeys = useMemo(() => {
+    return columns.reduce<string[]>((acc, column) => {
+      const meta = column.meta as ColumnMeta | undefined;
+      if (meta?.filterType !== 'multi-select') {
+        return acc;
+      }
+
+      if ('accessorKey' in column && typeof column.accessorKey === 'string') {
+        acc.push(column.accessorKey);
+        return acc;
+      }
+
+      if ('id' in column && typeof column.id === 'string') {
+        acc.push(column.id);
+        return acc;
+      }
+
+      return acc;
+    }, []);
+  }, [columns]);
+
+  const [internalFilterError, setInternalFilterError] = useState<string | null>(null);
+
+  const handleFilterError = useCallback(
+    (message: string | null) => {
+      if (onFilterError) {
+        onFilterError(message);
+      } else {
+        setInternalFilterError(message);
+      }
+    },
+    [onFilterError]
+  );
+
   const {
     openFilterColumn,
     filterValues,
@@ -104,6 +140,8 @@ export function DataTable<TData, TValue>({
     onParamsChange,
     enablePagination,
     mostRecentOnly,
+    multiSelectFilterKeys,
+    onFilterError: handleFilterError,
   });
 
   const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
@@ -148,6 +186,14 @@ export function DataTable<TData, TValue>({
           setShowColumnSettings={setShowColumnSettings}
         />
       </div>
+
+      {internalFilterError && !onFilterError && (
+        <div className="px-4">
+          <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {internalFilterError}
+          </div>
+        </div>
+      )}
 
       {/* Table content - Flexible height with internal scroll */}
       <div className="flex-1 overflow-hidden relative flex flex-col">

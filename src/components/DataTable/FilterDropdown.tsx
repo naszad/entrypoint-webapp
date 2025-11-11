@@ -46,6 +46,21 @@ export function FilterDropdown({
     value: string;
   };
 
+  const parseCommaSeparatedValues = (input: string) =>
+    input
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value, index, self) => value !== '' && self.indexOf(value) === index);
+
+  const formatValuesForDisplay = (value: string) =>
+    value
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(', ');
+
+  const formatValuesForStorage = (values: string[]) => values.join('|');
+
   const getFilterConditionOptions = (filterType: string) => {
     return getFilterConditionsByType(filterType);
   };
@@ -62,6 +77,28 @@ export function FilterDropdown({
   };
 
   const numberFilterOptions = useMemo(() => getFilterConditionOptions('number'), []);
+  const currentFilterOptions = useMemo(
+    () => getFilterConditionOptions(meta.filterType || ''),
+    [meta.filterType]
+  );
+
+  const getSelectedConditionForColumn = () => {
+    const options = new Set(currentFilterOptions.map((option) => option.id));
+    const storedCondition = filterConditions[columnId];
+    if (storedCondition && options.has(storedCondition)) {
+      return storedCondition;
+    }
+    const activeCondition = activeFilters.find(
+      (filter) => filter.key === columnId
+    )?.condition;
+    if (activeCondition && options.has(activeCondition)) {
+      return activeCondition;
+    }
+    return options.has('eq') ? 'eq' : currentFilterOptions[0]?.id ?? 'eq';
+  };
+
+  const selectedCondition = getSelectedConditionForColumn();
+  const isInCondition = selectedCondition === 'in';
 
   const existingNumberFilters = useMemo(() => {
     if (meta.filterType !== 'number') {
@@ -77,7 +114,7 @@ export function FilterDropdown({
     return existingNumberFilters.map((filter) => ({
       id: filter.id ?? createDraftId(),
       condition: filter.condition,
-      value: filter.value,
+      value: filter.condition === 'in' ? formatValuesForDisplay(filter.value) : filter.value,
     }));
   });
 
@@ -95,7 +132,7 @@ export function FilterDropdown({
       existingNumberFilters.map((filter) => ({
         id: filter.id ?? createDraftId(),
         condition: filter.condition,
-        value: filter.value,
+        value: filter.condition === 'in' ? formatValuesForDisplay(filter.value) : filter.value,
       }))
     );
   }, [existingNumberFilters, meta.filterType]);
@@ -131,6 +168,20 @@ export function FilterDropdown({
   const handleApplyNumberFilters = () => {
     const normalizedFilters = numberDrafts.reduce<FilterValue[]>((acc, draft) => {
       if (requiresValue(draft.condition) && draft.value.trim() === '') {
+        return acc;
+      }
+
+      if (draft.condition === 'in') {
+        const parsedValues = parseCommaSeparatedValues(draft.value);
+        if (parsedValues.length === 0) {
+          return acc;
+        }
+        acc.push({
+          id: draft.id,
+          key: columnId,
+          condition: draft.condition,
+          value: formatValuesForStorage(parsedValues),
+        });
         return acc;
       }
 
@@ -180,10 +231,10 @@ export function FilterDropdown({
             </select>
             {requiresValue(draft.condition) && (
               <Input
-                type="number"
+                type={draft.condition === 'in' ? 'text' : 'number'}
                 step="any"
                 className="w-24 flex-none px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Value"
+                placeholder={draft.condition === 'in' ? '1, 2, 3' : 'Value'}
                 value={draft.value}
                 onChange={(event) =>
                   handleUpdateNumberDraft(draft.id, { value: event.target.value })
@@ -275,14 +326,14 @@ export function FilterDropdown({
             <div className="text-xs font-medium text-gray-500 px-1">Condition</div>
             <select
               className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={filterConditions[columnId] || 'eq'}
+              value={selectedCondition}
               onChange={(e) => {
                 const value = e.target.value;
                 setFilterConditions({ ...filterConditions, [columnId]: value });
               }}
               ref={filterConditionRef}
             >
-              {getFilterConditionOptions(meta.filterType || '').map((option) => (
+              {currentFilterOptions.map((option) => (
                 <option key={option.id} value={option.id}>{option.displayValue}</option>
               ))}
             </select>
@@ -408,7 +459,11 @@ export function FilterDropdown({
             <input
               type="text"
               className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder={`Filter ${headerText}`}
+              placeholder={
+                isInCondition
+                  ? 'Enter comma-separated values'
+                  : `Filter ${headerText}`
+              }
               ref={filterInputRef}
               autoFocus
             />

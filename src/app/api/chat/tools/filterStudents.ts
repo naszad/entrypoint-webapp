@@ -22,7 +22,8 @@ export const filterStudentsTool: ChatTool = {
       'Make sure to use the columns parameter to make visible those fields that are relevant to the user query',
       'When expressing numeric ranges (e.g., GPA between 3 and 3.5) provide multiple filters for the same field using the gte/lte operators',
       'Combine all requested constraints into a single tool call—never produce multiple navigation results for one request',
-      'When users reference multiple grade levels, use gradeLevelFilters (with gte/lte or multiple eq operators) so everything stays within one tool response'
+      'Reserve gradeLevelFilters for ranges (gte/lte) or inequality comparisons; do not emit multiple eq filters when multiValueFilters applies',
+      `Any time the user supplies multiple explicit values for a supported column (e.g. ${studentColumnAccessorKeys.join(", ")}, etc.) (comma-separated, “and”, etc.), always aggregate them into one IN-list filter: add the field to multiValueFilters and never create separate eq filters for each value.Deduplicate any repeated values.`
     ]
   },
   definition: tool({
@@ -30,7 +31,7 @@ export const filterStudentsTool: ChatTool = {
 
 Use this tool **only** when the user's request is to **view, show, find, or display a list/table of students**. This tool is for navigation, not for answering questions. Do not include the URL in your response, as a button will be displayed below the message in the UI.
 
-- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending", "Show students with lunch ID starting with 123", "Find students by state student number", "Show me students filtered by race", "Show me inactive students", "Show all students including inactive", "Show me students in grades 9 through 11 with GPA between 3.5 and 3.8" (use gradeLevelFilters gte 9 & lte 11 plus gpaFilters)
+- **Correct Usage Examples**: "Show me 11th graders", "Find students with 'Smith' in their name.", "Show me students updated in the last 30 days", "Find students created in the last 7 days", "Show students with GPA below 2.0", "Find students with GPA above 3.5", "Show students whose first name is NOT Taylor", "Find students who have no email address", "Show students whose name does not contain 'John'", "Find students who are NOT part of homeroom 103", "Show me grade 12 students sorted by email descending", "Find all students and sort by grade level ascending", "Show students with lunch ID starting with 123", "Find students by state student number", "Show me students filtered by race", "Show me inactive students", "Show all students including inactive", "Show me students in grades 10, 11, and 12" (use multiValueFilters), "Show me students with student numbers 1234, 5678, and 9012" (use multiValueFilters), "Show me students in grades 9 through 11 with GPA between 3.5 and 3.8" (use gradeLevelFilters gte 9 & lte 11 plus gpaFilters)
 - **Incorrect Usage**: Do not use this for questions asking for a specific fact, like "What grade is Jane Doe in?" or "How many students are graduating this year?". For those, you must query the database directly.
 
 **Active Only Toggle:**
@@ -45,10 +46,10 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
 - When user asks for students "created/added/registered in the last X days", use createdAtRecentOnly with the number of days
 - Examples: "last 30 days" = 30, "last week" = 7, "last month" = 30, "yesterday" = 1, "last 2 weeks" = 14
 
-**Numeric Range Instructions:**
+**Numeric Range & Multi-Value Instructions:**
 - Use multiple numeric filters to represent ranges. Example: GPA between 2.5 and 3.5 should produce two entries (gte 2.5 and lte 3.5) using gpaFilters.
 - Apply the same pattern for ageFilters when users describe age ranges.
-- When users mention multiple grade levels or ranges ("grades 9 and 10", "grades 9 through 11"), prefer gradeLevelFilters with gte/lte bounds (for ranges) or multiple eq filters when specific grade lists are given. Keep all constraints in a **single** tool invocation—do not emit multiple navigation links.
+- When users provide multiple discrete values for any other supported column (${studentColumnAccessorKeys.join(", ")}, etc.), add a multiValueFilters entry with the column name and value list so the UI uses an “In list” filter. Deduplicate repeated values before sending the tool call. Keep all constraints in a **single** tool invocation—do not emit multiple navigation links.
 
 **Sorting Instructions:**
 - When user asks to sort by a field, use sortBy and sortDirection parameters
@@ -60,7 +61,7 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       gradeLevelFilters: z.array(z.object({
         value: z.number().describe('The grade level value to filter by'),
         operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte']).describe('Comparison operator for the grade level filter')
-      })).max(6).optional().describe('Use multiple grade level filters to represent ranges (e.g., between 9 and 11 uses gte 9 and lte 11). Prefer gte/lte for ranges; multiple eq operators are acceptable for discrete grades.'),
+      })).max(6).optional().describe('Use multiple grade level filters to represent ranges (e.g., between 9 and 11 uses gte 9 and lte 11). Prefer gte/lte for ranges; do not use multiple eq filters for discrete lists—use multiValueFilters instead.'),
       fullName: z.string().optional().describe('Name or part of name to search for'),
       enrollmentStatus: z.enum(['Active', 'Inactive']).optional().describe('Student enrollment status'),
       gender: z.enum(['male', 'female']).optional().describe('Student gender'),
@@ -107,6 +108,10 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       raceEmpty: z.boolean().optional().describe('Filter for students with empty/null race'),
       raceNotEmpty: z.boolean().optional().describe('Filter for students with non-empty race'),
       activeOnly: z.boolean().optional().describe('Set to false to show inactive students or all students (including inactive). Set to true when user explicitly asks for "active students only". Leave undefined for default behavior. Use false when user asks about "inactive students" or "all students". Use true when user asks for "active students" or "only active students".'),
+      multiValueFilters: z.array(z.object({
+        field: z.enum(studentColumnAccessorKeys as [string, ...string[]]).describe('Column to apply the IN-list filter to'),
+        values: z.array(z.union([z.string(), z.number()])).min(2).max(20).describe('List of discrete values to include. Provide at least two values.')
+      })).max(10).optional().describe('Use when the user specifies multiple discrete values for a column (e.g., several student numbers or races). The tool will apply a single “In list” filter for the specified field.'),
       // Sorting parameters
       sortBy: z.enum(['fullName', 'email', 'gradeLevel', 'gender', 'enrollmentStatus', 'homeroomName', 'gpa', 'studentNumber', 'lunchId', 'stateStudentNumber', 'race']).optional().describe('Field to sort by'),
       sortDirection: z.enum(['asc', 'desc']).optional().describe('Sort direction: "asc" for ascending, "desc" for descending')
@@ -115,8 +120,8 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
       const filters: string[] = [];
       const baseUrl = '/students';
 
-      for (const [key, value] of Object.entries(parsedFilters)) {
-        if (!value || key === 'ageFilter' || key === 'ageFilters' || key === 'gpaFilter' || key === 'gpaFilters' || key === 'gradeLevelFilters' || key === 'sortBy' || key === 'sortDirection' || key === 'activeOnly') continue;
+      for (const [key, value] of Object.entries(parsedFilters as Record<string, unknown>)) {
+      if (!value || key === 'ageFilter' || key === 'ageFilters' || key === 'gpaFilter' || key === 'gpaFilters' || key === 'gradeLevelFilters' || key === 'sortBy' || key === 'sortDirection' || key === 'activeOnly' || key === 'multiValueFilters') continue;
         
         switch (key) {
           case 'gradeLevel':
@@ -227,6 +232,45 @@ Use this tool **only** when the user's request is to **view, show, find, or disp
         for (const gradeFilterEntry of parsedFilters.gradeLevelFilters) {
           const { value, operator } = gradeFilterEntry;
           filters.push(`gradeLevel:${operator}:${value}`);
+        }
+      }
+
+      if (parsedFilters.multiValueFilters && Array.isArray(parsedFilters.multiValueFilters)) {
+        for (const multiFilter of parsedFilters.multiValueFilters) {
+          const { field, values } = multiFilter;
+          if (!field || !Array.isArray(values) || values.length === 0) {
+            continue;
+          }
+
+          if (!studentColumnAccessorKeys.includes(field)) {
+            continue;
+          }
+
+          const normalizedValues: string[] = [];
+          for (const rawValue of values) {
+            if (rawValue === null || rawValue === undefined) {
+              continue;
+            }
+
+            const stringValue = String(rawValue).trim();
+            if (stringValue === '') {
+              continue;
+            }
+
+            normalizedValues.push(stringValue);
+          }
+
+          if (normalizedValues.length === 0) {
+            continue;
+          }
+
+          const uniqueValues = Array.from(new Set(normalizedValues));
+          if (uniqueValues.length === 0) {
+            continue;
+          }
+
+          const inList = uniqueValues.join('|');
+          filters.push(`${field}:in:${inList}`);
         }
       }
 
