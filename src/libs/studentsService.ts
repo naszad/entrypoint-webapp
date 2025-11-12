@@ -365,6 +365,7 @@ export async function fetchStudentsByFilterCriteria(request: StudentsRequest): P
     const selectOptions = fetchWithCount ? { count: 'exact' as const } : undefined;
 
     let query = supabase
+      .schema('views')
       .from('student_profiles')
       .select(`*`, selectOptions)
       .eq('school_id', selectedSchoolId);
