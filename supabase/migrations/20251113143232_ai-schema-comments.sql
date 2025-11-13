@@ -378,6 +378,13 @@ CREATE INDEX views_cache_attendance_summary_school_year_idx ON views_cache.absen
 
 CREATE UNIQUE INDEX views_cache_attendance_summary_uq ON views_cache.absences_summary USING btree (student_id, school_id, year_key);
 
+CREATE UNIQUE INDEX IF NOT EXISTS views_cache_student_tags_uq
+  ON views_cache.student_tags (student_tag_id);
+CREATE INDEX IF NOT EXISTS views_cache_student_tags_school_tag_idx
+  ON views_cache.student_tags (school_id, tag_id);
+CREATE INDEX IF NOT EXISTS views_cache_student_tags_school_student_idx
+  ON views_cache.student_tags (school_id, student_id);
+
 -- View comments
 COMMENT ON VIEW views.student_profiles IS 'Core information about students: name, gpa, grade level, graduation year, etc.';
 COMMENT ON VIEW views.student_grades IS 'Student grade records for individual classes/sections. Do not use the grade point data on this view directly, it can only be used as part of GPA calc functions.';
