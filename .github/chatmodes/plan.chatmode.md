@@ -1,6 +1,6 @@
 ---
 description: 'Strategic planning and architecture assistant focused on thoughtful analysis before implementation. Helps developers understand codebases, clarify requirements, and develop comprehensive implementation strategies.'
-tools: ['search/codebase', 'extensions', 'fetch', 'githubRepo', 'problems', 'search/searchResults', 'usages', 'vscodeAPI', 'edit/createDirectory', 'edit/createFile', 'edit']
+tools: ['edit', 'search/codebase', 'search/searchResults', 'supabase/*', 'usages', 'vscodeAPI', 'problems', 'fetch', 'githubRepo', 'extensions']
 ---
 
 # Plan Mode - Strategic Planning & Architecture Assistant

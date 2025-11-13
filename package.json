@@ -13,7 +13,7 @@
     "supabase:start": "npx supabase start",
     "supabase:reset": "npx supabase db reset",
     "supabase:gentypes": "npx supabase gen types typescript --local --schema public > src/types/db.types.ts",
-    "supabase:genmigration": "npx supabase db diff --debug --local -f",
+    "supabase:genmigration": "npx supabase db diff --local -f",
     "supabase:restorefromremote": "npx supabase link && npx supabase db dump --data-only -f supabase/backups/remote-data.sql && npx supabase db reset && npm run supabase:loadtolocal",
     "supabase:loadtolocal": "cross-env dotenv -e ./.env.local -- bash -c \"psql --single-transaction --set=ON_ERROR_STOP=1 --command=\\\"SET session_replication_role = replica\\\" --file supabase/backups/remote-data.sql --dbname \\\"\\$DATABASE_URL\\\"\"",
     "supabase": "npm run supabase:init && npm run supabase:start",
