@@ -35,11 +35,9 @@ BEGIN
           AND conrelid = 'public.sections'::regclass
     ) THEN
         ALTER TABLE public.sections
-        ADD CONSTRAINT sections_term_id_fkey CHECK (term_id > 0);
+        ADD CONSTRAINT sections_term_id_fkey FOREIGN KEY (term_id) REFERENCES public.terms(term_id) not valid;
     END IF;
 END $$;
-
--- alter table "public"."sections" add constraint "sections_term_id_fkey" FOREIGN KEY (term_id) REFERENCES public.terms(term_id) not valid;
 
 alter table "public"."sections" validate constraint "sections_term_id_fkey";
 
