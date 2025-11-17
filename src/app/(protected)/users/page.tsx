@@ -4,7 +4,7 @@ import { DataTable, FilterValue } from "@/components/DataTable/DataTable"
 import { ActionItem } from "@/components/DataTable/DataTableToolbar";
 import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
-import { UserInfo } from "@/types/UserInfo";
+import { Role, UserInfo } from "@/types/UserInfo";
 import { SaveUserDialog } from "@/components/SaveUserDialog";
 import { cn } from "@/utils/utils";
 import { useChatAssistantOpen } from "@/context/ChatAssistantOpenContext";
@@ -84,7 +84,7 @@ const UsersPage = () => {
     firstName: string;
     lastName: string;
     email: string;
-    role: string;
+    role: Role;
   }) => {
     const response = await fetch('/api/users', {
       method: 'POST',
@@ -155,7 +155,53 @@ const UsersPage = () => {
     }
   };
 
-  const columns = createColumns({ onRowAction: handleRowAction });
+  const handleRoleChange = async (userId: string, newRole: Role) => {
+    const user = users.find((u) => u.user_id === userId);
+    if (!user || user.role === newRole) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setAlertMessage({
+          type: 'destructive',
+          message: result.error || 'Failed to update user role',
+        });
+        return;
+      }
+
+      setUsers((prevUsers) =>
+        prevUsers.map((u) =>
+          u.user_id === userId ? { ...u, role: newRole } : u
+        )
+      );
+
+      setAlertMessage({
+        type: 'success',
+        message: 'User role updated successfully',
+      });
+    } catch (err) {
+      setAlertMessage({
+        type: 'destructive',
+        message: err instanceof Error ? err.message : 'Failed to update user role',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const columns = createColumns({ onRowAction: handleRowAction, onRoleChange: handleRoleChange });
 
   const action: ActionItem[] = [];
 

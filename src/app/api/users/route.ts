@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchUsersByFilterCriteria, addUser, deleteUser, updateUserProfile } from '@/libs/userService';
+import { fetchUsersByFilterCriteria, addUser, deleteUser, updateUserProfile, updateUserRole } from '@/libs/userService';
 import { FilterValue } from '@/components/DataTable/DataTable';
 
 export async function GET(req: Request) {
@@ -101,6 +101,27 @@ export async function PUT(req: Request) {
 
     await updateUserProfile(profile);
     return NextResponse.json({ message: 'User profile updated successfully' });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const body = await req.json();
+    const { userId, role } = body;
+
+    if (!userId || !role) {
+      return NextResponse.json(
+        { error: 'User ID and role are required' },
+        { status: 400 }
+      );
+    }
+
+    await updateUserRole(userId, role);
+
+    return NextResponse.json({ message: 'User role updated successfully' });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

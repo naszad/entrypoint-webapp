@@ -1,6 +1,6 @@
 'use server';
 import { createClient } from '@/utils/supabase/supabaseServer';
-import { UserInfo } from '@/types/UserInfo';
+import { Role, UserInfo } from '@/types/UserInfo';
 import { cookies } from 'next/headers';
 import { FilterValue } from '@/components/DataTable/DataTable';
 import { User } from '@/types/Models';
@@ -201,7 +201,7 @@ export async function getUserByAuthId(id: string): Promise<UserInfo | null> {
     image_url: data.image_url,
     eula_agree_timestamp: data.eula_agree_timestamp,
     isMultiSchoolUser: userSchoolMemberships.length > 1,
-    role: userSchoolMemberships[0].role as 'user' | 'admin',
+    role: userSchoolMemberships[0].role as Role,
     schools: userSchoolMemberships
       .filter((membership) => membership.schools !== null)
       .map((membership) => {
@@ -281,7 +281,7 @@ export async function fetchUsersByFilterCriteria(request: UsersRequest): Promise
         image_url: user.image_url,
         eula_agree_timestamp: user.eula_agree_timestamp,
         isMultiSchoolUser: false, // Since we're filtering by specific school
-        role: membership.role as 'user' | 'admin',
+        role: membership.role as Role,
         updatedAt: membership.updated_at,
       } as UserInfo;
     });
@@ -298,7 +298,7 @@ export async function addUser(userData: {
   firstName: string;
   lastName: string;
   email: string;
-  role: string;
+  role: Role;
 }): Promise<string> {
   try {
     const supabase = await createClient();
@@ -448,6 +448,46 @@ export async function deleteUser(userId: string): Promise<void> {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     throw new Error(`Failed to delete user. Error: ${message}`);
+  }
+}
+
+export async function updateUserRole(userId: string, role:Role): Promise<void> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    const currentUser = await getUserByAuthId(user.id);
+    if (!currentUser || currentUser.role !== 'admin') {
+      throw new Error('User is not authorized to perform this action');
+    }
+
+    const cookieStore = await cookies();
+    const selectedSchoolId = cookieStore.get('selectedSchoolId')?.value;
+
+    if (!selectedSchoolId) {
+      throw new Error('No school selected');
+    }
+
+    const { error } = await supabase
+      .from('user_school_memberships')
+      .update({ role, updated_at: new Date() })
+      .eq('user_id', userId)
+      .eq('school_id', selectedSchoolId);
+
+    if (error) {
+      throw new Error(`Failed to update user role: ${error.message}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    throw new Error(`Failed to update user role. Error: ${message}`);
   }
 }
 

@@ -1,7 +1,9 @@
 import { User } from "@/types/Models";
 
+export type Role = 'user' | 'admin';
+
 export interface UserInfo extends Omit<User, 'auth_user_id' | 'school_id'> {
-  role?: 'user' | 'admin',
+  role?: Role,
   isMultiSchoolUser?: boolean,
   updatedAt?: Date,
   schools?: {

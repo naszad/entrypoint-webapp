@@ -12,13 +12,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Role } from "@/types/UserInfo";
 
 interface SaveUserDialogProps {
   onSave: (userData: {
     firstName: string;
     lastName: string;
     email: string;
-    role: string;
+    role: Role;
   }) => Promise<void>;
 }
 
@@ -26,7 +27,7 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'user' | 'admin'>('user');
+  const [role, setRole] = useState<Role>('user');
   const [firstNameError, setFirstNameError] = useState('');
   const [lastNameError, setLastNameError] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -255,7 +256,7 @@ export const SaveUserDialog = ({ onSave }: SaveUserDialogProps) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-full">
                   {['user', 'admin'].map((role) => (
-                    <DropdownMenuItem key={role} onClick={() => setRole(role as 'user' | 'admin')}>
+                    <DropdownMenuItem key={role} onClick={() => setRole(role as Role)}>
                       {role.charAt(0).toUpperCase() + role.slice(1)}
                     </DropdownMenuItem>
                   ))}
