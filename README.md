@@ -137,7 +137,17 @@ There are two primary ways to run commands inside a container. The service name 
       docker compose exec webapp sh
       ```
 
-## Database Changes
+### Pull requests
+Before opening a pull request, check:
+1. Does the production build execute successfully? (`ENV_FILE=.env.development docker compose up --build` or `npm run build`)
+2. Have migrations been generated and have you tested them against a reset copy of your local database?
+
+#### PR Validation and Changesets
+- Every PR runs the **PR Validation** workflow (see `.github/workflows/pr-validation.yml`).
+- A changeset is required for each PR. Generate one with `npx @changesets/cli` and commit the file in `.changeset/`.
+- If a PR truly does not need a release note (docs/chore-only), apply the `no-changeset` label to bypass the check.
+
+### Database Changes
 We use [Supabase Migrations](https://supabase.com/docs/guides/deployment/database-migrations#diffing-changes) to manage the database schema. **All changes to the database should be made in a local instance of the database.** Do _not_ modify a hosted environment database (e.g. `Dev`) without explicit permission to do so from the project lead.
 
 The development process is as follows. The below shell commands should be run from the root of your local project.
@@ -195,17 +205,11 @@ You can instead _just_ reset/reload your local database from the existing `remot
 supabase db reset && npm run supabase:loadtolocal
 ```
 
-
-## Pull requests
-Before opening a pull request, check:
-1. Does the production build execute successfully? (`ENV_FILE=.env.development docker compose up --build` or `npm run build`)
-2. Have migrations been generated and have you tested them against a reset copy of your local database?
-
-## Database Backup and Restore
+### Database Backup and Restore
 
 **Note**: These commands require PostgreSQL client tools (`pg_dump`, `pg_restore`) to be installed on your host machine.
 
-### Backup the Database
+#### Backup the Database
 
 To create a backup of your current database state, run:
 
@@ -216,7 +220,7 @@ npm run db:backup
 - This command executes the script at `supabase/backup-data.ts`.
 - The backup file will be saved in the `supabase/backups/` directory.
 
-### Restore the Database
+#### Restore the Database
 
 To restore your database from a backup, run:
 

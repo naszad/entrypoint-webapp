@@ -28,6 +28,7 @@ export type ColumnMeta = {
   filterType?: 'text' | 'number' | 'date' | 'dropdown' | 'multi-select';
   filterOptions?: string[];
   header?: string;
+  enableQuickSearch?: boolean;
 }
 
 export interface FilterValue {
@@ -136,6 +137,7 @@ export function DataTable<TData, TValue>({
     pageSize: tablePageSize,
     handlePageChange,
     handlePageSizeChange,
+    applyQuickFilter,
   } = useTableParams({
     onParamsChange,
     enablePagination,
@@ -147,6 +149,8 @@ export function DataTable<TData, TValue>({
   const { columnVisibility, setColumnVisibility } = useColumnVisibility(defaultVisibility);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
 
+  // React Compiler warns about memoizing TanStack Table helpers; suppress per library guidance.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
@@ -241,6 +245,8 @@ export function DataTable<TData, TValue>({
                           filterConditionRefs.current[column.id] = el;
                         }}
                         multiSelectRemoteSource={multiSelectRemoteSource}
+                        enableQuickSearch={meta?.enableQuickSearch}
+                        onQuickFilter={applyQuickFilter}
                       />
                     );
                   })}

@@ -261,6 +261,7 @@ export function useTableParams({
     }
 
     // Only update if different to avoid unnecessary renders
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFilterValues(prev => compareFilters(prev, newFilterValues) ? prev : newFilterValues);
     setSorting(prev => compareSorting(prev, newSorting) ? prev : newSorting);
     setFilterConditions(prev => {
@@ -342,6 +343,7 @@ export function useTableParams({
     if (pageParam) {
       const parsed = parseInt(pageParam, 10);
       if (!isNaN(parsed) && parsed > 0 && parsed !== pageNumber) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPageNumber(parsed);
       }
     }
@@ -714,6 +716,43 @@ export function useTableParams({
     setPageNumber(1); // Reset to first page on size change
   };
 
+  const applyQuickFilter = useCallback(
+    (columnId: string, condition: 'contains', value: string) => {
+      setPageNumber(1);
+      setFilterValues((prev) => {
+        const withoutColumn = prev.filter((filter) => filter.key !== columnId);
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          return withoutColumn;
+        }
+
+        const existingId = prev.find((filter) => filter.key === columnId)?.id;
+        return [
+          ...withoutColumn,
+          {
+            id: existingId ?? generateFilterId(),
+            key: columnId,
+            condition,
+            value: trimmed,
+          },
+        ];
+      });
+
+      setFilterConditions((prev) => {
+        const next = { ...prev };
+        if (value.trim().length === 0) {
+          delete next[columnId];
+        } else {
+          next[columnId] = condition;
+        }
+        return next;
+      });
+
+      setOpenFilterColumn(null);
+    },
+    [generateFilterId]
+  );
+
   return {
     // Filter state and handlers
     openFilterColumn,
@@ -744,5 +783,6 @@ export function useTableParams({
     setPageSize,
     handlePageChange,
     handlePageSizeChange,
+    applyQuickFilter,
   };
-} 
+}

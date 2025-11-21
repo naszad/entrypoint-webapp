@@ -61,6 +61,25 @@ type StudentSchoolLinkStudentsView = {
   gpa: number;
 };
 
+type StudentGradesWithYearView = {
+  year_id: string;
+  term_id: string;
+  course_id: string;
+  is_current?: boolean;
+  year_name: string;
+  start_year?: number;
+  end_year?: number;
+  grade_code: string;
+  credit_type?: string;
+  grade_status?: string;
+  course_name: string;
+  local_course_code?: string;
+  grade_letter?: string;
+  grade_percent?: number | string;
+  gpa_points?: number | string;
+  updated_at?: string | Date | null;
+};
+
 const getColumnName = (key: string) => {
   switch (key) {
     case 'fullName':
@@ -164,7 +183,40 @@ const getGradeColumnName = (key: string) => {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapContactsToInfo = (contactsData: unknown): ContactInfo[] => {
+  if (!Array.isArray(contactsData)) {
+    return [];
+  }
+
+  return contactsData.reduce<ContactInfo[]>((acc, entry) => {
+    const relationship = entry as {
+      contact_id?: string;
+      relation_to_student?: string;
+      contact?: {
+        first_name?: string;
+        last_name?: string;
+        email_address?: string;
+        phone_mobile?: string;
+      } | null;
+    };
+
+    if (!relationship.contact) {
+      return acc;
+    }
+
+    acc.push({
+      contactId: relationship.contact_id ?? '',
+      relationToStudent: relationship.relation_to_student ?? '',
+      firstName: relationship.contact.first_name ?? '',
+      lastName: relationship.contact.last_name ?? '',
+      email: relationship.contact.email_address ?? '',
+      phone: relationship.contact.phone_mobile ?? '',
+    });
+
+    return acc;
+  }, []);
+};
+
 const applyFilters = (q: any, filters: FilterValue[]) => {
 
   filters.forEach((filter) => {
@@ -192,9 +244,27 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
     }
 
     switch (filter.condition) {
-      case 'contains':
-        q = q.ilike(columnName, `%${filter.value}%`);
+      case 'contains': {
+        const trimmedValue = (filter.value || '').toString().trim();
+        if (!trimmedValue) {
+          break;
+        }
+
+        if (columnName === 'full_name') {
+          const segments = trimmedValue.split(/\s+/).filter(Boolean);
+          if (segments.length > 1) {
+            // Build patterns for both possible segment orderings
+            const pattern1 = `%${segments.join('%')}%`;
+            const pattern2 = `%${segments.slice().reverse().join('%')}%`;
+            // Use .or() to match either ordering
+            q = q.or(`full_name.ilike.${pattern1},full_name.ilike.${pattern2}`);
+            break;
+          }
+        }
+
+        q = q.ilike(columnName, `%${trimmedValue}%`);
         break;
+      }
       case 'starts':
         q = q.ilike(columnName, `${filter.value}%`);
         break;
@@ -255,7 +325,6 @@ const applyFilters = (q: any, filters: FilterValue[]) => {
   return q;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const applyGradeFilters = (q: any, filters: FilterValue[]) => {
   if (!filters || filters.length === 0) {
     return q;
@@ -525,15 +594,10 @@ export async function fetchStudentById(studentId: string): Promise<StudentInfo> 
       homeroomName: student.homeroom_name,
       customerId: student.customer_id,
       studentNumber: student.student_number,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      contacts: student.contacts?.map((contact: any): ContactInfo => ({
-        contactId: contact.contact_id,
-        relationToStudent: contact.relation_to_student,
-        firstName: contact.contact.first_name,
-        lastName: contact.contact.last_name,
-        email: contact.contact.email_address,
-        phone: contact.contact.phone_mobile,
-      })),
+      contacts: (() => {
+        const parsed = mapContactsToInfo(student.contacts);
+        return parsed.length > 0 ? parsed : undefined;
+      })(),
     }
 
     return parsedStudent;
@@ -620,8 +684,7 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
       return [];
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedData = data as any[];
+    const typedData = data as StudentGradesWithYearView[];
 
     const validGrades = typedData.filter(grade => 
       (grade.year_id && grade.term_id && grade.course_id) || grade.is_current === true
@@ -637,7 +700,7 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
       name: grade.year_name,
       start_year: grade.start_year,
       end_year: grade.end_year,
-      is_current: grade.is_current
+      is_current: grade.is_current === true
     }));
     const uniqueSchoolYears = allSchoolYears.filter((schoolYear, index, self) => 
       index === self.findIndex(y => y.year_id === schoolYear.year_id)
@@ -650,10 +713,11 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
       const schoolYearId = grade.year_id;
       
       if (!yearMap.has(schoolYearId)) {
+        const isCurrentYear = grade.is_current === true;
         yearMap.set(schoolYearId, {
           yearId: schoolYearId,
           label: grade.year_name,
-          isCurrent: grade.is_current,
+          isCurrent: isCurrentYear,
           gradeCodes: [],
           creditTypes: []
         });
@@ -671,7 +735,8 @@ export async function fetchStudentGrades(studentId: string): Promise<YearGradeIn
         yearData.gradeCodes.push(gradeCode);
       }
 
-      if (!grade.is_current && grade.grade_status === 'Final') {
+      const isCurrentGrade = grade.is_current === true;
+      if (!isCurrentGrade && grade.grade_status === 'Final') {
         finalGradeCodesByYear.get(schoolYearId)!.add(gradeCode);
       }
 
@@ -797,9 +862,8 @@ export async function fetchStudentGradesByFilterCriteria(request: StudentsReques
     }
 
     // Transform data to StudentGradeInfo format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const studentGrades: StudentGradeInfo[] = (data as any[])
-      .filter((gradeRecord) => gradeRecord.student_id && gradeRecord.course_id)
+    const studentGrades: StudentGradeInfo[] = data
+      .filter((gradeRecord): gradeRecord is StudentGradeInfo => Boolean(gradeRecord.student_id && gradeRecord.course_id))
       .map((gradeRecord): StudentGradeInfo => ({
         grade_id: gradeRecord.grade_id,
         student_id: gradeRecord.student_id,

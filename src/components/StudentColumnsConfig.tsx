@@ -70,6 +70,7 @@ export const columns: ColumnDef<StudentInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "text",
+      enableQuickSearch: true,
       ai: {
         valueType: "string",
         operators: ["contains", "notContains", "isEmpty", "isNotEmpty"],
