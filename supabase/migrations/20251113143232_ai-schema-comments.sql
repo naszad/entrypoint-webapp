@@ -392,7 +392,7 @@ COMMENT ON VIEW views.absences_daily IS 'Day by day absence records by student.'
 COMMENT ON VIEW views.absences_summary IS 'Aggregate absences for each student by school year.';
 COMMENT ON VIEW views.contacts IS 'The contacts for a student — mother, father, etc - and their emails/phones';
 COMMENT ON VIEW views.meeting_notes IS 'The notes from counselor-student meetings. You may search this for single students, but not in aggregate.';
-COMMENT ON VIEW views.course_enrollments IS 'Each record represents a student taking a section of a course. (Sections are instances of a course.) Contains both current and past enrollments.';
+COMMENT ON VIEW views.course_enrollments IS 'Each record represents a student taking a section of a course. (Sections are instances of a course.) Contains both current and past course enrollments. DO NOT use this view for questions about active students or enrolled students in the school generally; rely on student_profiles instead.';
 COMMENT ON VIEW views.courses_reference IS 'The list of all course sections (a section is an instance of a course).';
 COMMENT ON VIEW views.terms_reference IS 'The list of all academic terms (semesters, quarters, etc.) used by the school. Note that terms may overlap in time.';
 
@@ -419,7 +419,7 @@ COMMENT ON COLUMN views.absences_summary.total_tardies IS 'The total number of t
 COMMENT ON COLUMN views.absences_summary.is_current_year IS 'Whether this school year is the current active year for the school.';
 COMMENT ON COLUMN views.absences_summary.grade_level IS 'The grade level of the student for the absence summary.';
 
-COMMENT ON COLUMN views.absences_daily.absence_date IS 'The date of the absence record. You can use this with term information to count absences in specific terms.';
+COMMENT ON COLUMN views.absences_daily.absence_date IS 'The date of the absence record. You can use this with term information or dates to count absences.';
 COMMENT ON COLUMN views.absences_daily.grade_level IS 'The grade level of the student for the absence record at the time the absence occurred.';
 
 

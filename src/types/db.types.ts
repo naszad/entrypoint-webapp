@@ -256,18 +256,21 @@ export type Database = {
           created_at: string | null
           customer_id: string
           name: string
+          shortname: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           customer_id?: string
           name: string
+          shortname?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           customer_id?: string
           name?: string
+          shortname?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -619,6 +622,7 @@ export type Database = {
           section_id: string
           section_number: string
           teacher_name: string | null
+          term_id: string | null
           transaction_date: string | null
           updated_at: string | null
         }
@@ -638,6 +642,7 @@ export type Database = {
           section_id?: string
           section_number: string
           teacher_name?: string | null
+          term_id?: string | null
           transaction_date?: string | null
           updated_at?: string | null
         }
@@ -657,6 +662,7 @@ export type Database = {
           section_id?: string
           section_number?: string
           teacher_name?: string | null
+          term_id?: string | null
           transaction_date?: string | null
           updated_at?: string | null
         }
@@ -688,6 +694,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "sections_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["term_id"]
           },
         ]
       }

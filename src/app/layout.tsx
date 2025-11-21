@@ -55,6 +55,7 @@ export default function RootLayout({
                 APP_URL: "${process.env.APP_URL}",
                 CHAT_TIMEOUT_HOURS: "${process.env.CHAT_TIMEOUT_HOURS}",
                 ENABLE_DEV_OPTIONS: "${process.env.ENABLE_DEV_OPTIONS}",
+                NEXT_PUBLIC_CHAT_ASSISTANT_VERSION: "${process.env.NEXT_PUBLIC_CHAT_ASSISTANT_VERSION}",
               };
             `,
           }}

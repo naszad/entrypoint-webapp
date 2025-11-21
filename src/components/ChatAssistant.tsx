@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import ReactMarkdown from "react-markdown";
 import { MessagesSquare, MessageSquareWarning, Send, ChevronRight, MoveDown, Plus, ChevronDown, Trash2, Edit3, X, Check, Sparkles, Settings, ThumbsUp, ThumbsDown, Minus, MessageCircle, CheckCircle, XCircle } from 'lucide-react'
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { cn } from '@/utils/utils'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -56,7 +57,8 @@ type ToolInvocation = {
   toolName: string;
   result: {
     url?: string;
-    filtersApplied?: FiltersApplied | GradesFiltersApplied;
+    filtersApplied?: FiltersApplied | GradesFiltersApplied | Record<string, unknown>;
+    label?: string;
   }
 }
 
@@ -335,14 +337,35 @@ export function ChatAssistant() {
   // Local state for input since AI SDK v5 doesn't provide it
   const [input, setInput] = useState('');
 
+  const assistantVersion = process.env.NEXT_PUBLIC_CHAT_ASSISTANT_VERSION === 'v2' ? 'v2' : 'v1';
+
+  const chatApiEndpoint = assistantVersion === 'v2' ? '/api/chat-v2' : '/api/chat';
+
+  const chatSessionId = `chat-assistant-${assistantVersion}`;
+
+  const chatTransport = useMemo(
+    () => new DefaultChatTransport({ api: chatApiEndpoint }),
+    [chatApiEndpoint]
+  );
+
+  const chatOptions = useMemo(
+    () => ({
+      id: chatSessionId,
+      transport: chatTransport
+    }),
+    [chatSessionId, chatTransport]
+  );
+
+  useEffect(() => {
+    console.log('ChatAssistant: resolved chat transport', chatTransport);
+  }, [chatTransport]);
+
   const {
     messages,
     sendMessage,
     status,
     setMessages,
-  } = useChat({
-    id: 'chat-assistant'
-  });
+  } = useChat(chatOptions);
 
   type MarkdownAnchorProps = React.DetailedHTMLProps<React.AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>;
 
@@ -965,7 +988,7 @@ export function ChatAssistant() {
     // Backend will handle saving both user and AI messages
     sendMessage({ text: messageText }, {
       body: {
-        chatId: currentChatId,
+        chatId,
         ...(isDevOptionsEnabled && { selectedModel })
       }
     });
@@ -1082,26 +1105,41 @@ export function ChatAssistant() {
     // Only navigate for assistant messages with tool results
     if (lastMessage.role === 'assistant' && lastMessage.parts) {
       // Look for tool parts in the message parts array
-      const toolParts = lastMessage.parts.filter((part) => 
-        part.type === 'tool-filter_students' || 
+      const toolParts = lastMessage.parts.filter((part) =>
+        part.type === 'tool-filter_students' ||
         part.type === 'tool-filter_grades' ||
-        (part.type === 'dynamic-tool' && 
-         'toolName' in part &&
-         (part.toolName === 'filter_students' || part.toolName === 'filter_grades'))
+        part.type === 'tool-navigate' ||
+        (part.type === 'dynamic-tool' &&
+          'toolName' in part &&
+          (part.toolName === 'filter_students' ||
+            part.toolName === 'filter_grades' ||
+            part.toolName === 'navigate'))
       );
-      
-      const toolPart = toolParts.find((part) => {
-        // Check if tool part has output with our expected structure
-        return 'output' in part && 
-               part.output && 
-               typeof part.output === 'object' && 
-               'url' in part.output;
-      });
 
-      if (toolPart && 'output' in toolPart && toolPart.output && 
-          typeof toolPart.output === 'object' && toolPart.output !== null && 
-          'url' in toolPart.output) {
-        router.push((toolPart.output as { url: string }).url);
+      const findUrl = (part: (typeof toolParts)[number]) =>
+        'output' in part &&
+        part.output &&
+        typeof part.output === 'object' &&
+        part.output !== null &&
+        'url' in part.output
+          ? (part.output as { url: string }).url
+          : null;
+
+      const navigationPart = toolParts.find((part) =>
+        (part.type === 'tool-navigate' ||
+          (part.type === 'dynamic-tool' && 'toolName' in part && part.toolName === 'navigate')) &&
+        Boolean(findUrl(part))
+      );
+
+      let urlToVisit = navigationPart ? findUrl(navigationPart) : null;
+
+      if (!urlToVisit) {
+        const fallbackPart = toolParts.find((part) => Boolean(findUrl(part)));
+        urlToVisit = fallbackPart ? findUrl(fallbackPart) : null;
+      }
+
+      if (urlToVisit) {
+        router.push(urlToVisit);
         setLastNavigatedMessageId(lastMessage.id);
       }
     }
@@ -1368,21 +1406,33 @@ export function ChatAssistant() {
 
               if (message.role === 'assistant' && message.parts) {
                 // Look for tool parts in the message parts array
-                const toolParts = message.parts.filter((part) => 
-                  part.type === 'tool-filter_students' || 
+                const toolParts = message.parts.filter((part) =>
+                  part.type === 'tool-filter_students' ||
                   part.type === 'tool-filter_grades' ||
-                  (part.type === 'dynamic-tool' && 
-                   'toolName' in part &&
-                   (part.toolName === 'filter_students' || part.toolName === 'filter_grades'))
+                  part.type === 'tool-navigate' ||
+                  (part.type === 'dynamic-tool' &&
+                    'toolName' in part &&
+                    (part.toolName === 'filter_students' ||
+                      part.toolName === 'filter_grades' ||
+                      part.toolName === 'navigate'))
                 );
                 
-                const toolPart = toolParts.find((part) => {
-                  // Check if tool part has output with our expected structure
-                  return 'output' in part && 
-                         part.output && 
-                         typeof part.output === 'object' && 
-                         'url' in part.output;
-                });
+                const findToolUrl = (part: (typeof toolParts)[number]) =>
+                  'output' in part &&
+                  part.output &&
+                  typeof part.output === 'object' &&
+                  'url' in part.output;
+
+                const filterToolPart = toolParts.find((part) =>
+                  (part.type === 'tool-filter_students' ||
+                    part.type === 'tool-filter_grades' ||
+                    (part.type === 'dynamic-tool' &&
+                      'toolName' in part &&
+                      (part.toolName === 'filter_students' || part.toolName === 'filter_grades')))
+                  && findToolUrl(part)
+                );
+
+                const toolPart = filterToolPart ?? toolParts.find((part) => findToolUrl(part));
 
                 if (toolPart && 'output' in toolPart && toolPart.output) {
                   toolResult = toolPart.output as ToolInvocation['result'];
@@ -1432,10 +1482,11 @@ export function ChatAssistant() {
                     <div className="mt-2">
                       <Button asChild variant="action" size="sm" className="h-auto whitespace-normal">
                         <Link href={toolResult.url}>
-                          {toolName === 'filter_grades' 
+                          {toolName === 'filter_grades'
                             ? generateGradesFilterDescription(toolResult.filtersApplied as GradesFiltersApplied)
-                            : generateFilterDescription(toolResult.filtersApplied as FiltersApplied)
-                          }
+                            : toolName === 'filter_students'
+                              ? generateFilterDescription(toolResult.filtersApplied as FiltersApplied)
+                              : toolResult?.label ?? 'Open students page'}
                         </Link>
                       </Button>
                     </div>

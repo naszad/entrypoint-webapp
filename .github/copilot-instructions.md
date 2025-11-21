@@ -17,8 +17,8 @@ This guide provides essential context for AI coding agents working in the EntryP
 - `src/app/` — Main Next.js app code (pages, API routes)
 - `src/components/` — React UI components
 - `src/types/` — TypeScript types, including generated DB types (`db.types.ts`)
+- `src/ai/` — AI agents, tools, and routing logic
 - `supabase/migrations/` — Database migration SQL files
-- `supabase/backup-data.ts`, `restore-data.ts` — DB backup/restore scripts
 - `.env.local` — Main environment config (copy from `.env.local.example`)
 - `docker-compose.dev.yml`, `docker-compose.yml` — Dev/prod container configs
 
@@ -44,15 +44,18 @@ This guide provides essential context for AI coding agents working in the EntryP
 - **AI Features**: See usage of AI SDK and OpenAI in `src/libs/` and API routes
 - **External Services**: Supabase CLI, Docker, PostgreSQL client tools
 
-## Common Pitfalls
-- Always run DB migrations and type generation before pushing changes
-- Do not edit generated types directly
+## Critial Guidance
+- Prioritize security and data integrity, especially with RLS policies
+- Follow existing code patterns for consistency; if you spot inconsistencies, flag them for review
+- Write clear, maintainable code with comments at important functional points
+- Do not over-engineer; keep solutions simple and effective
+- Never edit package.json directly to add dependencies; use npm commands to ensure we get the latest versions and have lockfile integrity
+- Do not edit generated database types directly
 - Run commands inside Docker for consistency
-- Don't look at migration files to understand DB schema; look at the database (using the Supabase MCP server if you have access to it)
+- **Don't just look at migration files to understand DB schema; look at the database itself (using the Supabase MCP server if you have access to it)**
 
 ## Example Commands
 - Start dev: `docker compose -f docker-compose.dev.yml up --build`
-- Reset DB: `npm run reset`
 - Generate migration: `npm run supabase:genmigration -- DEV-123-add-feature`
 - Update types: `npm run supabase:gentypes`
 - Run tests: `docker compose exec webapp npm run test`

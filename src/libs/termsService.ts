@@ -30,7 +30,7 @@ export interface FetchTermsForDateResult {
 
 export async function fetchTermsForDate({
   date,
-  schoolId,
+  schoolId = '',
 }: FetchTermsForDateParams): Promise<FetchTermsForDateResult> {
   const targetDateIso = normalizeIsoDate(date);
   const targetUtcTime = dateOnlyToUtcMs(targetDateIso);

@@ -9,7 +9,7 @@ export const defaultVisibility: VisibilityState = {
   grade_letter: true,
   grade_percent: true,
   grade_code: true,
-  updated_at: true,
+  updatedAt: true,
 };
 
 const getUserInitials = (fullName: string): string => {
@@ -28,6 +28,12 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "text",
+      ai: {
+        valueType: "string",
+        operators: ["contains", "notContains", "eq", "notEq", "in", "isEmpty", "isNotEmpty"],
+        synonyms: ["student", "student name", "student full name"],
+        sortKey: "full_name",
+      },
     },
     cell: ({ row }) => (
       <div className="py-1 flex items-center gap-3">
@@ -52,6 +58,12 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "text",
+      ai: {
+        valueType: "string",
+        operators: ["contains", "notContains", "eq", "notEq", "in", "isEmpty", "isNotEmpty"],
+        synonyms: ["course number", "section number", "class code"],
+        sortKey: "local_course_code",
+      },
     },
   },
   {
@@ -61,6 +73,12 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "text",
+      ai: {
+        valueType: "string",
+        operators: ["contains", "notContains", "eq", "notEq", "in", "isEmpty", "isNotEmpty"],
+        synonyms: ["course", "class", "subject"],
+        sortKey: "course_name",
+      },
     },
   },
   {
@@ -70,6 +88,12 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "text",
+      ai: {
+        valueType: "string",
+        operators: ["contains", "notContains", "eq", "notEq", "in", "isEmpty", "isNotEmpty"],
+        synonyms: ["letter grade", "final grade"],
+        sortKey: "grade_letter",
+      },
     },
     cell: ({ row }) => (
       <div className="font-medium">{row.original.grade_letter || '-'}</div>
@@ -82,6 +106,13 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "number",
+      ai: {
+        valueType: "number",
+        operators: ["eq", "notEq", "gte", "lte", "gt", "lt", "in"],
+        synonyms: ["grade percentage", "percent", "score"],
+        promptAppend: "Represent ranges by emitting multiple filters (e.g., gte and lte).",
+        sortKey: "grade_percent",
+      },
     },
     cell: ({ row }) => (
       <div className="font-medium">
@@ -96,6 +127,12 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "multi-select",
+      ai: {
+        valueType: "string",
+        operators: ["eq", "notEq", "in", "isEmpty", "isNotEmpty"],
+        synonyms: ["grade code", "mark", "status"],
+        sortKey: "grade_code",
+      },
     },
     cell: ({ row }) => (
       <div className="font-medium">{row.original.grade_code || '-'}</div>
@@ -108,6 +145,14 @@ export const columns: ColumnDef<StudentGradeInfo>[] = [
     meta: {
       enableFiltering: true,
       filterType: "date",
+      ai: {
+        valueType: "date",
+        operators: ["gte", "lte", "isEmpty", "isNotEmpty"],
+        synonyms: ["last updated", "modified", "changed"],
+        promptAppend: "Use separate gte and lte comparisons when counselors specify a date range.",
+        queryKey: "updatedAt",
+        sortKey: "updatedAt",
+      },
     },
     cell: ({ row }) => (
       <div className="text-sm">
