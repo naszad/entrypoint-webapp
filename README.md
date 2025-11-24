@@ -144,7 +144,7 @@ Before opening a pull request, check:
 
 #### PR Validation and Changesets
 - Every PR runs the **PR Validation** workflow (see `.github/workflows/pr-validation.yml`).
-- A changeset is required for each PR. Generate one with `npx @changesets/cli` and commit the file in `.changeset/`.
+- A changeset is required for each PR. Generate one with `npm run changeset` and commit the file in `.changeset/`.
 - If a PR truly does not need a release note (docs/chore-only), apply the `no-changeset` label to bypass the check.
 
 ### Database Changes

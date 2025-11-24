@@ -19,15 +19,54 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: "read"
+      contents: "write"
       id-token: "write"
 
     outputs:
-      image_path: "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+      version: ${{ steps.changeset.outputs.version }}
+      image_version_tag: "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ steps.changeset.outputs.version }}"
+      image_sha_tag: "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+      image_path: "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ steps.changeset.outputs.version }}"
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run changeset version
+        id: changeset
+        run: |
+          npx changeset version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump and tag
+        id: commit_version
+        env:
+          VERSION: ${{ steps.changeset.outputs.version }}
+        run: |
+          if git diff --quiet; then
+            echo "No version changes to commit"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json .changeset
+          git commit -m "chore: release $VERSION"
+          git tag "v$VERSION"
+          git push origin HEAD:main
+          git push origin "v$VERSION"
 
       # Authenticate to Google Cloud using Workload Identity Federation.
       # This is the recommended and most secure way to authenticate from GitHub Actions.
@@ -54,15 +93,16 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # This step builds the Docker image and pushes it to Google Artifact Registry.
-      # The image is tagged with the short SHA of the commit that triggered the workflow.
-      # This provides a unique and traceable identifier for each build.
+      # Images are tagged with the workflow SHA and the calculated semantic version.
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: |
+            ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ steps.changeset.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

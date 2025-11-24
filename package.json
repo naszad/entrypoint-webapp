@@ -25,7 +25,9 @@
     "db:seed-data": "npx tsx supabase/seed-data.ts",
     "db:seed-user": "npx tsx supabase/seed-user.ts",
     "db:backup": "npx tsx supabase/backup-data.ts",
-    "db:restore": "npx tsx supabase/restore-data.ts"
+    "db:restore": "npx tsx supabase/restore-data.ts",
+    "changeset": "npx @changesets/cli",
+    "changeset:version": "changeset version"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.0-beta.57",
@@ -69,6 +71,7 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "@chromatic-com/storybook": "^3.2.6",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
