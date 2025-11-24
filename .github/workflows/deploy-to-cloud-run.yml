@@ -21,6 +21,19 @@ on:
         required: false
         type: string
         default: 'Dev'
+      no_traffic:
+        description: 'Deploy without shifting traffic (default false)'
+        required: false
+        type: boolean
+        default: false
+      approvers:
+        description: 'Comma-separated GitHub users/teams to approve traffic shift (optional). If this is set, traffic will not be shifted to the new revision until approved.'
+        required: false
+        type: string
+      revision_tag:
+        description: 'Optional Cloud Run traffic tag to apply to the revision'
+        required: false
+        type: string
 
 env:
   CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
@@ -38,9 +51,31 @@ jobs:
       contents: "read"
       id-token: "write"
 
+    outputs:
+      url: ${{ steps.revision_info.outputs.url || steps.deploy.outputs.url }}
+      revision: ${{ steps.revision_info.outputs.revision }}
+      revision_tag: ${{ steps.config.outputs.revision_tag }}
+      no_traffic: ${{ steps.config.outputs.no_traffic }}
+      approvers: ${{ steps.config.outputs.approvers }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Configure deployment parameters
+        id: config
+        env:
+          INPUT_NO_TRAFFIC: ${{ inputs.no_traffic || github.event.inputs.no_traffic }}
+          INPUT_REVISION_TAG: ${{ inputs.revision_tag || github.event.inputs.revision_tag }}
+          INPUT_APPROVERS: ${{ inputs.approvers || github.event.inputs.approvers }}
+        run: |
+          NO_TRAFFIC="${INPUT_NO_TRAFFIC}"
+          REVISION_TAG="${INPUT_REVISION_TAG}"
+          if [ "${NO_TRAFFIC}" = "true" ] && [ -z "${REVISION_TAG}" ]; then
+            REVISION_TAG="preview-${GITHUB_RUN_ID}"
+          fi
+          echo "no_traffic=${NO_TRAFFIC}" >> "$GITHUB_OUTPUT"
+          echo "revision_tag=${REVISION_TAG}" >> "$GITHUB_OUTPUT"
+          echo "approvers=${INPUT_APPROVERS}" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -56,10 +91,43 @@ jobs:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.CLOUD_RUN_REGION }}
           image: ${{ inputs.image || github.event.inputs.image }}
+          no_traffic: ${{ steps.config.outputs.no_traffic == 'true' }}
+          tag: ${{ steps.config.outputs.revision_tag }}
+
+      - name: Capture revision info when no traffic
+        id: revision_info
+        if: ${{ steps.config.outputs.no_traffic == 'true' }}
+        env:
+          TAG: ${{ steps.config.outputs.revision_tag }}
+        run: |
+          INFO=$(gcloud run services describe "${CLOUD_RUN_SERVICE}" --region "${CLOUD_RUN_REGION}" --format json)
+          URL=$(echo "$INFO" | jq -r --arg TAG "$TAG" '.status.traffic[] | select(.tag==$TAG) | .url' | head -n 1)
+          REVISION=$(echo "$INFO" | jq -r --arg TAG "$TAG" '.status.traffic[] | select(.tag==$TAG) | .revisionName' | head -n 1)
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            echo "Tagged URL not found" >&2
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+
+      - name: Preview summary
+        if: ${{ steps.config.outputs.no_traffic == 'true' }}
+        env:
+          PREVIEW_URL: ${{ steps.revision_info.outputs.url }}
+          IMAGE_PATH: ${{ inputs.image || github.event.inputs.image }}
+          DEPLOY_ENV: ${{ inputs.environment || github.event.inputs.environment || 'Dev' }}
+        run: |
+          cat <<SUMMARY >> "$GITHUB_STEP_SUMMARY"
+          ## Preview ready
+          - Environment: ${DEPLOY_ENV}
+          - Image: ${IMAGE_PATH}
+          - Tagged URL: ${PREVIEW_URL}
+          - Traffic: 0% (approval may be required)
+          SUMMARY
 
   release-notes:
     name: Generate release notes
-    needs: deploy
+    needs: [deploy]
     if: ${{ needs.deploy.result == 'success' }}
     uses: ./.github/workflows/deployment-release-notes.yml
     permissions:
@@ -94,3 +162,74 @@ jobs:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
       JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+  # This will stop for approval iff APPROVERS is set and no_traffic is true
+  approval:
+    name: Await manual approval (traffic switch)
+    needs: deploy
+    if: ${{ needs.deploy.outputs.no_traffic == 'true' && needs.deploy.outputs.approvers != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      issues: write
+      pull-requests: write
+    env:
+      APPROVERS: ${{ needs.deploy.outputs.approvers }}
+      PREVIEW_URL: ${{ needs.deploy.outputs.url }}
+      DEPLOY_ENV: ${{ inputs.environment || github.event.inputs.environment || 'Dev' }}
+    steps:
+      - name: Validate approvers
+        run: |
+          if [ -z "${APPROVERS}" ]; then
+            echo "Approvers list is empty." >&2
+            exit 1
+          fi
+
+      - name: Await approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.token }}
+          approvers: ${{ env.APPROVERS }}
+          minimum-approvals: 1
+          issue-title: "Approve traffic switch for ${{ github.workflow }} to ${{ env.DEPLOY_ENV }}"
+          issue-body: |
+            Preview URL: ${{ env.PREVIEW_URL }}
+            Environment: ${{ env.DEPLOY_ENV }}
+            Reply with 'approve' to proceed with traffic switch.
+
+  promote-traffic:
+    name: Switch traffic to deployed revision
+    needs:
+      - deploy
+      - approval
+    if: ${{ needs.deploy.outputs.no_traffic == 'true' && (needs.approval.result == 'success' || needs.approval.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment: ${{ inputs.environment }}
+    env:
+      REVISION: ${{ needs.deploy.outputs.revision }}
+    steps:
+      - name: Validate revision
+        run: |
+          if [ -z "${REVISION}" ] || [ "${REVISION}" = "null" ]; then
+            echo "Missing revision from deployment" >&2
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: "google-github-actions/auth@v3"
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Shift traffic to deployed revision
+        run: |
+          gcloud run services update-traffic "${CLOUD_RUN_SERVICE}" \
+            --region "${CLOUD_RUN_REGION}" \
+            --to-revisions "${REVISION}=100"

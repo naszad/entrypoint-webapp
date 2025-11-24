@@ -5,196 +5,76 @@ on:
     types: [published]
 
 env:
-  IMAGE_NAME: "entrypoint-webapp"
   GAR_LOCATION: ${{ vars.GAR_LOCATION }}
-  GAR_HOSTNAME: ${{ vars.GAR_HOSTNAME }}
   GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
   GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
-  CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
-  CLOUD_RUN_REGION: ${{ vars.CLOUD_RUN_REGION }}
 
 jobs:
-  deploy-preview:
-    name: Deploy tagged release (no traffic)
+  resolve-image:
+    name: Resolve release image in Artifact Registry
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-
-    environment:
-      name: Production
-
-    env:
-      RELEASE_VERSION: ${{ github.event.release.tag_name }}
-      REVISION_TAG: preview-${{ github.run_id }}
-      WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT || secrets.GCP_SERVICE_ACCOUNT }}
-
     outputs:
-      preview_url: ${{ steps.tag_info.outputs.url }}
-      revision: ${{ steps.tag_info.outputs.revision }}
-      revision_tag: ${{ env.REVISION_TAG }}
-
+      image: ${{ steps.resolve.outputs.image }}
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
     steps:
-      - name: Validate identity inputs
-        run: |
-          if [ -z "${WIF_PROVIDER}" ] || [ -z "${SERVICE_ACCOUNT}" ]; then
-            echo "Workload identity provider or service account is not set. Check repository/environment variables." >&2
-            exit 1
-          fi
-
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: ${{ env.WIF_PROVIDER }}
-          service_account: ${{ env.SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up gcloud SDK
         uses: google-github-actions/setup-gcloud@v3
 
-      - name: Deploy release image without traffic
-        id: deploy
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          service: ${{ env.CLOUD_RUN_SERVICE }}
-          region: ${{ env.CLOUD_RUN_REGION }}
-          image: ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ env.RELEASE_VERSION }}
-          tag: ${{ env.REVISION_TAG }}
-          no_traffic: true
-
-      - name: Capture tagged URL and revision
-        id: tag_info
-        env:
-          TAG: ${{ env.REVISION_TAG }}
+      - name: Resolve image by tag
+        id: resolve
         run: |
-          INFO=$(gcloud run services describe "${CLOUD_RUN_SERVICE}" --region "${CLOUD_RUN_REGION}" --format json)
-          URL=$(echo "$INFO" | jq -r --arg TAG "$TAG" '.status.traffic[] | select(.tag==$TAG) | .url' | head -n 1)
-          REVISION=$(echo "$INFO" | jq -r --arg TAG "$TAG" '.status.traffic[] | select(.tag==$TAG) | .revisionName' | head -n 1)
+          TAG="${RELEASE_TAG}"
 
-          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
-            echo "Tagged URL not found" >&2
+          # Find image package in GAR by tag
+          IMAGE=$(gcloud artifacts docker images list "${GAR_LOCATION}" \
+            --filter="tags:${TAG}" \
+            --format="value(package)" | head -n 1)
+
+          # Fallback: try without leading 'v'
+          if [ -z "$IMAGE" ] && [ "${TAG:0:1}" = "v" ]; then
+            ALT_TAG=${TAG#v}
+            IMAGE=$(gcloud artifacts docker images list "${GAR_LOCATION}" \
+              --filter="tags:${ALT_TAG}" \
+              --format="value(package)" | head -n 1)
+            if [ -n "$IMAGE" ]; then
+              TAG=$ALT_TAG
+            fi
+          fi
+
+          if [ -z "$IMAGE" ]; then
+            echo "No image found in ${GAR_LOCATION} with tag ${RELEASE_TAG}" >&2
             exit 1
           fi
 
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          IMAGE_REF="${IMAGE}:${TAG}"
+          echo "Resolved image: ${IMAGE_REF}"
+          echo "image=${IMAGE_REF}" >> "$GITHUB_OUTPUT"
 
-      - name: Preview URL
-        env:
-          PREVIEW_URL: ${{ steps.tag_info.outputs.url }}
-        run: |
-          cat <<SUMMARY >> "$GITHUB_STEP_SUMMARY"
-          ## Preview ready
-          - Version: ${RELEASE_VERSION}
-          - Image: ${GAR_LOCATION}/${IMAGE_NAME}:${RELEASE_VERSION}
-          - Tagged URL: ${PREVIEW_URL}
-          - Traffic: 0% (manual promotion required)
-          SUMMARY
-
-  promote-to-production:
-    name: Promote tagged release to 100%
-    needs:
-      - deploy-preview
-      - approval
-    runs-on: ubuntu-latest
+  deploy-production:
+    name: Deploy release image to Cloud Run (with optional approval)
+    needs: resolve-image
+    uses: ./.github/workflows/deploy-to-cloud-run.yml
     permissions:
       contents: write
       id-token: write
-    environment:
-      name: Production
-    env:
-      RELEASE_VERSION: ${{ github.event.release.tag_name }}
-      REVISION: ${{ needs.deploy-preview.outputs.revision }}
-      WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT || secrets.GCP_SERVICE_ACCOUNT }}
-
-    steps:
-      - name: Validate identity inputs
-        run: |
-          if [ -z "${WIF_PROVIDER}" ] || [ -z "${SERVICE_ACCOUNT}" ]; then
-            echo "Workload identity provider or service account is not set. Check repository/environment variables." >&2
-            exit 1
-          fi
-
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: ${{ env.WIF_PROVIDER }}
-          service_account: ${{ env.SERVICE_ACCOUNT }}
-
-      - name: Set up gcloud SDK
-        uses: google-github-actions/setup-gcloud@v3
-
-      - name: Shift traffic to approved revision
-        run: |
-          if [ -z "${REVISION}" ] || [ "${REVISION}" = "null" ]; then
-            echo "Missing revision from preview deployment" >&2
-            exit 1
-          fi
-          gcloud run services update-traffic "${CLOUD_RUN_SERVICE}" \
-            --region "${CLOUD_RUN_REGION}" \
-            --to-revisions "${REVISION}=100"
-
-      - name: Update GitHub release state
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const releaseId = context.payload.release.id;
-            await github.rest.repos.updateRelease({
-              owner,
-              repo,
-              release_id: releaseId,
-              draft: false,
-              prerelease: false,
-            });
-
-      - name: Promotion summary
-        run: |
-          cat <<SUMMARY >> "$GITHUB_STEP_SUMMARY"
-          ## Production traffic switched
-          - Version: ${RELEASE_VERSION}
-          - Revision: ${REVISION}
-          - Default traffic: 100%
-          SUMMARY
-
-  approval:
-    name: Await manual approval
-    needs: deploy-preview
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      issues: write
+      deployments: write
       pull-requests: write
-    env:
-      RELEASE_VERSION: ${{ github.event.release.tag_name }}
-      PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
-      APPROVERS: ${{ vars.APPROVERS }}
-      GH_APP_ID: ${{ vars.GH_APP_ID }}
-    steps:
-      - name: Generate token
-        id: generate_token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.GH_APP_ID }}
-          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-      - name: Validate approvers
-        run: |
-          if [ -z "${APPROVERS}" ]; then
-            echo "Set APPROVERS (comma-separated) in repo or env variables." >&2
-            exit 1
-          fi
-
-      - name: Await approval in run summary
-        uses: trstringer/manual-approval@v1
-        with:
-          secret: ${{ github.token }}
-          approvers: ${{ env.APPROVERS }}
-          minimum-approvals: 1
-          issue-title: "Approve production deploy for ${{ env.RELEASE_VERSION }}"
-          issue-body: |
-            Preview URL: ${{ env.PREVIEW_URL }}
-            Release tag: ${{ env.RELEASE_VERSION }}
-            Reply with 'approve' (or deny) to proceed with traffic switch.
+      actions: write
+    with:
+      image: ${{ needs.resolve-image.outputs.image }}
+      environment: Production
+      no_traffic: true
+      approvers: ${{ vars.APPROVERS }}
+      revision_tag: prod-${{ github.run_id }}
+    secrets: inherit
