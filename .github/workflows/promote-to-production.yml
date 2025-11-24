@@ -94,7 +94,9 @@ jobs:
 
   promote-to-production:
     name: Promote tagged release to 100%
-    needs: deploy-preview
+    needs:
+      - deploy-preview
+      - approval
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -157,3 +159,42 @@ jobs:
           - Revision: ${REVISION}
           - Default traffic: 100%
           SUMMARY
+
+  approval:
+    name: Await manual approval
+    needs: deploy-preview
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      issues: write
+      pull-requests: write
+    env:
+      RELEASE_VERSION: ${{ github.event.release.tag_name }}
+      PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
+      APPROVERS: ${{ vars.APPROVERS }}
+      GH_APP_ID: ${{ vars.GH_APP_ID }}
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+      - name: Validate approvers
+        run: |
+          if [ -z "${APPROVERS}" ]; then
+            echo "Set APPROVERS (comma-separated) in repo or env variables." >&2
+            exit 1
+          fi
+
+      - name: Await approval in run summary
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.token }}
+          approvers: ${{ env.APPROVERS }}
+          minimum-approvals: 1
+          issue-title: "Approve production deploy for ${{ env.RELEASE_VERSION }}"
+          issue-body: |
+            Preview URL: ${{ env.PREVIEW_URL }}
+            Release tag: ${{ env.RELEASE_VERSION }}
+            Reply with 'approve' (or deny) to proceed with traffic switch.

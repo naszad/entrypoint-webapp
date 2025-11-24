@@ -93,7 +93,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # This step builds the Docker image and pushes it to Google Artifact Registry.
-      # Images are tagged with the workflow SHA and the calculated semantic version.
+      # Images are tagged with the workflow SHA, the semantic version, and the git tag (v-prefixed).
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -103,6 +103,7 @@ jobs:
           tags: |
             ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ steps.changeset.outputs.version }}
+            ${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:v${{ steps.changeset.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
