@@ -111,11 +111,12 @@ jobs:
     name: Deploy to Cloud Run
     needs: build-and-push
     permissions:
-      contents: "read"
-      id-token: "write"
-      deployments: "write"
-      pull-requests: "read"
-      actions: "read"
+      contents: read
+      id-token: write
+      deployments: write
+      pull-requests: write
+      issues: write
+      actions: write
     uses: ./.github/workflows/deploy-to-cloud-run.yml
     with:
       image: ${{ needs.build-and-push.outputs.image_path }}
