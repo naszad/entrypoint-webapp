@@ -21,9 +21,14 @@ jobs:
       contents: read
       id-token: write
 
+    environment:
+      name: Production
+
     env:
       RELEASE_VERSION: ${{ github.event.release.tag_name }}
       REVISION_TAG: preview-${{ github.run_id }}
+      WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT || secrets.GCP_SERVICE_ACCOUNT }}
 
     outputs:
       preview_url: ${{ steps.tag_info.outputs.url }}
@@ -31,12 +36,22 @@ jobs:
       revision_tag: ${{ env.REVISION_TAG }}
 
     steps:
+      - name: Validate identity inputs
+        run: |
+          if [ -z "${WIF_PROVIDER}" ] || [ -z "${SERVICE_ACCOUNT}" ]; then
+            echo "Workload identity provider or service account is not set. Check repository/environment variables." >&2
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Deploy release image without traffic
         id: deploy
@@ -89,14 +104,26 @@ jobs:
     env:
       RELEASE_VERSION: ${{ github.event.release.tag_name }}
       REVISION: ${{ needs.deploy-preview.outputs.revision }}
+      WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT || secrets.GCP_SERVICE_ACCOUNT }}
 
     steps:
+      - name: Validate identity inputs
+        run: |
+          if [ -z "${WIF_PROVIDER}" ] || [ -z "${SERVICE_ACCOUNT}" ]; then
+            echo "Workload identity provider or service account is not set. Check repository/environment variables." >&2
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Shift traffic to approved revision
         run: |
