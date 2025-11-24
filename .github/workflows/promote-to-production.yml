@@ -71,6 +71,7 @@ jobs:
       deployments: write
       pull-requests: write
       actions: write
+      issues: write
     with:
       image: ${{ needs.resolve-image.outputs.image }}
       environment: Production
